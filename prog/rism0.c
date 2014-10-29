@@ -7,38 +7,6 @@
  *
  *  plot "out.dat" u 1:($2+$3+1)
  *
- * References:
- *
- * Solution of a new integral equation for pair correlation function in molecular liquids
- * Lawrence J. Lowden and David Chandler
- * J. Chem. Phys. 59 (12) 6587 (1973)
- *
- * Applications of the RISM equation to diatomic fluids:
- * the liquids nitrogen, oxygen and bromine
- * C.S. Hsu, David Chandler and L.J. Lowden
- * Chem. Phys. 14 213-228 (1976)
- *
- * Comparisons of Monte Carlo and RISM calculations of pair correlation functions
- * David Chandler, C. S. Hsu and William B. Streett
- * J. Chem. Phys. 66 (11) 5231 (1977)
- *
- * Computation of the correlation functions for fluids composed of
- * diatomic molecules by means of the method of integration equations
- * Kazumitsu Kojima and Kiyoshi Arakawa
- * Bulletin of the Chemical Society of Japan 51(7) 1977-1981 (1978)
- *
- * An extended RISM equation for molecular polar fluids
- * Fumio Hirata and Peter J. Rossky
- * Chem. Phys. Lett. 83(2) 329-334 (1981)
- *
- * Application of an extended RISM equation to dipolar and quadrupolar fluids
- * Fumio Hirata, B. Montgomery Pettitt, Peter J. Rossky
- * J. Chem. Phys. 77(1) 509-520 (1982)
- *
- * Integral equation prediction of liquid state structure for
- * waterlike intermolecular potentials
- * B. Montgomery Pettitt and Peter J. Rossky
- * J. Chem. Phys. 77(3) 1451-1457 (1982)
  * */
 
 
@@ -504,7 +472,8 @@ static double iter_lmv(model_t *model,
             prmask[i*ns + j] = (i >= nsv && j >= nsv);
         oz(model, ck, vklr, tk, wk, invwc1w);
         sphr_k2r(tk, tr, ns, NULL);
-        /* NOTE currently the we cannot continue here */
+        /* NOTE currently the we cannot continue from here
+         * thus, we stop at the case of infinite dilution */
         //fprintf(stderr, "turning on solute-solute interaction\n"); getchar();
         break;
       }
