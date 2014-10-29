@@ -30,7 +30,12 @@
 
 
 
-
+#ifndef xnew
+#define xnew(x, n) { \
+  if ((x = calloc(n, sizeof(*(x)))) == NULL) { \
+    fprintf(stderr, "no memory for %s x %d\n", #x, (int) (n)); \
+    exit(1); } }
+#endif
 
 #define newarr(x, n) x = (double *) fftw_malloc(sizeof(x[0]) * n)
 #define delarr(x) fftw_free(x)
@@ -97,23 +102,25 @@ static void donefftw(void)
 
 /* c(r) --> c(k)
  * c(k) = 2 Pi/k Int 2 r c(r) sin(kr) dr */
-#define sphr_r2k(cr, ck, ns) \
-  sphrt(cr, ck, fft_ri, fft_ki, fft_dr*(2*PI), ns)
+#define sphr_r2k(cr, ck, ns, prmask) \
+  sphrt(cr, ck, fft_ri, fft_ki, fft_dr*(2*PI), ns, prmask)
 
 /* t(k) --> t(r)
  * t(r) = 2 Pi/r/(2 Pi)^3 Int 2 k t(k) sin(kr) dk */
-#define sphr_k2r(tk, tr, ns) \
-  sphrt(tk, tr, fft_ki, fft_ri, fft_dk/(4*PI*PI), ns)
+#define sphr_k2r(tk, tr, ns, prmask) \
+  sphrt(tk, tr, fft_ki, fft_ri, fft_dk/(4*PI*PI), ns, prmask)
 
 /* f(k) = fac/k Int 2 r f(r) sin(kr) dr */
 static void sphrt(double **fr, double **fk,
-    const double *ri, const double *ki, double fac, int ns)
+    const double *ri, const double *ki, double fac,
+    int ns, const int *prmask)
 {
   int i, j, ij, l;
 
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i * ns + j;
+      if ( prmask && !prmask[ij] ) continue;
       for ( l = 0; l < fft_npt; l++ )
         fft_arr[l] = fr[ij][l] * ri[l];
       fftw_execute(fftwplan);

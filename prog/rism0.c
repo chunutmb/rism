@@ -210,9 +210,7 @@ static void initwk(model_t *m, double **wk)
     for ( ipr = 0, i = 0; i < ns; i++ ) {
       wk[i*ns + i][u] = 1; /* for j == i */
       for ( j = i + 1; j < ns; j++, ipr++ ) { /* for j > i */
-        double l = m->Lpm[ipr], w;
-        /* note, if i and j belong to different molecules
-         * w is necessarily 0, so wk is set to zero */
+        double l = m->Lpm[ipr];
         wk[j*ns + i][u] = wk[i*ns + j][u] = (l > 0) ? sin(k*l)/(k*l) : 0;
       }
     }
@@ -221,7 +219,7 @@ static void initwk(model_t *m, double **wk)
 
 
 
-/* Ornstein-Zernike relation */
+/* Ornstein-Zernike relation: c(k) --> t(k) */
 static void oz(model_t *m, double **ck, double **vklr,
     double **tk, double **wk, double **invwc1w)
 {
@@ -235,17 +233,16 @@ static void oz(model_t *m, double **ck, double **vklr,
   newarr(iwc1w,  ns * ns);
 
   for ( l = 0; l < m->npt; l++ ) {
-    /* compute w c */
-    for ( i = 0; i < ns; i++ ) {
+    /* compute w c
+     * note that w c is not symmetric w.r.t. i and j */
+    for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ ) {
         ij = i*ns + j;
-        //printf("i %d, j %d, vklr %g, ck %g\n", i, j, vklr[ij][l], ck[ij][l]);
         wc[ij] = 0;
         for ( u = 0; u < ns; u++ )
           wc[ij] += wk[i*ns + u][l] * (ck[u*ns + j][l] - vklr[u*ns + j][l]);
         wc1[ij] = (i == j) - m->rho[i] * wc[ij];
       }
-    }
 
     /* compute the inverse matrix */
     invmat(ns, wc1, invwc1);
@@ -262,7 +259,7 @@ static void oz(model_t *m, double **ck, double **vklr,
       }
 
     /* compute w c (1 - rho w * c)^(-1) w */
-    for ( i = 0; i < ns; i++ ) {
+    for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ ) {
         ij = i * ns + j;
         hk = 0;
@@ -270,7 +267,6 @@ static void oz(model_t *m, double **ck, double **vklr,
           hk += wc[i*ns + u] * iwc1w[u*ns + j];
         tk[ij][l] = hk - ck[ij][l];
       }
-    }
   }
 
   delarr(wc);
@@ -308,9 +304,9 @@ static double iter_picard(model_t *model,
   double y, dcr, err, errp = errinf;
 
   for ( it = 0; it < itmax; it++ ) {
-    sphr_r2k(cr, ck, ns);
+    sphr_r2k(cr, ck, ns, NULL);
     oz(model, ck, vklr, tk, wk, NULL);
-    sphr_k2r(tk, tr, ns);
+    sphr_k2r(tk, tr, ns, NULL);
 
     /* solve the closure */
     err = 0;
@@ -352,11 +348,21 @@ static double iter_lmv(model_t *model,
   int ns = model->ns, npt = model->npt;
   double **Cjk = NULL, *mat = NULL, *a = NULL, *b = NULL, *costab = NULL;
   double y, dy, err1 = 0, err2 = 0, err, errp = errinf, dmp;
+  int *prmask, nsv;
+
+  /* initialize the prmask for solvent-solvent iteraction */
+  xnew(prmask, ns * ns);
+  for ( i = 1; i < ns; i++ )
+    if ( model->Lpm[i-1] < DBL_MIN ) break;
+  nsv = i;
+  for ( i = 0; i < ns; i++ )
+    for ( j = 0; j < ns; j++ )
+      prmask[i*ns + j] = (i < nsv && j < nsv);
 
   /* initialize t(k) and t(r) */
-  sphr_r2k(cr, ck, ns);
-  oz(model, ck, vklr, tk, wk, NULL);
-  sphr_k2r(tk, tr, ns);
+  sphr_r2k(cr, ck, ns, NULL);
+  oz(model, ck, vklr, tk, wk, NULL); /* c(k) --> t(k) */
+  sphr_k2r(tk, tr, ns, NULL);
 
   /* set the optimal M */
   M = (model->Mpt > 0) ? model->Mpt :
@@ -394,7 +400,7 @@ static double iter_lmv(model_t *model,
         }
       }
     }
-    sphr_r2k(cr, ck, ns);
+    sphr_r2k(cr, ck, ns, NULL);
 
     /* compute Cjk */
     for ( i = 0; i < ns; i++ ) {
@@ -426,7 +432,10 @@ static double iter_lmv(model_t *model,
           int id1, id2, i2, j2, ipr2;
 
           id1 = m*npr + ipr;
-          b[id1] = fft_ki[m] * (ntk[i*ns+j][m] - tk[i*ns+j][m]);
+          if ( prmask[i*ns + j] )
+            b[id1] = fft_ki[m] * (ntk[i*ns+j][m] - tk[i*ns+j][m]);
+          else
+            b[id1] = 0;
 
           for ( k = 0; k < M; k++ ) {
             for ( ipr2 = 0, i2 = 0; i2 < ns; i2++ ) {
@@ -469,20 +478,38 @@ static double iter_lmv(model_t *model,
       for ( i = 0; i < ns; i++ ) {
         for ( j = 0; j < ns; j++ ) {
           ij = i * ns + j;
-          y = ntk[ij][l] - tk[ij][l];
+          y = prmask[ij] ? ntk[ij][l] - tk[ij][l] : 0;
           if ( fabs(y) > err2 ) err2 = fabs(y);
           tk[ij][l] += dmp * y;
         }
       }
     }
 
-    sphr_k2r(tk, tr, ns);
+    sphr_k2r(tk, tr, ns, NULL);
 
     if ( verbose )
       fprintf(stderr, "it %d: M %d, errp %g, err1 %g, err2 %g, damp %g\n",
           it, M, errp, err1, err2, dmp);
     err = err1 > err2 ? err1 : err2;
-    if ( err < tol ) break;
+    if ( err < tol ) {
+      if ( prmask[ns*ns-1] ) break;
+      if ( prmask[nsv] == 0 ) { /* turn on solute-solvent interaction */
+        for ( i = 0; i < ns; i++ )
+          for ( j = 0; j < ns; j++ )
+            prmask[i*ns + j] = (i < nsv && j >= nsv || j < nsv && i >= nsv);
+        fprintf(stderr, "turning on solute-solvent interaction\n"); //getchar();
+      } else { /* turn on solute-solute interaction */
+        for ( i = 0; i < ns; i++ )
+          for ( j = 0; j < ns; j++ )
+            prmask[i*ns + j] = (i >= nsv && j >= nsv);
+        oz(model, ck, vklr, tk, wk, invwc1w);
+        sphr_k2r(tk, tr, ns, NULL);
+        /* NOTE currently the we cannot continue here */
+        //fprintf(stderr, "turning on solute-solute interaction\n"); getchar();
+        break;
+      }
+      err = errinf;
+    }
 /*
     // adaptively adjust the damping factor
     if ( err > errp ) {
@@ -500,6 +527,7 @@ static double iter_lmv(model_t *model,
     delarr(a);
     delarr(b);
   }
+  free(prmask);
   return err;
 }
 
@@ -544,7 +572,7 @@ static int output(model_t *model,
 static double getdiameter(model_t *m)
 {
   int i, j, ipr, ns = m->ns;
-  double vol = 0, si, sj, lij;
+  double vol = 0, si, sj, l;
 
   /* determine the number of sites of the solvent */
   for ( i = 1; i < ns; i++ )
@@ -553,22 +581,18 @@ static double getdiameter(model_t *m)
       break;
     }
 
-  for ( i = 0; i < ns; i++ ) {
+  for ( i = 0; i < ns; i++ )
     vol += pow( m->sigma[i], 3 );
-  }
 
   /* deduct the overlap */
-  for ( ipr = 0, i = 0; i < ns; i++ ) {
-    si = m->sigma[i];
+  for ( ipr = 0, i = 0; i < ns; i++ )
     for ( j = i + 1; j < ns; j++, ipr++ ) {
+      si = m->sigma[i];
       sj = m->sigma[j];
-      lij = m->Lpm[ipr];
-      vol -= (si*si*si + sj*sj*sj)/2
-           - (si*si + sj*sj)*lij*3./4
-           - pow(si*si - sj*sj, 2)*3./32/lij
-           + lij*lij*lij/2;
+      l = m->Lpm[ipr];
+      vol -= (si*si*si + sj*sj*sj)/2 - (si*si + sj*sj)*l*3./4
+           - pow(si*si - sj*sj, 2)*3./32/l + l*l*l/2;
     }
-  }
 
   return pow(vol, 1./3);
 }
@@ -611,12 +635,11 @@ static void dorism(void)
     lam = 1.*ilam/nlam;
 
     initfr(model, fr, vrlr, lam);
-    sphr_r2k(vrlr, vklr, ns);
+    sphr_r2k(vrlr, vklr, ns, NULL);
 
     /* use f(r) as the initial c(r) for the lowest lambda */
-    if ( ilam == 1) {
+    if ( ilam == 1)
       cparr2d(cr, fr, ns * ns, npt);
-    }
 
     if ( solver == SOLVER_LMV ) {
       err = iter_lmv(model, fr, wk, cr, der, ck, vklr, tr, tk, ntk, cp, &it);
