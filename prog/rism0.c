@@ -45,7 +45,7 @@ typedef struct {
 
 #include "models.h" /* built-in models from literature */
 
-int model_id = 15;
+int model_id = 16;
 
 enum { SOLVER_PICARD, SOLVER_LMV };
 
@@ -490,6 +490,7 @@ static double iter_lmv(model_t *model,
     if ( err < tol ) {
       /* switch between stages */
       if ( stage == 0 ) { /* turn on solute-solvent interaction */
+        if ( nsv == ns ) break;
         for ( i = 0; i < ns; i++ )
           for ( j = 0; j < ns; j++ )
             prmask[i*ns + j] = ((i < nsv && j >= nsv)
@@ -573,17 +574,16 @@ static int output(model_t *model,
  * and it does not affect the solver */
 static double getdiameter(model_t *m)
 {
-  int i, j, ipr, ns = m->ns;
+  int i, j, ipr, ns = m->ns, nsv;
   double vol = 0, si, sj, l;
 
   /* determine the number of sites of the solvent */
   for ( i = 1; i < ns; i++ )
-    if ( m->Lpm[i-1] <= 0 ) {
-      ns = i;
+    if ( fabs(m->rho[i] - m->rho[0]) > 1e-3 )
       break;
-    }
+  nsv = i;
 
-  for ( i = 0; i < ns; i++ )
+  for ( i = 0; i < nsv; i++ )
     vol += pow( m->sigma[i], 3 );
 
   /* deduct the overlap */
@@ -592,6 +592,7 @@ static double getdiameter(model_t *m)
       si = m->sigma[i];
       sj = m->sigma[j];
       l = m->Lpm[ipr];
+      if ( l < DBL_MIN ) continue;
       vol -= (si*si*si + sj*sj*sj)/2 - (si*si + sj*sj)*l*3./4
            - pow(si*si - sj*sj, 2)*3./32/l + l*l*l/2;
     }
