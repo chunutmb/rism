@@ -19,4 +19,5 @@ $(bins_d) : %_d: %.c $(deps)
 
 clean:
 	rm -f $(bins) $(bins_d) *~ a.out *.dat MTSEED
+	rm -rf r[0-9]*hs
 
