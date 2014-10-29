@@ -46,6 +46,7 @@
 
 #define MAXATOM 4
 enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
+enum { IE_PY, IE_HNC };
 
 typedef struct {
   int ns;
@@ -56,10 +57,14 @@ typedef struct {
   double beta;
   int ljtype;
 
-  int dohnc;
+  int ietype;
+  double rmax; /* radius cutoff */
+  int npt; /* number of sampling points along r */
   int Mpt; /* number of points for the Newton-Raphson method (LMV) */
   double lmvdamp; /* damping factor for the LMV solver */
+
   int nlambda; /* number of intermediate stages */
+
   double charge[MAXATOM];
   double ampch;
   double radch; /* screening distance */
@@ -73,37 +78,37 @@ model_t models[] =
   {0}, /* empty model, place holder */
   /* 1. LC 1973, and Model I of CHS 1977 */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.500, {0.600}, 1.000, HARD_SPHERE,
-    FALSE, 0, 0.5},
+    IE_PY, 20.48, 1024, 0, 0.5},
   /* 2. Model II of CHS 1977 */
   {2, {0.790, 1.000}, {{1, 1}, {1, 1}}, 0.686, {0.490}, 1.000, HARD_SPHERE,
-    FALSE, 0, 0.5},
+    IE_PY, 20.48, 1024, 0, 0.5},
   /* 3. Model III of CHS 1977 */
   {2, {0.675, 1.000}, {{1, 1}, {1, 1}}, 0.825, {0.346}, 1.000, HARD_SPHERE,
-    FALSE, 0, 0.5},
+    IE_PY, 20.48, 1024, 0, 0.5},
   /* 4. LC1973, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.696, {1.1/3.341}, 1/1.83, LJ_REPULSIVE,
-    FALSE, 0, 0.5},
+    IE_PY, 20.48, 1024, 0, 0.5},
   /* 5. KA1978, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.6964, {1.1/3.341}, 1/1.61, LJ_FULL,
-    FALSE, 20, 0.5,  5},
+    IE_PY, 20.48, 1024, 20, 0.5, 5},
   /* 6. HR1981, liquid nitrogen, neutral */
   {2, {3.341, 3.341}, {{1, 1}, {1, 1}}, 0.01867, {1.1}, 1/1.636, LJ_FULL,
-    TRUE,  10, 0.2, 10},
+    IE_HNC, 20.48, 1024, 10, 0.2, 10},
   /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
   {2, {3.341, 3.341}, {{44.0, 44.0}, {44.0, 44.0}}, 0.01867, {1.1}, 1./72, LJ_FULL,
-    TRUE,  10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
+    IE_HNC, 20.48, 1024, 10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
   /* 8. HPR1982, HCl, model II */
   {2, {2.735, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, 0.018, {1.257}, 1./210, LJ_FULL,
-    TRUE,  10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
+    IE_HNC, 20.48, 1024, 10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
   /* 9. HPR1982, HCl, model III */
   {2, {0.4, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, 0.018, {1.3}, 1./210, LJ_FULL,
-    TRUE,  10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
+    IE_HNC, 20.48, 1024, 10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
   /* 10. PR1982, H2O, model I
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * d(H1, H2) = 1.51369612 (104.5 degree) */
   {3, {2.8, 0.4, 0.4}, {{0}}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
-    TRUE,  10, 0.3, 10, {-0.866088, 0.433044, 0.433044}, KE2C, 1.0,
+    IE_HNC, 20.48, 1024, 10, 0.3, 10, {-0.866088, 0.433044, 0.433044}, KE2C, 1.0,
     { {262.566, 309408} /* O-O */, {0, 689.348} /* O-H1 */, {0, 689.348} /* O-H2 */,
       {0, 610.455} /* H1-H1 */, {0, 610.455} /* H1-H2 */, {0, 610.455} /* H2-H2 */ } },
   /* 11. PR1982, H2O, model II (SPC)
@@ -111,7 +116,7 @@ model_t models[] =
    * C6/C12 are used instead of sigma/epsilon
    * d(H1, H2) = 1.633081624 (109.48 degree) */
   {3, {3.166, 0.4, 0.4}, {{0}}, 0.03334, {1.0, 1.0, 1.633081624}, 1./(KBNAC*300), LJ_FULL,
-    TRUE,  10, 0.3, 10, {-0.82, 0.41, 0.41}, KE2C, 1.0,
+    IE_HNC, 20.48, 1024,  10, 0.3, 10, {-0.82, 0.41, 0.41}, KE2C, 1.0,
     { {-625.731, 629624} /* O-O */, {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
       {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ } },
   /* 12. PR1982, H2O, model III (TIPS)
@@ -119,22 +124,22 @@ model_t models[] =
    * C6/C12 are used instead of sigma/epsilon
    * d(H1, H2) = 1.51369612 (104.5 degree) */
   {3, {3.215, 0.4, 0.4}, {{0}}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
-    TRUE,  10, 0.3, 10, {-0.8, 0.4, 0.4}, KE2C, 1.0,
+    IE_HNC, 20.48, 1024, 10, 0.3, 10, {-0.8, 0.4, 0.4}, KE2C, 1.0,
     { {-525.000, 580000} /* O-O */, {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
       {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ } },
   /* 13. SPCE, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
    * the following data are copied from /Bossman/Software/3Drism/h2o_lib/spce */
   {3, {3.1666, 0.4, 0.4}, {{78.2083543, 78.2083543}, {0, 23.150478}, {0, 23.150478}}, 0.033314, {1.0, 1.0, 1.633}, 1./300, LJ_FULL,
-    TRUE,  10, 0.3, 10, {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0},
+    IE_HNC, 40.96, 2048, 30, 0.3, 10, {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0},
   /* 14. TIP3, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
    * the following data are copied from /Bossman/Software/3Drism/h2o_lib/tip3 */
   {3, {3.15, 0.4, 0.4}, {{76.5364, 76.5364}, {0, 23.1509}, {0, 23.1509}}, 0.033314, {0.95719835, 0.95719835, 1.5139}, 1./300, LJ_FULL,
-    TRUE,  10, 0.3, 10, {-0.834, 0.417, 0.417}, KE2PK, 1.0},
+    IE_HNC, 40.96, 2048, 30, 0.3, 10, {-0.834, 0.417, 0.417}, KE2PK, 1.0},
 };
 
-int model_id = 13;
+int model_id = 14;
 
 enum { SOLVER_PICARD, SOLVER_LMV };
 
@@ -142,10 +147,7 @@ int solver = SOLVER_LMV;
 double damp = 0.01;
 double errinf = 1e9;
 int itmax = 100000;
-
-int npt = 2048; /* number of sampling points along the r or k */
 double tol = 1e-7;
-double rmax = 20.48;
 int verbose = 1;
 
 
@@ -231,7 +233,7 @@ static void initfr(model_t *m, double **fr, double **vrlr, double lam)
       c12 = m->C6_12[ipr][1];
       use_c6_12 = (fabs(eps6) < DBL_MIN && fabs(eps12) < DBL_MIN);
 
-      for ( l = 0; l < npt; l++ ) {
+      for ( l = 0; l < m->npt; l++ ) {
         if ( m->ljtype  == HARD_SPHERE) {
           z = (fft_ri[l] < sig) ? -1 : 0;
         } else { /* Lennard-Jones */
@@ -261,11 +263,11 @@ static void initfr(model_t *m, double **fr, double **vrlr, double lam)
 
 
 /* initialize the omega matrix for intra-molecular covalence bonds */
-static void initwk(double **wk, model_t *m)
+static void initwk(model_t *m, double **wk)
 {
   int i, j, l, ipr, ns = m->ns;
 
-  for ( l = 0; l < npt; l++ ) {
+  for ( l = 0; l < m->npt; l++ ) {
     double k = fft_ki[l];
     for ( ipr = 0, i = 0; i < ns; i++ ) {
       wk[i*ns + i][l] = 1; /* for j == i */
@@ -280,19 +282,19 @@ static void initwk(double **wk, model_t *m)
 
 
 /* Ornstein-Zernike relation */
-static void oz(double **ck, double **vklr, double **tk, double **wk,
-    double **invwc1w, int ns, double rho)
+static void oz(model_t *m, double **ck, double **vklr,
+    double **tk, double **wk, double **invwc1w)
 {
-  int i, j, ij, l, u;
+  int i, j, ij, l, u, ns = m->ns;
   double *wc, *wc1, *invwc1, *iwc1w;
-  double hk;
+  double hk, rho = m->rho;
 
   newarr(wc,     ns * ns);
   newarr(wc1,    ns * ns);
   newarr(invwc1, ns * ns);
   newarr(iwc1w,  ns * ns);
 
-  for ( l = 0; l < npt; l++ ) {
+  for ( l = 0; l < m->npt; l++ ) {
     /* compute w c */
     for ( i = 0; i < ns; i++ ) {
       for ( j = 0; j < ns; j++ ) {
@@ -340,10 +342,10 @@ static void oz(double **ck, double **vklr, double **tk, double **wk,
 
 
 /* return the cavity distribution function */
-static double getyr(double tr, double *dy, int dohnc)
+static double getyr(double tr, double *dy, int ietype)
 {
   double xp;
-  if ( dohnc) {
+  if ( ietype == IE_HNC ) {
     xp = exp(tr);
     if ( dy ) *dy = xp;
     return xp;
@@ -363,20 +365,20 @@ static double iter_picard(model_t *model,
     double **tr, double **tk, int *niter)
 {
   int it, ns = model->ns, i, j, ij, l;
-  double rho = model->rho, y, dcr, err, errp = errinf;
+  double y, dcr, err, errp = errinf;
 
   for ( it = 0; it < itmax; it++ ) {
     sphr_r2k(cr, ck, ns);
-    oz(ck, vklr, tk, wk, NULL, ns, rho);
+    oz(model, ck, vklr, tk, wk, NULL);
     sphr_k2r(tk, tr, ns);
 
     /* solve the closure */
     err = 0;
-    for ( l = 0; l < npt; l++ ) {
+    for ( l = 0; l < model->npt; l++ ) {
       for ( i = 0; i < ns; i++ ) {
         for ( j = 0; j < ns; j++ ) {
           ij = i * ns + j;
-          y = getyr(tr[ij][l], NULL, model->dohnc);
+          y = getyr(tr[ij][l], NULL, model->ietype);
           dcr = (fr[ij][l] + 1) * y - 1 - tr[ij][l] - cr[ij][l];
           if ( fabs(dcr) > err ) err = fabs(dcr);
           cr[ij][l] += dcr * damp;
@@ -406,17 +408,20 @@ static double iter_lmv(model_t *model,
     double **tr, double **tk, double **ntk,
     double **invwc1w, int *niter)
 {
-  int i, j, k, l, m, ij, it, M, npr, ipr, Mp, ns = model->ns;
+  int i, j, k, l, m, ij, it, M, npr, ipr, Mp;
+  int ns = model->ns, npt = model->npt;
   double **Cjk = NULL, *mat = NULL, *a = NULL, *b = NULL, *costab = NULL;
   double y, dy, err1 = 0, err2 = 0, err, errp = errinf, dmp;
 
   /* initialize t(k) and t(r) */
   sphr_r2k(cr, ck, ns);
-  oz(ck, vklr, tk, wk, NULL, ns, model->rho);
+  oz(model, ck, vklr, tk, wk, NULL);
   sphr_k2r(tk, tr, ns);
 
   /* set the optimal M */
-  M = (model->Mpt > 0) ? model->Mpt : (int) (2 * rmax/model->sigma[ns-1]);
+  M = (model->Mpt > 0) ?
+       model->Mpt :
+       (int) (2 * model->rmax/model->sigma[ns-1]);
   if ( M >= npt ) M = npt;
   if ( verbose ) fprintf(stderr, "select M = %d\n", M);
 
@@ -444,7 +449,7 @@ static double iter_lmv(model_t *model,
       for ( j = 0; j < ns; j++ ) {
         for ( l = 0; l < npt; l++ ) {
           ij = i * ns + j;
-          y = getyr(tr[ij][l], &dy, model->dohnc);
+          y = getyr(tr[ij][l], &dy, model->ietype);
           cr[ij][l] = (fr[ij][l] + 1) * y - tr[ij][l] - 1;
           der[ij][l] = (fr[ij][l] + 1) * dy - 1;
         }
@@ -473,7 +478,7 @@ static double iter_lmv(model_t *model,
     }
 
     /* compute the new t(k) */
-    oz(ck, vklr, ntk, wk, invwc1w, ns, model->rho);
+    oz(model, ck, vklr, ntk, wk, invwc1w);
 
     /* compute the matrix for the Newton-Raphson method */
     for ( m = 0; m < M; m++ ) {
@@ -577,7 +582,7 @@ static int output(model_t *model,
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i * ns + j;
-      for ( l = 0; l < npt; l++ ) {
+      for ( l = 0; l < model->npt; l++ ) {
         double vr = vrlr[ij][l], vk = vklr[ij][l];
         fprintf(fp, "%g %g %g %g %g %d %d %g %g %g %g %g\n",
             fft_ri[l], cr[ij][l] - vr, tr[ij][l] + vr, fr[ij][l],
@@ -625,7 +630,7 @@ static double getdiameter(model_t *m)
 
 static void dorism(void)
 {
-  int it, ns, ilam, nlam;
+  int it, ns, npt, ilam, nlam;
   double err, dia, lam;
   double **fr, **wk, **cr, **cp, **ck, **tr, **tk;
   double **der, **ntk, **vrlr, **vklr;
@@ -635,6 +640,7 @@ static void dorism(void)
   dia = getdiameter(model);
 
   ns = model->ns;
+  npt = model->npt;
   newarr2d(fr,    ns * ns, npt);
   newarr2d(wk,    ns * ns, npt);
   newarr2d(cr,    ns * ns, npt);
@@ -647,8 +653,8 @@ static void dorism(void)
   newarr2d(vrlr,  ns * ns, npt);
   newarr2d(vklr,  ns * ns, npt);
 
-  initfftw(rmax, npt);
-  initwk(wk, model);
+  initfftw(model->rmax, npt);
+  initwk(model, wk);
 
   /* lambda is used to gradually switch on long-range interaction */
   nlam = model->nlambda;
