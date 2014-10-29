@@ -50,7 +50,7 @@ enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
 typedef struct {
   int ns;
   double sigma[MAXATOM];
-  double epsilon[MAXATOM];
+  double eps6_12[MAXATOM][2];
   double rho;
   double Lpm[MAXATOM*(MAXATOM-1)/2];
   double beta;
@@ -72,37 +72,37 @@ model_t models[] =
 {
   {0}, /* empty model, place holder */
   /* 1. LC 1973, and Model I of CHS 1977 */
-  {2, {1.000, 1.000}, {1.000, 1.000}, 0.500, {0.600}, 1.000, HARD_SPHERE,
+  {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.500, {0.600}, 1.000, HARD_SPHERE,
     FALSE, 0, 0.5},
   /* 2. Model II of CHS 1977 */
-  {2, {0.790, 1.000}, {1.000, 1.000}, 0.686, {0.490}, 1.000, HARD_SPHERE,
+  {2, {0.790, 1.000}, {{1, 1}, {1, 1}}, 0.686, {0.490}, 1.000, HARD_SPHERE,
     FALSE, 0, 0.5},
   /* 3. Model III of CHS 1977 */
-  {2, {0.675, 1.000}, {1.000, 1.000}, 0.825, {0.346}, 1.000, HARD_SPHERE,
+  {2, {0.675, 1.000}, {{1, 1}, {1, 1}}, 0.825, {0.346}, 1.000, HARD_SPHERE,
     FALSE, 0, 0.5},
   /* 4. LC1973, liquid nitrogen */
-  {2, {1.000, 1.000}, {1.000, 1.000}, 0.696, {1.1/3.341}, 1/1.83, LJ_REPULSIVE,
+  {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.696, {1.1/3.341}, 1/1.83, LJ_REPULSIVE,
     FALSE, 0, 0.5},
   /* 5. KA1978, liquid nitrogen */
-  {2, {1.000, 1.000}, {1.000, 1.000}, 0.6964, {1.1/3.341}, 1/1.61, LJ_FULL,
+  {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.6964, {1.1/3.341}, 1/1.61, LJ_FULL,
     FALSE, 20, 0.5,  5},
   /* 6. HR1981, liquid nitrogen, neutral */
-  {2, {3.341, 3.341}, {1.000, 1.000}, 0.01867, {1.1}, 1/1.636, LJ_FULL,
+  {2, {3.341, 3.341}, {{1, 1}, {1, 1}}, 0.01867, {1.1}, 1/1.636, LJ_FULL,
     TRUE,  10, 0.2, 10},
   /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
-  {2, {3.341, 3.341}, {44.0, 44.0}, 0.01867, {1.1}, 1./72, LJ_FULL,
+  {2, {3.341, 3.341}, {{44.0, 44.0}, {44.0, 44.0}}, 0.01867, {1.1}, 1./72, LJ_FULL,
     TRUE,  10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
   /* 8. HPR1982, HCl, model II */
-  {2, {2.735, 3.353}, {20.0, 259.0}, 0.018, {1.257}, 1./210, LJ_FULL,
+  {2, {2.735, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, 0.018, {1.257}, 1./210, LJ_FULL,
     TRUE,  10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
   /* 9. HPR1982, HCl, model III */
-  {2, {0.4, 3.353}, {20.0, 259.0}, 0.018, {1.3}, 1./210, LJ_FULL,
+  {2, {0.4, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, 0.018, {1.3}, 1./210, LJ_FULL,
     TRUE,  10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
   /* 10. PR1982, H2O, model I
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * d(H1, H2) = 1.51369612 (104.5 degree) */
-  {3, {2.8, 0.4, 0.4}, {0, 0, 0}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
+  {3, {2.8, 0.4, 0.4}, {{0}}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
     TRUE,  10, 0.3, 10, {-0.866088, 0.433044, 0.433044}, KE2C, 1.0,
     { {262.566, 309408} /* O-O */, {0, 689.348} /* O-H1 */, {0, 689.348} /* O-H2 */,
       {0, 610.455} /* H1-H1 */, {0, 610.455} /* H1-H2 */, {0, 610.455} /* H2-H2 */ } },
@@ -110,7 +110,7 @@ model_t models[] =
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * d(H1, H2) = 1.633081624 (109.48 degree) */
-  {3, {3.166, 0.4, 0.4}, {0, 0, 0}, 0.03334, {1.0, 1.0, 1.633081624}, 1./(KBNAC*300), LJ_FULL,
+  {3, {3.166, 0.4, 0.4}, {{0}}, 0.03334, {1.0, 1.0, 1.633081624}, 1./(KBNAC*300), LJ_FULL,
     TRUE,  10, 0.3, 10, {-0.82, 0.41, 0.41}, KE2C, 1.0,
     { {-625.731, 629624} /* O-O */, {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
       {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ } },
@@ -118,13 +118,23 @@ model_t models[] =
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * d(H1, H2) = 1.51369612 (104.5 degree) */
-  {3, {3.215, 0.4, 0.4}, {0, 0, 0}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
+  {3, {3.215, 0.4, 0.4}, {{0}}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
     TRUE,  10, 0.3, 10, {-0.8, 0.4, 0.4}, KE2C, 1.0,
     { {-525.000, 580000} /* O-O */, {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
       {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ } },
+  /* 13. SPCE, H2O
+   * atom 0: O, atom 1: H1, atom 2: H2
+   * the following data are copied from /Bossman/Software/3Drism/h2o_lib/spce */
+  {3, {3.1666, 0.4, 0.4}, {{78.2083543, 78.2083543}, {0, 23.150478}, {0, 23.150478}}, 0.033314, {1.0, 1.0, 1.633}, 1./300, LJ_FULL,
+    TRUE,  10, 0.3, 10, {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0},
+  /* 14. TIP3, H2O
+   * atom 0: O, atom 1: H1, atom 2: H2
+   * the following data are copied from /Bossman/Software/3Drism/h2o_lib/tip3 */
+  {3, {3.15, 0.4, 0.4}, {{76.5364, 76.5364}, {0, 23.1509}, {0, 23.1509}}, 0.033314, {0.95719835, 0.95719835, 1.5139}, 1./300, LJ_FULL,
+    TRUE,  10, 0.3, 10, {-0.834, 0.417, 0.417}, KE2PK, 1.0},
 };
 
-int model_id = 11;
+int model_id = 13;
 
 enum { SOLVER_PICARD, SOLVER_LMV };
 
@@ -133,30 +143,34 @@ double damp = 0.01;
 double errinf = 1e9;
 int itmax = 100000;
 
-int npt = 1024; /* number of sampling points along the r or k */
+int npt = 2048; /* number of sampling points along the r or k */
 double tol = 1e-7;
 double rmax = 20.48;
 int verbose = 1;
 
 
 
-#define INVRM 0.8908987181 /* 2^{-1/6} */
-
-
-
 /* Lennard-Jones potential in terms of sigma and epsilon */
-static double ljpot(double r, double sig, double eps, double lam)
+static double ljpot(double r, double sig, double eps6, double eps12,
+    double lam)
 {
-  double ir, ir6, u1, u2;
+  double ir, ir6, u1, u2, eps;
+
   ir = sig/r;
   ir6 = ir * ir * ir;
   ir6 *= ir6;
-  if ( ir < INVRM ) { /* r > sig 2^{1/6} */
-    u1 = 0; /* repulsive */
-    u2 = 4*eps*ir6*(ir6 - 1); /* attractive */
-  } else { /* r < sig 2^{1/6} */
-    u1 = 4*eps*ir6*(ir6 - 1) + eps; /* repulsive */
-    u2 = -eps; /* attractive */
+  if ( eps6 > 0 ) { /* LJ with an attractive tail */
+    if ( ir6 < eps6/(2*eps12) ) { /* r > rm */
+      u1 = 0; /* repulsive */
+      u2 = 4*ir6*(ir6*eps12 - eps6); /* attractive */
+    } else { /* r < rm */
+      eps = eps6 * eps6 / eps12;
+      u1 = 4*ir6*(ir6*eps12 - eps6) + eps; /* repulsive */
+      u2 = -eps; /* attractive */
+    }
+  } else { /* purely repulsive */
+    u1 = 4*ir6*(ir6*eps12 - eps6); /* repulsive */
+    u2 = 0; /* no attractive tail */
   }
   return u1 + u2 * lam;
 }
@@ -171,7 +185,7 @@ static double ljpot6_12(double r, double c6, double c12, double lam)
   if ( c6 < 0 ) { /* attractive */
     sig = pow(-c12/c6, 1./6);
     eps = c6*c6/4/c12;
-    return ljpot(r, sig, eps, lam);
+    return ljpot(r, sig, eps, eps, lam);
   }
   ir = 1/r;
   ir6 = ir * ir * ir;
@@ -183,14 +197,17 @@ static double ljpot6_12(double r, double c6, double c12, double lam)
 
 
 /* repulsive Lennard-Jones potential */
-static double ljrpot(double r, double sig, double eps)
+static double ljrpot(double r, double sig, double eps6, double eps12)
 {
-  double ir, ir6;
+  double ir, ir6, eps = 0;
+
   ir = sig/r;
-  if ( ir < INVRM ) return 0;
   ir6 = ir * ir * ir;
   ir6 *= ir6;
-  return 4*eps*ir6*(ir6 - 1) + eps;
+  if ( ir6 < eps6/(2*eps12) ) return 0;
+  if ( eps6 > 0 && eps12 > 0 )
+    eps = eps6 * eps6 / eps12;
+  return 4*ir6*(ir6*eps12 - eps6) + eps;
 }
 
 
@@ -198,28 +215,32 @@ static double ljrpot(double r, double sig, double eps)
 /* initialize f(r) */
 static void initfr(model_t *m, double **fr, double **vrlr, double lam)
 {
-  int i, j, ij, ji, ipr, l, ns = m->ns;
-  double beta = m->beta, sig, eps = 0, c6, c12, z, u, uelec, ulr;
+  int i, j, ij, ji, ipr, l, ns = m->ns, use_c6_12;
+  double beta = m->beta, z, u, uelec, ulr;
+  double sig, eps6, eps12, c6, c12;
 
   for ( ipr = 0, i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++, ipr++ ) {
       ij = i*ns + j;
       ji = j*ns + i;
       sig = .5 * (m->sigma[i] + m->sigma[j]);
-      eps = sqrt(m->epsilon[i] * m->epsilon[j]);
+      eps6 = sqrt(m->eps6_12[i][0] * m->eps6_12[j][0]);
+      eps12 = sqrt(m->eps6_12[i][1] * m->eps6_12[j][1]);
+
       c6 = m->C6_12[ipr][0];
       c12 = m->C6_12[ipr][1];
+      use_c6_12 = (fabs(eps6) < DBL_MIN && fabs(eps12) < DBL_MIN);
 
       for ( l = 0; l < npt; l++ ) {
         if ( m->ljtype  == HARD_SPHERE) {
           z = (fft_ri[l] < sig) ? -1 : 0;
         } else { /* Lennard-Jones */
-          if ( fabs(eps) < DBL_MIN ) {
+          if ( use_c6_12 ) {
             u = ljpot6_12(fft_ri[l], c6, c12, lam);
           } else if ( m->ljtype == LJ_REPULSIVE ) {
-            u = ljrpot(fft_ri[l], sig, eps);
+            u = ljrpot(fft_ri[l], sig, eps6, eps12);
           } else {
-            u = ljpot(fft_ri[l], sig, eps, lam);
+            u = ljpot(fft_ri[l], sig, eps6, eps12, lam);
           }
           uelec = lam * m->ampch * m->charge[i] * m->charge[j] / fft_ri[l];
           /* set the screen length as sig */
