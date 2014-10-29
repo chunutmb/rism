@@ -521,9 +521,9 @@ static int output(model_t *model,
       for ( l = 0; l < model->npt; l++ ) {
         double vr = vrlr[ij][l], vk = vklr[ij][l];
         fprintf(fp, "%g %g %g %g %g %d %d %g %g %g %g %g\n",
-            fft_ri[l], cr[ij][l], tr[ij][l], fr[ij][l],
+            fft_ri[l], cr[ij][l] - vr, tr[ij][l] + vr, fr[ij][l],
             vr, i, j,
-            fft_ki[l], ck[ij][l], tk[ij][l], wk[ij][l],
+            fft_ki[l], ck[ij][l] - vk, tk[ij][l] + vk, wk[ij][l],
             vk);
       }
       fprintf(fp, "\n");
