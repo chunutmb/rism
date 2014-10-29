@@ -269,7 +269,7 @@ static double iter_picard(model_t *model,
     double **tr, double **tk, int *niter)
 {
   int it, ns = model->ns, i, j, ij, l;
-  double y, dcr, err, errp = errinf;
+  double y, dcr, err = 0, errp = errinf;
 
   for ( it = 0; it < itmax; it++ ) {
     sphr_r2k(cr, ck, ns, NULL);
@@ -336,6 +336,45 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
 
 
 
+/* compute the Jacobian matrix for the Newton-Raphson method */
+static void getjacob(double *mat, double *b, int M, int npr, int ns,
+    int *prmask, double **ntk, double **tk, double **Cjk, double **invwc1w)
+{
+  int i1, j1, ipr1, m1, id1, i2, j2, ipr2, m2, id2, Mp;
+  double y;
+
+  Mp = M * npr;
+  for ( m1 = 0; m1 < M; m1++ ) {
+    for ( ipr1 = 0, i1 = 0; i1 < ns; i1++ ) {
+      for ( j1 = i1; j1 < ns; j1++, ipr1++ ) {
+        id1 = m1*npr + ipr1;
+        if ( prmask[i1*ns + j1] )
+          b[id1] = fft_ki[m1] * (ntk[i1*ns+j1][m1] - tk[i1*ns+j1][m1]);
+        else
+          b[id1] = 0;
+
+        for ( m2 = 0; m2 < M; m2++ ) {
+          for ( ipr2 = 0, i2 = 0; i2 < ns; i2++ ) {
+            for ( j2 = i2; j2 < ns; j2++, ipr2++ ) {
+              id2 = m2*npr + ipr2;
+              //if (id1 >= Mp || id2 >= Mp) {
+              //  fprintf(stderr, "id1 %d, id2 %d, m2 %d, ipr2 %d/%d\n", id1, id2, m2, ipr2, npr);
+              //  exit(1);
+              //}
+              y = (ipr1 == ipr2 ? (m1 == m2) + Cjk[i1*ns+j1][m1*M+m2] : 0)
+                - invwc1w[i1*ns+i2][m1] * Cjk[i2*ns+j2][m1*M+m2]
+                * invwc1w[j2*ns+j1][m2];
+              mat[id1*Mp + id2] = y;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
 /* Reference:
  * Stanislav Labik, Anatol Malijevsky, Petr Vonka
  * A rapidly convergent method of solving the OZ equation
@@ -346,20 +385,11 @@ static double iter_lmv(model_t *model,
     double **tr, double **tk, double **ntk,
     double **invwc1w, int *niter)
 {
-  int i, j, k, l, m, ij, it, M, npr, ipr, Mp;
+  int i, j, l, ij, it, M, npr, ipr, Mp;
   int ns = model->ns, npt = model->npt;
   double **Cjk = NULL, *mat = NULL, *a = NULL, *b = NULL, *costab = NULL;
-  double y, dy, err1 = 0, err2 = 0, err, errp = errinf, dmp;
-  int *prmask, nsv;
-
-  /* initialize the prmask for solvent-solvent iteraction */
-  xnew(prmask, ns * ns);
-  for ( i = 1; i < ns; i++ )
-    if ( model->Lpm[i-1] < DBL_MIN ) break;
-  nsv = i;
-  for ( i = 0; i < ns; i++ )
-    for ( j = 0; j < ns; j++ )
-      prmask[i*ns + j] = (i < nsv && j < nsv);
+  double y, dy, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
+  int *prmask, nsv, stage;
 
   /* initialize t(k) and t(r) */
   sphr_r2k(cr, ck, ns, NULL);
@@ -376,7 +406,7 @@ static double iter_lmv(model_t *model,
   dmp = (model->lmvdamp > 0) ? model->lmvdamp : 1;
 
   npr = ns * (ns + 1) / 2;
-  Mp = M*npr;
+  Mp = M * npr;
 
   /* initialize the cosine table */
   if ( M > 0 ) {
@@ -389,6 +419,16 @@ static double iter_lmv(model_t *model,
       for ( j = 0; j < 4*M; j++ )
         costab[j*npt + i] = cos(PI*(i+.5)*(j-2*M)/npt);
   }
+
+  /* initialize the prmask for solvent-solvent iteraction */
+  xnew(prmask, ns * ns);
+  for ( i = 1; i < ns; i++ )
+    if ( model->Lpm[i-1] < DBL_MIN ) break;
+  nsv = i;
+  for ( i = 0; i < ns; i++ )
+    for ( j = 0; j < ns; j++ )
+      prmask[i*ns + j] = (i < nsv && j < nsv);
+  stage = 0;
 
   for ( it = 0; it < itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
@@ -410,62 +450,32 @@ static double iter_lmv(model_t *model,
     /* compute the new t(k) */
     oz(model, ck, vklr, ntk, wk, invwc1w);
 
-    /* compute the Jacobian for the Newton-Raphson method */
-    for ( m = 0; m < M; m++ ) {
-      for ( ipr = 0, i = 0; i < ns; i++ ) {
-        for ( j = i; j < ns; j++, ipr++ ) {
-          int id1, id2, i2, j2, ipr2;
-
-          id1 = m*npr + ipr;
-          if ( prmask[i*ns + j] )
-            b[id1] = fft_ki[m] * (ntk[i*ns+j][m] - tk[i*ns+j][m]);
-          else
-            b[id1] = 0;
-
-          for ( k = 0; k < M; k++ ) {
-            for ( ipr2 = 0, i2 = 0; i2 < ns; i2++ ) {
-              for ( j2 = i2; j2 < ns; j2++, ipr2++ ) {
-                id2 = k*npr + ipr2;
-                if (id1 >= Mp || id2 >= Mp) {
-                  fprintf(stderr, "id1 %d, id2 %d, k %d, ipr2 %d/%d\n", id1, id2, k, ipr2, npr);
-                  exit(1);
-                }
-                y = (ipr == ipr2 ? (m == k) + Cjk[i*ns+j][m*M+k] : 0)
-                  - invwc1w[i*ns+i2][m] * Cjk[i2*ns+j2][m*M+k]
-                  * invwc1w[j2*ns+j][k];
-                mat[id1*Mp + id2] = y;
-              }
-            }
-          }
-        }
-      }
-    }
+    /* compute the Jacobian matrix for the Newton-Raphson method */
+    getjacob(mat, b, M, npr, ns, prmask, ntk, tk, Cjk, invwc1w);
 
     if ( linsolve(Mp, mat, a, b) != 0 )
       break;
 
-    /* use the Newton-Raphson method to solve for t(k) of small k */
-    err1 = 0;
-    for ( m = 0; m < M; m++ ) {
+    /* compute the new t(k) */
+    err1 = err2 = 0;
+    for ( l = 0; l < npt; l++ ) {
       for ( ipr = 0, i = 0; i < ns; i++ ) {
         for ( j = i; j < ns; j++, ipr++ ) {
-          y = a[m*npr+ipr] / fft_ki[m];
-          if ( fabs(y) > err1 ) err1 = fabs(y);
-          tk[i*ns+j][m] += dmp * y;
-          if ( j > i ) tk[j*ns+i][m] = tk[i*ns + j][m];
-        }
-      }
-    }
-
-    /* use the OZ relation to solve for t(k) of large k */
-    err2 = 0;
-    for ( l = M; l < npt; l++ ) {
-      for ( i = 0; i < ns; i++ ) {
-        for ( j = 0; j < ns; j++ ) {
           ij = i * ns + j;
-          y = prmask[ij] ? ntk[ij][l] - tk[ij][l] : 0;
-          if ( fabs(y) > err2 ) err2 = fabs(y);
+          if ( !prmask[ij] ) continue;
+
+          if ( l < M ) {
+            /* use the Newton-Raphson method to solve for t(k) of small k */
+            y = a[l*npr+ipr] / fft_ki[l];
+            if ( fabs(y) > err1 ) err1 = fabs(y);
+          } else {
+            /* use the OZ relation to solve for t(k) of large k */
+            y = ntk[ij][l] - tk[ij][l];
+            if ( fabs(y) > err2 ) err2 = fabs(y);
+          }
+
           tk[ij][l] += dmp * y;
+          if ( j > i ) tk[j*ns+i][l] = tk[ij][l];
         }
       }
     }
@@ -476,14 +486,17 @@ static double iter_lmv(model_t *model,
       fprintf(stderr, "it %d: M %d, errp %g, err1 %g, err2 %g, damp %g\n",
           it, M, errp, err1, err2, dmp);
     err = err1 > err2 ? err1 : err2;
+
     if ( err < tol ) {
-      if ( prmask[ns*ns-1] ) break;
-      if ( prmask[nsv] == 0 ) { /* turn on solute-solvent interaction */
+      /* switch between stages */
+      if ( stage == 0 ) { /* turn on solute-solvent interaction */
         for ( i = 0; i < ns; i++ )
           for ( j = 0; j < ns; j++ )
-            prmask[i*ns + j] = (i < nsv && j >= nsv || j < nsv && i >= nsv);
+            prmask[i*ns + j] = ((i < nsv && j >= nsv)
+                             || (j < nsv && i >= nsv));
         fprintf(stderr, "turning on solute-solvent interaction\n"); //getchar();
-      } else { /* turn on solute-solute interaction */
+        stage = 1;
+      } else if ( stage == 1 ) { /* turn on solute-solute interaction */
         for ( i = 0; i < ns; i++ )
           for ( j = 0; j < ns; j++ )
             prmask[i*ns + j] = (i >= nsv && j >= nsv);
@@ -492,6 +505,9 @@ static double iter_lmv(model_t *model,
         /* NOTE currently the we cannot continue from here
          * thus, we stop at the case of infinite dilution */
         //fprintf(stderr, "turning on solute-solute interaction\n"); getchar();
+        stage = 2;
+        break;
+      } else {
         break;
       }
       err = errinf;
@@ -588,7 +604,7 @@ static double getdiameter(model_t *m)
 static void dorism(void)
 {
   int it, ns, npt, ilam, nlam;
-  double err, dia, lam;
+  double err = 0, dia, lam;
   double **fr, **wk, **cr, **cp, **ck, **tr, **tk;
   double **der, **ntk, **vrlr, **vklr;
   model_t *model = models + model_id;
