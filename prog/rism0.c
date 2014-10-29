@@ -302,6 +302,40 @@ static double iter_picard(model_t *model,
 
 
 
+/* compute Cjk */
+static void getCjk(double **Cjk, int npt, int M, int ns,
+    double **der, const double *costab)
+{
+  int i, j, ij, ji, m, k, l;
+  double y, *dp;
+
+  xnew(dp, 4*M);
+  for ( i = 0; i < ns; i++ ) {
+    for ( j = i; j < ns; j++ ) {
+      ij = i * ns + j;
+
+      for ( m = M + 1; m < 4*M - 1; m++ ) {
+        for ( y = 0, l = 0; l < npt; l++ )
+          y += der[ij][l] * costab[m*npt + l];
+        dp[m] = y / npt;
+      }
+
+      for ( m = 0; m < M; m++ )
+        for ( k = 0; k < M; k++ )
+          Cjk[ij][m*M+k] = dp[k-m+2*M] - dp[k+m+2*M];
+
+      if ( j == i ) continue;
+
+      ji = j*ns + i;
+      for ( m = 0; m < M*M; m++ )
+        Cjk[ji][m] = Cjk[ij][m];
+    }
+  }
+  free(dp);
+}
+
+
+
 /* Reference:
  * Stanislav Labik, Anatol Malijevsky, Petr Vonka
  * A rapidly convergent method of solving the OZ equation
@@ -353,7 +387,7 @@ static double iter_lmv(model_t *model,
     newarr(costab, 4*M*npt);
     for ( i = 0; i < npt; i++ )
       for ( j = 0; j < 4*M; j++ )
-        costab[i*4*M + j] = cos(PI*(i+.5)*(j-2*M)/npt);
+        costab[j*npt + i] = cos(PI*(i+.5)*(j-2*M)/npt);
   }
 
   for ( it = 0; it < itmax; it++ ) {
@@ -371,24 +405,7 @@ static double iter_lmv(model_t *model,
     sphr_r2k(cr, ck, ns, NULL);
 
     /* compute Cjk */
-    for ( i = 0; i < ns; i++ ) {
-      for ( j = i; j < ns; j++ ) {
-        ij = i * ns + j;
-
-        for ( m = 0; m < M; m++ ) {
-          for ( k = 0; k < M; k++ ) {
-            y = 0;
-            for ( l = 0; l < npt; l++ )
-              y += der[ij][l] * (costab[l*4*M+k-m+2*M]
-                               - costab[l*4*M+k+m+2*M]);
-            y /= npt;
-            Cjk[ij][m*M+k] = y;
-            if ( j > i ) Cjk[j*ns+i][m*M+k] = y;
-          }
-        }
-
-      }
-    }
+    getCjk(Cjk, npt, M, ns, der, costab);
 
     /* compute the new t(k) */
     oz(model, ck, vklr, ntk, wk, invwc1w);
