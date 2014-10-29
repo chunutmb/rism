@@ -7,7 +7,7 @@
  *
  *  plot "out.dat" u 1:($2+$3+1)
  *
- * References papers:
+ * References:
  *
  * Solution of a new integral equation for pair correlation function in molecular liquids
  * Lawrence J. Lowden and David Chandler
@@ -40,11 +40,14 @@
  * B. Montgomery Pettitt and Peter J. Rossky
  * J. Chem. Phys. 77(3) 1451-1457 (1982)
  * */
+
+
+
 #include "util.h"
 
 
 
-#define MAXATOM 4
+#define MAXATOM 5
 enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
 enum { IE_PY, IE_HNC };
 
@@ -52,7 +55,7 @@ typedef struct {
   int ns;
   double sigma[MAXATOM];
   double eps6_12[MAXATOM][2];
-  double rho;
+  double rho[MAXATOM];
   double Lpm[MAXATOM*(MAXATOM-1)/2];
   double beta;
   int ljtype;
@@ -72,74 +75,9 @@ typedef struct {
   double C6_12[MAXATOM*(MAXATOM+1)/2][2]; /* alternative to sigma/epsilon */
 } model_t;
 
-/* built-in models from literature */
-model_t models[] =
-{
-  {0}, /* empty model, place holder */
-  /* 1. LC 1973, and Model I of CHS 1977 */
-  {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.500, {0.600}, 1.000, HARD_SPHERE,
-    IE_PY, 20.48, 1024, 0, 0.5},
-  /* 2. Model II of CHS 1977 */
-  {2, {0.790, 1.000}, {{1, 1}, {1, 1}}, 0.686, {0.490}, 1.000, HARD_SPHERE,
-    IE_PY, 20.48, 1024, 0, 0.5},
-  /* 3. Model III of CHS 1977 */
-  {2, {0.675, 1.000}, {{1, 1}, {1, 1}}, 0.825, {0.346}, 1.000, HARD_SPHERE,
-    IE_PY, 20.48, 1024, 0, 0.5},
-  /* 4. LC1973, liquid nitrogen */
-  {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.696, {1.1/3.341}, 1/1.83, LJ_REPULSIVE,
-    IE_PY, 20.48, 1024, 0, 0.5},
-  /* 5. KA1978, liquid nitrogen */
-  {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, 0.6964, {1.1/3.341}, 1/1.61, LJ_FULL,
-    IE_PY, 20.48, 1024, 20, 0.5, 5},
-  /* 6. HR1981, liquid nitrogen, neutral */
-  {2, {3.341, 3.341}, {{1, 1}, {1, 1}}, 0.01867, {1.1}, 1/1.636, LJ_FULL,
-    IE_HNC, 20.48, 1024, 10, 0.2, 10},
-  /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
-  {2, {3.341, 3.341}, {{44.0, 44.0}, {44.0, 44.0}}, 0.01867, {1.1}, 1./72, LJ_FULL,
-    IE_HNC, 20.48, 1024, 10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
-  /* 8. HPR1982, HCl, model II */
-  {2, {2.735, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, 0.018, {1.257}, 1./210, LJ_FULL,
-    IE_HNC, 20.48, 1024, 10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
-  /* 9. HPR1982, HCl, model III */
-  {2, {0.4, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, 0.018, {1.3}, 1./210, LJ_FULL,
-    IE_HNC, 20.48, 1024, 10, 0.2, 10, {0.200, -0.200}, KE2PK, 1.0},
-  /* 10. PR1982, H2O, model I
-   * atom 0: O, atom 1: H1, atom 2: H2
-   * C6/C12 are used instead of sigma/epsilon
-   * d(H1, H2) = 1.51369612 (104.5 degree) */
-  {3, {2.8, 0.4, 0.4}, {{0}}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
-    IE_HNC, 20.48, 1024, 10, 0.3, 10, {-0.866088, 0.433044, 0.433044}, KE2C, 1.0,
-    { {262.566, 309408} /* O-O */, {0, 689.348} /* O-H1 */, {0, 689.348} /* O-H2 */,
-      {0, 610.455} /* H1-H1 */, {0, 610.455} /* H1-H2 */, {0, 610.455} /* H2-H2 */ } },
-  /* 11. PR1982, H2O, model II (SPC)
-   * atom 0: O, atom 1: H1, atom 2: H2
-   * C6/C12 are used instead of sigma/epsilon
-   * d(H1, H2) = 1.633081624 (109.48 degree) */
-  {3, {3.166, 0.4, 0.4}, {{0}}, 0.03334, {1.0, 1.0, 1.633081624}, 1./(KBNAC*300), LJ_FULL,
-    IE_HNC, 20.48, 1024,  10, 0.3, 10, {-0.82, 0.41, 0.41}, KE2C, 1.0,
-    { {-625.731, 629624} /* O-O */, {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
-      {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ } },
-  /* 12. PR1982, H2O, model III (TIPS)
-   * atom 0: O, atom 1: H1, atom 2: H2
-   * C6/C12 are used instead of sigma/epsilon
-   * d(H1, H2) = 1.51369612 (104.5 degree) */
-  {3, {3.215, 0.4, 0.4}, {{0}}, 0.03334, {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
-    IE_HNC, 20.48, 1024, 10, 0.3, 10, {-0.8, 0.4, 0.4}, KE2C, 1.0,
-    { {-525.000, 580000} /* O-O */, {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
-      {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ } },
-  /* 13. SPCE, H2O
-   * atom 0: O, atom 1: H1, atom 2: H2
-   * the following data are copied from /Bossman/Software/3Drism/h2o_lib/spce */
-  {3, {3.1666, 0.4, 0.4}, {{78.2083543, 78.2083543}, {0, 23.150478}, {0, 23.150478}}, 0.033314, {1.0, 1.0, 1.633}, 1./300, LJ_FULL,
-    IE_HNC, 40.96, 2048, 30, 0.3, 10, {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0},
-  /* 14. TIP3, H2O
-   * atom 0: O, atom 1: H1, atom 2: H2
-   * the following data are copied from /Bossman/Software/3Drism/h2o_lib/tip3 */
-  {3, {3.15, 0.4, 0.4}, {{76.5364, 76.5364}, {0, 23.1509}, {0, 23.1509}}, 0.033314, {0.95719835, 0.95719835, 1.5139}, 1./300, LJ_FULL,
-    IE_HNC, 40.96, 2048, 30, 0.3, 10, {-0.834, 0.417, 0.417}, KE2PK, 1.0},
-};
+#include "models.h" /* built-in models from literature */
 
-int model_id = 14;
+int model_id = 15;
 
 enum { SOLVER_PICARD, SOLVER_LMV };
 
@@ -262,18 +200,20 @@ static void initfr(model_t *m, double **fr, double **vrlr, double lam)
 
 
 
-/* initialize the omega matrix for intra-molecular covalence bonds */
+/* initialize the w matrix for intra-molecular covalence bonds */
 static void initwk(model_t *m, double **wk)
 {
-  int i, j, l, ipr, ns = m->ns;
+  int i, j, u, ipr, ns = m->ns;
 
-  for ( l = 0; l < m->npt; l++ ) {
-    double k = fft_ki[l];
+  for ( u = 0; u < m->npt; u++ ) {
+    double k = fft_ki[u];
     for ( ipr = 0, i = 0; i < ns; i++ ) {
-      wk[i*ns + i][l] = 1; /* for j == i */
+      wk[i*ns + i][u] = 1; /* for j == i */
       for ( j = i + 1; j < ns; j++, ipr++ ) { /* for j > i */
-        double lpm = m->Lpm[ipr];
-        wk[j*ns + i][l] = wk[i*ns + j][l] = sin(k*lpm)/(k*lpm);
+        double l = m->Lpm[ipr], w;
+        /* note, if i and j belong to different molecules
+         * w is necessarily 0, so wk is set to zero */
+        wk[j*ns + i][u] = wk[i*ns + j][u] = (l > 0) ? sin(k*l)/(k*l) : 0;
       }
     }
   }
@@ -287,7 +227,7 @@ static void oz(model_t *m, double **ck, double **vklr,
 {
   int i, j, ij, l, u, ns = m->ns;
   double *wc, *wc1, *invwc1, *iwc1w;
-  double hk, rho = m->rho;
+  double hk;
 
   newarr(wc,     ns * ns);
   newarr(wc1,    ns * ns);
@@ -303,7 +243,7 @@ static void oz(model_t *m, double **ck, double **vklr,
         wc[ij] = 0;
         for ( u = 0; u < ns; u++ )
           wc[ij] += wk[i*ns + u][l] * (ck[u*ns + j][l] - vklr[u*ns + j][l]);
-        wc1[ij] = (i == j) - rho * wc[ij];
+        wc1[ij] = (i == j) - m->rho[i] * wc[ij];
       }
     }
 
@@ -419,8 +359,7 @@ static double iter_lmv(model_t *model,
   sphr_k2r(tk, tr, ns);
 
   /* set the optimal M */
-  M = (model->Mpt > 0) ?
-       model->Mpt :
+  M = (model->Mpt > 0) ? model->Mpt :
        (int) (2 * model->rmax/model->sigma[ns-1]);
   if ( M >= npt ) M = npt;
   if ( verbose ) fprintf(stderr, "select M = %d\n", M);
@@ -480,7 +419,7 @@ static double iter_lmv(model_t *model,
     /* compute the new t(k) */
     oz(model, ck, vklr, ntk, wk, invwc1w);
 
-    /* compute the matrix for the Newton-Raphson method */
+    /* compute the Jacobian for the Newton-Raphson method */
     for ( m = 0; m < M; m++ ) {
       for ( ipr = 0, i = 0; i < ns; i++ ) {
         for ( j = i; j < ns; j++, ipr++ ) {
@@ -546,11 +485,11 @@ static double iter_lmv(model_t *model,
     if ( err < tol ) break;
 /*
     // adaptively adjust the damping factor
-    //if ( err > errp ) {
-    //  dmp *= 0.8;
-    //} else {
-    //  dmp = dmp * 0.9 + 0.1;
-    //}
+    if ( err > errp ) {
+      dmp *= 0.8;
+    } else {
+      dmp = dmp * 0.9 + 0.1;
+    }
 */
     errp = err;
   }
@@ -585,9 +524,9 @@ static int output(model_t *model,
       for ( l = 0; l < model->npt; l++ ) {
         double vr = vrlr[ij][l], vk = vklr[ij][l];
         fprintf(fp, "%g %g %g %g %g %d %d %g %g %g %g %g\n",
-            fft_ri[l], cr[ij][l] - vr, tr[ij][l] + vr, fr[ij][l],
+            fft_ri[l], cr[ij][l], tr[ij][l], fr[ij][l],
             vr, i, j,
-            fft_ki[l], ck[ij][l] - vk, tk[ij][l] + vk, wk[ij][l],
+            fft_ki[l], ck[ij][l], tk[ij][l], wk[ij][l],
             vk);
       }
       fprintf(fp, "\n");
@@ -607,8 +546,16 @@ static double getdiameter(model_t *m)
   int i, j, ipr, ns = m->ns;
   double vol = 0, si, sj, lij;
 
-  for ( i = 0; i < ns; i++ )
+  /* determine the number of sites of the solvent */
+  for ( i = 1; i < ns; i++ )
+    if ( m->Lpm[i-1] <= 0 ) {
+      ns = i;
+      break;
+    }
+
+  for ( i = 0; i < ns; i++ ) {
     vol += pow( m->sigma[i], 3 );
+  }
 
   /* deduct the overlap */
   for ( ipr = 0, i = 0; i < ns; i++ ) {
@@ -636,7 +583,7 @@ static void dorism(void)
   double **der, **ntk, **vrlr, **vklr;
   model_t *model = models + model_id;
 
-  /* equivalent diameter of the molecule */
+  /* equivalent diameter of the solvent molecule */
   dia = getdiameter(model);
 
   ns = model->ns;
@@ -678,7 +625,7 @@ static void dorism(void)
     }
     output(model, cr, vrlr, tr, fr, ck, vklr, tk, wk, "out.dat");
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
-        lam, it, err, dia, model->rho*dia*dia*dia);
+        lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
 
   delarr2d(fr,    ns * ns);
