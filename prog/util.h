@@ -11,13 +11,6 @@
 
 
 
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE 1
-#endif
-
 #define PI 3.14159265358979323846
 
 #define KB    1.3806488e-23       /* Boltzmann constant: m^2*kg/s^2/K = J/K */
