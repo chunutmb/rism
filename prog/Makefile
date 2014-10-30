@@ -5,18 +5,18 @@ LM = -lm -lfftw3
 CX = icc -O3 -Wall -Wremarks
 LMX = -lfftw3
 
-deps = util.h Makefile
 bins = rism0
 bins_d = $(patsubst %,%_d, $(bins))
 
 all: $(bins)
 
-$(bins) : %: %.c $(deps)
+rism0_deps = util.h models.h Makefile
+
+rism0 : rism0.c $(rism0_deps)
 	$(CX) -o $@ $< $(LMX)
 
-$(bins_d) : %_d: %.c $(deps)
-	$(CC) -o $@ $< $(LM)
-
+rism0_d : rism0.c $(rism0_deps)
+	$(CX) -o $@ $< $(LMX)
 clean:
 	rm -f $(bins) $(bins_d) *~ a.out *.dat MTSEED
 	rm -rf r[0-9]*hs
