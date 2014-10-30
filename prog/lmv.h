@@ -93,7 +93,7 @@ static double iter_lmv(model_t *model,
   int i, j, l, ij, it, M, npr, ipr, Mp;
   int ns = model->ns, npt = model->npt;
   double **Cjk = NULL, *mat = NULL, *a = NULL, *b = NULL, **costab = NULL;
-  double y, dy, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
+  double y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
   int *prmask, nsv, stage;
 
   /* initialize t(k) and t(r) */
@@ -137,16 +137,10 @@ static double iter_lmv(model_t *model,
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
-    for ( i = 0; i < ns; i++ ) {
-      for ( j = 0; j < ns; j++ ) {
-        for ( l = 0; l < npt; l++ ) {
-          ij = i*ns + j;
-          y = getyr(tr[ij][l], &dy, model->ietype);
-          cr[ij][l] = (fr[ij][l] + 1) * y - tr[ij][l] - 1;
-          der[ij][l] = (fr[ij][l] + 1) * dy - 1;
-        }
-      }
-    }
+    for ( i = 0; i < ns; i++ )
+      for ( j = 0; j < ns; j++ )
+        for ( ij = i*ns + j, l = 0; l < npt; l++ )
+          cr[ij][l] = getcr(tr[ij][l], fr[ij][l], &der[ij][l], model->ietype);
     sphr_r2k(cr, ck, ns, NULL);
 
     /* compute Cjk */
@@ -163,7 +157,7 @@ static double iter_lmv(model_t *model,
 
     /* compute the new t(k) */
     err1 = err2 = 0;
-    for ( ipr = 0, i = 0; i < ns; i++ ) {
+    for ( ipr = 0, i = 0; i < ns; i++ )
       for ( j = i; j < ns; j++, ipr++ ) {
         ij = i*ns + j;
         if ( !prmask[ij] ) continue;
@@ -183,7 +177,6 @@ static double iter_lmv(model_t *model,
           if ( j > i ) tk[j*ns+i][l] = tk[ij][l];
         }
       }
-    }
 
     sphr_k2r(tk, tr, ns, NULL);
 

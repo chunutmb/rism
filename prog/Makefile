@@ -2,8 +2,12 @@
 CC = gcc -O0 -Wall -Wunused -g
 LM = -lm -lfftw3
 # optimized compiling
+# Note: -O3 makes it slower
 CX = icc -O2 -Wall -Wremarks
 LMX = -lfftw3
+# alternative
+# CX = gcc -Ofast -Wall -Wextra
+# LMX = -lfftw3 -lm
 
 bins = rism0
 bins_d = $(patsubst %,%_d, $(bins))
