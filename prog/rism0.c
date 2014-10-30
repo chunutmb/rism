@@ -103,7 +103,6 @@ static double ljpot6_12(double r, double c6, double c12, double lam)
 
 
 
-
 /* repulsive Lennard-Jones potential */
 static double ljrpot(double r, double sig, double eps6, double eps12)
 {
@@ -304,19 +303,19 @@ static double iter_picard(model_t *model,
 
 /* compute Cjk */
 static void getCjk(double **Cjk, int npt, int M, int ns,
-    double **der, const double *costab)
+    double **der, double **costab)
 {
   int i, j, ij, ji, m, k, l;
   double y, *dp;
 
-  xnew(dp, 4*M);
+  newarr(dp, 4*M);
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i * ns + j;
 
       for ( m = M + 1; m < 4*M - 1; m++ ) {
         for ( y = 0, l = 0; l < npt; l++ )
-          y += der[ij][l] * costab[m*npt + l];
+          y += der[ij][l] * costab[m][l];
         dp[m] = y / npt;
       }
 
@@ -331,7 +330,7 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
         Cjk[ji][m] = Cjk[ij][m];
     }
   }
-  free(dp);
+  delarr(dp);
 }
 
 
@@ -387,7 +386,7 @@ static double iter_lmv(model_t *model,
 {
   int i, j, l, ij, it, M, npr, ipr, Mp;
   int ns = model->ns, npt = model->npt;
-  double **Cjk = NULL, *mat = NULL, *a = NULL, *b = NULL, *costab = NULL;
+  double **Cjk = NULL, *mat = NULL, *a = NULL, *b = NULL, **costab = NULL;
   double y, dy, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
   int *prmask, nsv, stage;
 
@@ -414,10 +413,10 @@ static double iter_lmv(model_t *model,
     newarr(mat, Mp*Mp);
     newarr(a, Mp);
     newarr(b, Mp);
-    newarr(costab, 4*M*npt);
-    for ( i = 0; i < npt; i++ )
-      for ( j = 0; j < 4*M; j++ )
-        costab[j*npt + i] = cos(PI*(i+.5)*(j-2*M)/npt);
+    newarr2d(costab, 4*M, npt);
+    for ( j = M; j < 4*M; j++ )
+      for ( i = 0; i < npt; i++ )
+        costab[j][i] = cos(PI*(i+.5)*(j-2*M)/npt);
   }
 
   /* initialize the prmask for solvent-solvent iteraction */
@@ -529,6 +528,7 @@ static double iter_lmv(model_t *model,
     delarr(mat);
     delarr(a);
     delarr(b);
+    delarr2d(costab, 4*M);
   }
   free(prmask);
   return err;
