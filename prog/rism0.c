@@ -190,15 +190,24 @@ static void oz(model_t *m, double **ck, double **vklr,
     double **tk, double **wk, double **invwc1w)
 {
   int i, j, ij, l, u, ns = m->ns;
-  double *wc, *wc1, *invwc1, *iwc1w;
+  double *wkl, *ckl, *cvkl, *wc, *wc1, *invwc1, *iwc1w;
   double hk;
 
+  newarr(wkl,    ns * ns);
+  newarr(ckl,    ns * ns);
+  newarr(cvkl,   ns * ns);
   newarr(wc,     ns * ns);
   newarr(wc1,    ns * ns);
   newarr(invwc1, ns * ns);
   newarr(iwc1w,  ns * ns);
 
   for ( l = 0; l < m->npt; l++ ) {
+    for ( i = 0; i < ns * ns; i++ ) {
+      wkl[i] = wk[i][l];
+      ckl[i] = ck[i][l];
+      cvkl[i] = ckl[i] - vklr[i][l];
+    }
+      
     /* compute w c
      * note that w c is not symmetric w.r.t. i and j */
     for ( i = 0; i < ns; i++ )
@@ -206,7 +215,7 @@ static void oz(model_t *m, double **ck, double **vklr,
         ij = i*ns + j;
         wc[ij] = 0;
         for ( u = 0; u < ns; u++ )
-          wc[ij] += wk[i*ns + u][l] * (ck[u*ns + j][l] - vklr[u*ns + j][l]);
+          wc[ij] += wkl[i*ns + u] * cvkl[u*ns + j];
         wc1[ij] = (i == j) - m->rho[i] * wc[ij];
       }
 
@@ -216,10 +225,10 @@ static void oz(model_t *m, double **ck, double **vklr,
     /* compute (1 - rho w * c)^(-1) w */
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ ) {
-        ij = i * ns + j;
+        ij = i*ns + j;
         iwc1w[ij] = 0;
         for ( u = 0; u < ns; u++ )
-          iwc1w[ij] += invwc1[i*ns + u] * wk[u*ns + j][l];
+          iwc1w[ij] += invwc1[i*ns + u] * wkl[u*ns + j];
         if ( invwc1w != NULL )
           invwc1w[ij][l] = iwc1w[ij];
       }
@@ -227,14 +236,17 @@ static void oz(model_t *m, double **ck, double **vklr,
     /* compute w c (1 - rho w * c)^(-1) w */
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ ) {
-        ij = i * ns + j;
+        ij = i*ns + j;
         hk = 0;
         for ( u = 0; u < ns; u++ )
           hk += wc[i*ns + u] * iwc1w[u*ns + j];
-        tk[ij][l] = hk - ck[ij][l];
+        tk[ij][l] = hk - ckl[ij];
       }
   }
 
+  delarr(wkl);
+  delarr(ckl);
+  delarr(cvkl);
   delarr(wc);
   delarr(wc1);
   delarr(invwc1);
@@ -279,7 +291,7 @@ static double iter_picard(model_t *model,
     for ( l = 0; l < model->npt; l++ ) {
       for ( i = 0; i < ns; i++ ) {
         for ( j = 0; j < ns; j++ ) {
-          ij = i * ns + j;
+          ij = i*ns + j;
           y = getyr(tr[ij][l], NULL, model->ietype);
           dcr = (fr[ij][l] + 1) * y - 1 - tr[ij][l] - cr[ij][l];
           if ( fabs(dcr) > err ) err = fabs(dcr);
@@ -433,7 +445,7 @@ static double iter_lmv(model_t *model,
     for ( i = 0; i < ns; i++ ) {
       for ( j = 0; j < ns; j++ ) {
         for ( l = 0; l < npt; l++ ) {
-          ij = i * ns + j;
+          ij = i*ns + j;
           y = getyr(tr[ij][l], &dy, model->ietype);
           cr[ij][l] = (fr[ij][l] + 1) * y - tr[ij][l] - 1;
           der[ij][l] = (fr[ij][l] + 1) * dy - 1;
@@ -456,12 +468,12 @@ static double iter_lmv(model_t *model,
 
     /* compute the new t(k) */
     err1 = err2 = 0;
-    for ( l = 0; l < npt; l++ ) {
-      for ( ipr = 0, i = 0; i < ns; i++ ) {
-        for ( j = i; j < ns; j++, ipr++ ) {
-          ij = i * ns + j;
-          if ( !prmask[ij] ) continue;
+    for ( ipr = 0, i = 0; i < ns; i++ ) {
+      for ( j = i; j < ns; j++, ipr++ ) {
+        ij = i*ns + j;
+        if ( !prmask[ij] ) continue;
 
+        for ( l = 0; l < npt; l++ ) {
           if ( l < M ) {
             /* use the Newton-Raphson method to solve for t(k) of small k */
             y = a[l*npr+ipr] / fft_ki[l];
@@ -550,7 +562,7 @@ static int output(model_t *model,
   }
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
-      ij = i * ns + j;
+      ij = i*ns + j;
       for ( l = 0; l < model->npt; l++ ) {
         double vr = vrlr[ij][l], vk = vklr[ij][l];
         fprintf(fp, "%g %g %g %g %g %d %d %g %g %g %g %g\n",
