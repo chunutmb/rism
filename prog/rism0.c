@@ -5,7 +5,7 @@
  * the output can be found in "out.dat"
  * to view g(r) in gnuplot, type
  *
- *  plot "out.dat" u 1:($2+$3+1)
+ *  plot "out.dat" u 1:(1+$2+$3)
  *
  * */
 
@@ -56,6 +56,7 @@ typedef struct {
 
 int model_id = 16;
 int verbose = 1;
+const char *fncrtr = "out.dat";
 
 
 
@@ -209,7 +210,7 @@ static void oz(model_t *m, double **ck, double **vklr,
       ckl[i] = ck[i][l];
       cvkl[i] = ckl[i] - vklr[i][l];
     }
-      
+
     /* compute w c
      * note that w c is not symmetric w.r.t. i and j */
     for ( i = 0; i < ns; i++ )
@@ -273,6 +274,17 @@ static double getyr(double tr, double *dy, int ietype)
 
 
 
+/* return the update of cr */
+static double getcr(double tr, double fr, double *dcr, int ietype)
+{
+  double y, dy;
+  y = getyr(tr, &dy, ietype);
+  if ( dcr != NULL ) *dcr = (fr + 1) * dy - 1;
+  return (fr + 1) * y - 1 - tr;
+}
+
+
+
 /* direct Picard iteration
  * do not use this unless for simple models */
 static double iter_picard(model_t *model,
@@ -280,8 +292,8 @@ static double iter_picard(model_t *model,
     double **cr, double **ck, double **vklr,
     double **tr, double **tk, int *niter)
 {
-  int it, ns = model->ns, i, j, ij, l;
-  double y, dcr, err = 0, errp = errinf;
+  int it, ns = model->ns, npt = model->npt, i, j, ij, l;
+  double dcr, err = 0, errp = errinf;
 
   for ( it = 0; it < model->itmax; it++ ) {
     sphr_r2k(cr, ck, ns, NULL);
@@ -290,17 +302,13 @@ static double iter_picard(model_t *model,
 
     /* solve the closure */
     err = 0;
-    for ( l = 0; l < model->npt; l++ ) {
-      for ( i = 0; i < ns; i++ ) {
-        for ( j = 0; j < ns; j++ ) {
-          ij = i*ns + j;
-          y = getyr(tr[ij][l], NULL, model->ietype);
-          dcr = (fr[ij][l] + 1) * y - 1 - tr[ij][l] - cr[ij][l];
+    for ( i = 0; i < ns; i++ )
+      for ( j = 0; j < ns; j++ )
+        for ( ij = i*ns + j, l = 0; l < npt; l++ ) {
+          dcr = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
           if ( fabs(dcr) > err ) err = fabs(dcr);
           cr[ij][l] += dcr * model->picdamp;
         }
-      }
-    }
 
     if ( err < model->tol ) break;
     if ( verbose )
@@ -423,7 +431,7 @@ static void dorism(void)
     sphr_r2k(vrlr, vklr, ns, NULL);
 
     /* use f(r) as the initial c(r) for the lowest lambda */
-    if ( ilam == 1)
+    if ( ilam == 1 )
       cparr2d(cr, fr, ns * ns, npt);
 
     if ( model->solver == SOLVER_LMV ) {
@@ -431,7 +439,7 @@ static void dorism(void)
     } else {
       err = iter_picard(model, fr, wk, cr, ck, vklr, tr, tk, &it);
     }
-    output(model, cr, vrlr, tr, fr, ck, vklr, tk, wk, "out.dat");
+    output(model, cr, vrlr, tr, fr, ck, vklr, tk, wk, fncrtr);
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
         lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
