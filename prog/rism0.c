@@ -307,12 +307,12 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
   int i, j, ij, ji, m, k, l;
   double y, *dp;
 
-  newarr(dp, 4*M);
+  newarr(dp, 3*M);
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
-      ij = i * ns + j;
+      ij = i*ns + j;
 
-      for ( m = M + 1; m < 4*M - 1; m++ ) {
+      for ( m = 1; m < 3*M - 1; m++ ) {
         for ( y = 0, l = 0; l < npt; l++ )
           y += der[ij][l] * costab[m][l];
         dp[m] = y / npt;
@@ -320,7 +320,7 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
 
       for ( m = 0; m < M; m++ )
         for ( k = 0; k < M; k++ )
-          Cjk[ij][m*M+k] = dp[k-m+2*M] - dp[k+m+2*M];
+          Cjk[ij][m*M+k] = dp[k-m+M] - dp[k+m+M];
 
       if ( j == i ) continue;
 
@@ -412,10 +412,10 @@ static double iter_lmv(model_t *model,
     newarr(mat, Mp*Mp);
     newarr(a, Mp);
     newarr(b, Mp);
-    newarr2d(costab, 4*M, npt);
-    for ( j = M; j < 4*M; j++ )
+    newarr2d(costab, 3*M, npt);
+    for ( j = 0; j < 3*M; j++ )
       for ( i = 0; i < npt; i++ )
-        costab[j][i] = cos(PI*(i+.5)*(j-2*M)/npt);
+        costab[j][i] = cos(PI*(i+.5)*(j-M)/npt);
   }
 
   /* initialize the prmask for solvent-solvent iteraction */
@@ -527,7 +527,7 @@ static double iter_lmv(model_t *model,
     delarr(mat);
     delarr(a);
     delarr(b);
-    delarr2d(costab, 4*M);
+    delarr2d(costab, 3*M);
   }
   free(prmask);
   return err;
