@@ -223,7 +223,7 @@ static void oz(model_t *m, double **ck, double **vklr,
       }
 
     /* compute the inverse matrix */
-    invmat(ns, wc1, invwc1);
+    invmat(wc1, invwc1, ns);
 
     /* compute (1 - rho w * c)^(-1) w */
     for ( i = 0; i < ns; i++ )

@@ -152,8 +152,8 @@ static double iter_lmv(model_t *model,
     /* compute the Jacobian matrix for the Newton-Raphson method */
     getjacob(mat, b, M, npr, ns, prmask, ntk, tk, Cjk, invwc1w);
 
-    if ( linsolve(Mp, mat, a, b) != 0 )
-      break;
+    for ( i = 0; i < Mp; i++ ) a[i] = b[i];
+    if ( lusolve(mat, a, Mp) != 0 ) break;
 
     /* compute the new t(k) */
     err1 = err2 = 0;
