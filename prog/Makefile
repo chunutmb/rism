@@ -2,7 +2,7 @@
 CC = gcc -O0 -Wall -Wunused -g
 LM = -lm -lfftw3
 # optimized compiling
-CX = icc -O3 -Wall -Wremarks
+CX = icc -O2 -Wall -Wremarks
 LMX = -lfftw3
 
 bins = rism0
