@@ -18,42 +18,41 @@
 #define MAXATOM 5
 enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
 enum { IE_PY, IE_HNC };
+enum { SOLVER_PICARD, SOLVER_LMV };
+const double errinf = 1e30;
 
 typedef struct {
   int ns;
   double sigma[MAXATOM];
   double eps6_12[MAXATOM][2];
+  double C6_12[MAXATOM*(MAXATOM+1)/2][2]; /* alternative to sigma/epsilon */
   double rho[MAXATOM];
   double Lpm[MAXATOM*(MAXATOM-1)/2];
   double beta;
   int ljtype;
 
-  int ietype;
-  double rmax; /* radius cutoff */
-  int npt; /* number of sampling points along r */
-  int Mpt; /* number of points for the Newton-Raphson method (LMV) */
-  double lmvdamp; /* damping factor for the LMV solver */
-
-  int nlambda; /* number of intermediate stages */
-
   double charge[MAXATOM];
   double ampch;
   double radch; /* screening distance */
 
-  double C6_12[MAXATOM*(MAXATOM+1)/2][2]; /* alternative to sigma/epsilon */
+  int ietype;
+  double rmax; /* radius cutoff */
+  int npt; /* number of sampling points along r */
+
+  int nlambda; /* number of intermediate stages */
+  int itmax; /* maximial number of iterations in each stage */
+  double tol; /* tolerance of error */
+  int solver; /* solver */
+
+  double picdamp; /* damping factor for the Picard solver */
+
+  int Mpt; /* number of points for the Newton-Raphson method (LMV) */
+  double lmvdamp; /* damping factor for the LMV solver */
 } model_t;
 
 #include "models.h" /* built-in models from literature */
 
 int model_id = 16;
-
-enum { SOLVER_PICARD, SOLVER_LMV };
-
-int solver = SOLVER_LMV;
-double damp = 0.01;
-double errinf = 1e9;
-int itmax = 100000;
-double tol = 1e-7;
 int verbose = 1;
 
 
@@ -270,7 +269,7 @@ static double iter_picard(model_t *model,
   int it, ns = model->ns, i, j, ij, l;
   double y, dcr, err = 0, errp = errinf;
 
-  for ( it = 0; it < itmax; it++ ) {
+  for ( it = 0; it < model->itmax; it++ ) {
     sphr_r2k(cr, ck, ns, NULL);
     oz(model, ck, vklr, tk, wk, NULL);
     sphr_k2r(tk, tr, ns, NULL);
@@ -284,12 +283,12 @@ static double iter_picard(model_t *model,
           y = getyr(tr[ij][l], NULL, model->ietype);
           dcr = (fr[ij][l] + 1) * y - 1 - tr[ij][l] - cr[ij][l];
           if ( fabs(dcr) > err ) err = fabs(dcr);
-          cr[ij][l] += dcr * damp;
+          cr[ij][l] += dcr * model->picdamp;
         }
       }
     }
 
-    if ( err < tol ) break;
+    if ( err < model->tol ) break;
     if ( verbose )
       fprintf(stderr, "it %d err %g -> %g\n", it, errp, err); //getchar();
     if ( err > errp ) break;
@@ -429,7 +428,7 @@ static double iter_lmv(model_t *model,
       prmask[i*ns + j] = (i < nsv && j < nsv);
   stage = 0;
 
-  for ( it = 0; it < itmax; it++ ) {
+  for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
     for ( i = 0; i < ns; i++ ) {
       for ( j = 0; j < ns; j++ ) {
@@ -486,7 +485,7 @@ static double iter_lmv(model_t *model,
           it, M, errp, err1, err2, dmp);
     err = err1 > err2 ? err1 : err2;
 
-    if ( err < tol ) {
+    if ( err < model->tol ) {
       /* switch between stages */
       if ( stage == 0 ) { /* turn on solute-solvent interaction */
         if ( nsv == ns ) break;
@@ -644,7 +643,7 @@ static void dorism(void)
     if ( ilam == 1)
       cparr2d(cr, fr, ns * ns, npt);
 
-    if ( solver == SOLVER_LMV ) {
+    if ( model->solver == SOLVER_LMV ) {
       err = iter_lmv(model, fr, wk, cr, der, ck, vklr, tr, tk, ntk, cp, &it);
     } else {
       err = iter_picard(model, fr, wk, cr, ck, vklr, tr, tk, &it);
@@ -670,8 +669,9 @@ static void dorism(void)
 
 
 
-int main(void)
+int main(int argc, char **argv)
 {
+  if ( argc > 1 ) model_id = atoi(argv[1]);
   dorism();
   return 0;
 }
