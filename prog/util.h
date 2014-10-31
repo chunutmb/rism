@@ -5,9 +5,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include <float.h>
 #include <math.h>
 #include <fftw3.h>
+
+
+
+
+/* Numerical constants */
 
 
 
@@ -28,6 +35,11 @@
 
 #define KE2PK (KE2/KBNA)    /* e^2/(4 Pi EPS0)/kB in angstrom*K, 167100.9579 */
 
+
+
+
+
+/* Memory allocation routines */
 
 
 #ifndef xnew
@@ -55,6 +67,12 @@
   for ( i_ = 0; i_ < m; i_++ ) \
     for ( k_ = 0; k_ < n; k_++ ) \
       x[i_][k_] = y[i_][k_]; }
+
+
+
+
+
+/* FFTW routines */
 
 
 
@@ -131,6 +149,11 @@ static void sphrt(double **fr, double **fk,
     }
   }
 }
+
+
+
+
+/* Linear algebra routines */
 
 
 
@@ -258,6 +281,39 @@ static int lusolve(double *a, double *b, int n, double tiny)
     b[i] = x / a[i*n + i];
   }
   return 0;
+}
+
+
+
+
+
+/* String routines */
+
+
+
+/* remove leading and trailing spaces */
+__inline static char *strstrip(char *s)
+{
+  char *p, *q;
+
+  /* remove trailing spaces */
+  for ( p = s + strlen(s) - 1; isspace(*p); p-- )
+    *p = '\0';
+
+  /* remove leading spaces */
+  //for ( p = s; *p && isspace(*p); p++ )  ;
+  //if ( p != s )
+  //  for ( q = s; (*q++ = *p++) != '\0'; ) ;
+  return s;
+}
+
+
+
+/* check if a string is a nonnegative integer */
+__inline static int striscnum(const char *s)
+{
+  for ( ; *s; s++ ) if ( !isdigit(*s) ) return 0;
+  return 1;
 }
 
 

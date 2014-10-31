@@ -236,14 +236,14 @@ static double iter_mdiis(model_t *model,
 {
   mdiis_t *mdiis;
   int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
-  double err, errp = errinf, damp = model->mdiisdamp, *res;
+  double err, errp = errinf, damp = model->mdiis_damp, *res;
   uv_t *uv;
 
   /* initialize the manager for solvent-solvent iteraction */
   uv = uv_open(model);
 
   /* open the mdiis object if needed */
-  mdiis = mdiis_open(ns, npt, model->nbases);
+  mdiis = mdiis_open(ns, npt, model->mdiis_nbases);
   /* use the space of the last array for `res' */
   res = mdiis->res[mdiis->mnb];
 

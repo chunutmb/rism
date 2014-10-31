@@ -13,12 +13,11 @@
 
 #include "util.h"
 #include "model.h"
-#include "models.h" /* built-in models from literature */
 
 
-const double errinf = 1e9;
+
 int model_id = 16;
-int verbose = 1;
+int verbose = 2;
 const char *fncrtr = "out.dat";
 
 
@@ -117,7 +116,7 @@ static void initfr(model_t *m, double **fr, double **vrlr, double lam)
           }
           uelec = lam * m->ampch * m->charge[i] * m->charge[j] / fft_ri[l];
           /* set the screen length as sig */
-          ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->radch );
+          ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
           vrlr[ij][l] = beta * ulr;
           if ( j > i ) vrlr[ji][l] = vrlr[ij][l];
 
@@ -143,7 +142,7 @@ static void initwk(model_t *m, double **wk)
     for ( ipr = 0, i = 0; i < ns; i++ ) {
       wk[i*ns + i][u] = 1; /* for j == i */
       for ( j = i + 1; j < ns; j++, ipr++ ) { /* for j > i */
-        double l = m->Lpm[ipr];
+        double l = m->dis[ipr];
         wk[j*ns + i][u] = wk[i*ns + j][u] = (l > 0) ? sin(k*l)/(k*l) : 0;
       }
     }
@@ -159,7 +158,7 @@ static int getnsv(model_t *m)
   int i;
 
   //for ( i = 1; i < m->ns; i++ )
-  //  if ( model->Lpm[i-1] < DBL_MIN ) break;
+  //  if ( model->dis[i-1] < DBL_MIN ) break;
   for ( i = 1; i < m->ns; i++ )
     if ( fabs(m->rho[i] - m->rho[0]) > 1e-3 )
       break;
@@ -265,6 +264,7 @@ static double getcr(double tr, double fr, double *dcr, int ietype)
 
 
 
+const double errinf = 1e9;
 #include "uv.h" /* manager for solvent/solute interaction */
 #include "lmv.h" /* LMV solver */
 #include "mdiis.h" /* MDIIS solver */
@@ -294,7 +294,7 @@ static double iter_picard(model_t *model,
         for ( ij = i*ns + j, l = 0; l < npt; l++ ) {
           dcr = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
           if ( fabs(dcr) > err ) err = fabs(dcr);
-          cr[ij][l] += dcr * model->picdamp;
+          cr[ij][l] += dcr * model->picard_damp;
         }
 
     if ( err < model->tol ) break;
@@ -359,7 +359,7 @@ static double getdiameter(model_t *m)
     for ( j = i + 1; j < ns; j++, ipr++ ) {
       si = m->sigma[i];
       sj = m->sigma[j];
-      l = m->Lpm[ipr];
+      l = m->dis[ipr];
       if ( l < DBL_MIN ) continue;
       vol -= (si*si*si + sj*sj*sj)/2 - (si*si + sj*sj)*l*3./4
            - pow(si*si - sj*sj, 2)*3./32/l + l*l*l/2;
@@ -370,13 +370,12 @@ static double getdiameter(model_t *m)
 
 
 
-static void dorism(void)
+static void dorism(model_t *model)
 {
   int it, ns, npt, ilam, nlam;
   double err = 0, dia, lam;
   double **fr, **wk, **cr, **cp, **ck, **tr, **tk;
   double **der, **ntk, **vrlr, **vklr;
-  model_t *model = models + model_id;
 
   /* equivalent diameter of the solvent molecule */
   dia = getdiameter(model);
@@ -399,7 +398,7 @@ static void dorism(void)
   initwk(model, wk);
 
   /* lambda is used to gradually switch on long-range interaction */
-  nlam = model->nlambda;
+  nlam = model->nlambdas;
   if ( nlam < 1 ) nlam = 1;
 
   for ( ilam = 1; ilam <= nlam; ilam++ ) {
@@ -442,7 +441,18 @@ static void dorism(void)
 
 int main(int argc, char **argv)
 {
-  if ( argc > 1 ) model_id = atoi(argv[1]);
-  dorism();
+  model_t *m = models + model_id;
+
+  if ( argc > 1 ) {
+    char *s = argv[1];
+    if ( striscnum(s) ) { /* use the stock model */
+      m = models + (model_id = atoi(s));
+    } else { /* load a configuration file */
+      if ( model_load(m = models, s, verbose) != 0 )
+        return -1;
+    }
+  }
+  dorism(m);
   return 0;
 }
+

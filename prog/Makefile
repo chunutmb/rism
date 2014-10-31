@@ -14,7 +14,7 @@ bins_d = $(patsubst %,%_d, $(bins))
 
 all: $(bins)
 
-rism0_deps = util.h model.h models.h lmv.h mdiis.h uv.h Makefile
+rism0_deps = util.h model.h lmv.h mdiis.h uv.h Makefile
 
 rism0 : rism0.c $(rism0_deps)
 	$(CX) -o $@ $< $(LMX)
