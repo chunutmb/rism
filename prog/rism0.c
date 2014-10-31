@@ -18,7 +18,7 @@
 #define MAXATOM 5
 enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
 enum { IE_PY, IE_HNC };
-enum { SOLVER_PICARD, SOLVER_LMV };
+enum { SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS };
 const double errinf = 1e30;
 
 typedef struct {
@@ -48,6 +48,9 @@ typedef struct {
 
   int Mpt; /* number of points for the Newton-Raphson method (LMV) */
   double lmvdamp; /* damping factor for the LMV solver */
+
+  int nbases; /* number of bases for the MDIIS solver */
+  double mdiisdamp; /* damping factor for the MDIIS solver */
 } model_t;
 
 #include "models.h" /* built-in models from literature */
@@ -323,6 +326,7 @@ static double iter_picard(model_t *model,
 
 
 #include "lmv.h" /* LMV solver */
+#include "mdiis.h" /* MDIIS solver */
 
 
 
@@ -436,6 +440,8 @@ static void dorism(void)
 
     if ( model->solver == SOLVER_LMV ) {
       err = iter_lmv(model, fr, wk, cr, der, ck, vklr, tr, tk, ntk, cp, &it);
+    } else if ( model->solver == SOLVER_MDIIS ) {
+      err = iter_mdiis(model, fr, wk, cr, ck, vklr, tr, tk, &it);
     } else {
       err = iter_picard(model, fr, wk, cr, ck, vklr, tr, tk, &it);
     }
