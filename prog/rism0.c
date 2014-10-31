@@ -49,7 +49,6 @@ static model_t *doargs(int argc, char **argv)
   const char *p, *fncfg = NULL;
 
   for ( i = 1; i < argc; i++ ) {
-    printf("i %d/%d, %s\n", i, argc, argv[i]);
     /* it's an argument */
     if ( argv[i][0] != '-' ) {
       if ( striscnum(argv[i]) ) { /* use the stock model */
