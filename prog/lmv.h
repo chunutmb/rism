@@ -92,7 +92,7 @@ static double iter_lmv(model_t *model,
 {
   int i, j, l, ij, it, M, npr, ipr, Mp;
   int ns = model->ns, npt = model->npt;
-  double **Cjk = NULL, *mat = NULL, *a = NULL, *b = NULL, **costab = NULL;
+  double **Cjk = NULL, *mat = NULL, *b = NULL, **costab = NULL;
   double y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
   int *prmask, nsv, stage;
 
@@ -117,7 +117,6 @@ static double iter_lmv(model_t *model,
   if ( M > 0 ) {
     newarr2d(Cjk, ns*ns, M*M);
     newarr(mat, Mp*Mp);
-    newarr(a, Mp);
     newarr(b, Mp);
     newarr2d(costab, 3*M, npt);
     for ( j = 0; j < 3*M; j++ )
@@ -152,8 +151,7 @@ static double iter_lmv(model_t *model,
     /* compute the Jacobian matrix for the Newton-Raphson method */
     getjacob(mat, b, M, npr, ns, prmask, ntk, tk, Cjk, invwc1w);
 
-    for ( i = 0; i < Mp; i++ ) a[i] = b[i];
-    if ( lusolve(mat, a, Mp) != 0 ) break;
+    if ( lusolve(mat, b, Mp, DBL_MIN) != 0 ) break;
 
     /* compute the new t(k) */
     err1 = err2 = 0;
@@ -165,7 +163,7 @@ static double iter_lmv(model_t *model,
         for ( l = 0; l < npt; l++ ) {
           if ( l < M ) {
             /* use the Newton-Raphson method to solve for t(k) of small k */
-            y = a[l*npr+ipr] / fft_ki[l];
+            y = b[l*npr+ipr] / fft_ki[l];
             if ( fabs(y) > err1 ) err1 = fabs(y);
           } else {
             /* use the OZ relation to solve for t(k) of large k */
@@ -225,7 +223,6 @@ static double iter_lmv(model_t *model,
   if ( M > 0 ) {
     delarr2d(Cjk, ns*ns);
     delarr(mat);
-    delarr(a);
     delarr(b);
     delarr2d(costab, 3*M);
   }
