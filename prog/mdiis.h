@@ -29,16 +29,16 @@ static mdiis_t *mdiis_open(int ns, int npt, int mnb)
 
   xnew(m, 1);
   m->ns = ns;
-  ns2 = ns * ns;
+  ns2 = ns * (ns + 1) / 2;
   m->npt = npt;
   m->mnb = mnb;
   m->nb = 0;
   mnb1 = mnb + 1;
-  newarr2d(m->cr, mnb, ns2 * npt);
-  newarr2d(m->res, mnb1, ns2 * npt);
-  newarr(m->mat, mnb1 * mnb1);
-  newarr(m->mat2, mnb1 * mnb1);
-  newarr(m->coef, mnb1);
+  newarr2d(m->cr,   mnb1, ns2 * npt);
+  newarr2d(m->res,  mnb1, ns2 * npt);
+  newarr(m->mat,    mnb1 * mnb1);
+  newarr(m->mat2,   mnb1 * mnb1);
+  newarr(m->coef,   mnb1);
   return m;
 }
 
@@ -48,8 +48,8 @@ static mdiis_t *mdiis_open(int ns, int npt, int mnb)
 static void mdiis_close(mdiis_t *m)
 {
   if ( m == NULL ) return;
-  delarr2d(m->cr, m->mnb);
-  delarr2d(m->res, m->mnb + 1);
+  delarr2d(m->cr,   m->mnb + 1);
+  delarr2d(m->res,  m->mnb + 1);
   delarr(m->mat);
   delarr(m->mat2);
   delarr(m->coef);
@@ -62,21 +62,24 @@ static void mdiis_close(mdiis_t *m)
 static double getres(model_t *model,
     double *res, double **fr, double **wk,
     double **cr, double **ck, double **vklr,
-    double **tr, double **tk)
+    double **tr, double **tk, int *prmask)
 {
-  int ns = model->ns, npt = model->npt, i, j, ij, l;
+  int ns = model->ns, npt = model->npt, i, j, ij, id, l;
   double y, err = 0;
 
   sphr_r2k(cr, ck, ns, NULL);
   oz(model, ck, vklr, tk, wk, NULL);
   sphr_k2r(tk, tr, ns, NULL);
-  for ( i = 0; i < ns; i++ )
-    for ( j = 0; j < ns; j++ )
-      for ( ij = i*ns + j, l = 0; l < npt; l++ ) {
+  for ( id = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++ ) {
+      ij = i*ns + j;
+      if ( !prmask[ij] ) continue;
+      for ( l = 0; l < npt; l++, id++ ) {
         y = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
-        res[ij*npt + l] = y;
+        res[id] = y;
         if ( fabs(y) > err ) err = fabs(y);
       }
+    }
   return err;
 }
 
@@ -103,20 +106,30 @@ static int mdiis_solve(mdiis_t *m)
 
 
 /* construct the new c(r) */
-static void mdiis_gencr(mdiis_t *m, double **cr, double damp)
+static void mdiis_gencr(mdiis_t *m, double **cr, double damp,
+    const uv_t *uv)
 {
-  int ns = m->ns, npt = m->npt, nb = m->nb;
-  int i, k, l, il;
+  int ns = m->ns, npt = m->npt, nb = m->nb, npr = uv->npr;
+  int i, j, ij, ipr, k, l, il;
 
-  for ( i = 0; i < ns * ns; i++ )
-    for ( l = 0; l < npt; l++ )
-      cr[i][l] = 0;
+  for ( il = 0; il < npr * npt; il++ )
+    m->cr[nb][il] = 0;
   for ( k = 0; k < nb; k++ ) {
     double coef = m->coef[k];
-    for ( il = 0, i = 0; i < ns * ns; i++ )
-      for ( l = 0; l < npt; l++, il++ )
-        cr[i][l] += coef * (m->cr[k][il] + damp * m->res[k][il]);
+    for ( il = 0; il < npr * npt; il++ )
+      m->cr[nb][il] += coef * (m->cr[k][il] + damp * m->res[k][il]);
   }
+  /* save m->cr[nb] to c(r) */
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++ ) {
+      if ( !uv->prmask[ij = i*ns + j] ) continue;
+      for ( l = 0; l < npt; l++ ) {
+        double y;
+        cr[ij][l] = y = m->cr[nb][ipr*npt + l];
+        if ( j > i) cr[j*ns + i][l] = y;
+      }
+      ipr++;
+    }
 }
 
 
@@ -133,23 +146,28 @@ static double getdot(double *a, double *b, int n)
 
 
 
-/* build the matrix */
-static int mdiis_build(mdiis_t *m, double **cr, double *res)
+/* build the residue correlation matrix */
+static int mdiis_build(mdiis_t *m, double **cr, double *res,
+    const uv_t *uv)
 {
-  int i, j, ib, id, mnb, mnb1, ns = m->ns, npt = m->npt, nps2;
+  int i, j, ipr, l, ib, id, mnb, mnb1, ns = m->ns, npt = m->npt;
 
   m->nb = 1;
   mnb = m->mnb;
   mnb1 = m->mnb + 1;
-  nps2 = ns * ns * npt;
 
-  for ( id = 0, j = 0; j < ns * ns; j++ )
-    for ( i = 0; i < npt; i++, id++ ) {
-      m->cr[0][id] = cr[j][i];
-      m->res[0][id] = res[id];
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++ ) {
+      if ( !uv->prmask[i*ns + j] ) continue;
+      for ( l = 0; l < npt; l++ ) {
+        id = ipr*npt + l;
+        m->cr[0][id] = cr[i*ns + j][l];
+        m->res[0][id] = res[id];
+      }
+      ipr++;
     }
 
-  m->mat[0] = getdot(m->res[0], m->res[0], nps2);
+  m->mat[0] = getdot(m->res[0], m->res[0], uv->npr * npt);
   for ( ib = 0; ib < mnb; ib++ )
     m->mat[ib*mnb1 + mnb] = m->mat[mnb*mnb1 + ib] = -1;
   m->mat[mnb*mnb1 + mnb] = 0;
@@ -159,14 +177,14 @@ static int mdiis_build(mdiis_t *m, double **cr, double *res)
 
 
 /* replace base ib by cr */
-static int mdiis_update(mdiis_t *m, double **cr, double *res)
+static int mdiis_update(mdiis_t *m, double **cr, double *res,
+    const uv_t *uv)
 {
-  int i, j, id, ib, nb, mnb1, ns = m->ns, npt = m->npt, nps2;
+  int i, j, l, id, ib, nb, mnb1, ns = m->ns, npt = m->npt;
   double dot, max;
 
   nb = m->nb;
   mnb1 = m->mnb + 1;
-  nps2 = ns * ns * npt;
 
   if ( nb < m->mnb ) {
     ib = nb;
@@ -179,30 +197,33 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res)
         ib = i;
     max = m->mat[ib*mnb1 + ib];
 
-    dot = getdot(res, res, nps2);
+    dot = getdot(res, res, uv->npr * npt);
     if ( dot > max ) {
       int reset = sqrt(dot) < 1;
       fprintf(stderr, "MDIIS: bad basis, %g is greater than %g%s\n",
           dot, max, reset ? ", reset" : "");
       if ( reset ) {
-        mdiis_build(m, cr, res);
+        mdiis_build(m, cr, res, uv);
         return 1;
       }
     }
   }
 
   /* replace base ib by cr */
-  for ( id = 0, j = 0; j < ns * ns; j++)
-    for ( i = 0; i < npt; i++, id++ ) {
-      m->cr[ib][id] = cr[j][i];
-      m->res[ib][id] = res[id];
+  for ( id = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++ ) {
+      if ( !uv->prmask[i*ns + j] ) continue;
+      for ( l = 0; l < npt; l++, id++ ) {
+        m->cr[ib][id] = cr[i*ns + j][l];
+        m->res[ib][id] = res[id];
+      }
     }
 
-  /* update the matrix
+  /* update the residue correlation matrix
    * note: we do not need to update the last row & column */
   for ( i = 0; i < nb; i++ )
     m->mat[i*mnb1 + ib] = m->mat[ib*mnb1 + i]
-      = getdot(m->res[i], res, nps2);
+      = getdot(m->res[i], res, uv->npr * npt);
   return ib;
 }
 
@@ -214,31 +235,51 @@ static double iter_mdiis(model_t *model,
     double **tr, double **tk, int *niter)
 {
   mdiis_t *mdiis;
-  int it, ibp = 0, ib;
+  int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
   double err, errp = errinf, damp = model->mdiisdamp, *res;
+  uv_t *uv;
+
+  /* initialize the manager for solvent-solvent iteraction */
+  uv = uv_open(model);
 
   /* open the mdiis object if needed */
-  mdiis = mdiis_open(model->ns, model->npt, model->nbases);
+  mdiis = mdiis_open(ns, npt, model->nbases);
   /* use the space of the last array for `res' */
   res = mdiis->res[mdiis->mnb];
 
   /* construct the initial base set */
-  getres(model, res, fr, wk, cr, ck, vklr, tr, tk);
-  mdiis_build(mdiis, cr, res);
+  getres(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask);
+  mdiis_build(mdiis, cr, res, uv);
 
   for ( it = 0; it < model->itmax; it++ ) {
     mdiis_solve(mdiis);
-    mdiis_gencr(mdiis, cr, damp);
-    err = getres(model, res, fr, wk, cr, ck, vklr, tr, tk);
-    ib = mdiis_update(mdiis, cr, res);
-    if ( err < model->tol ) break;
+    mdiis_gencr(mdiis, cr, damp, uv);
+    err = getres(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask);
+    ib = mdiis_update(mdiis, cr, res, uv);
+
     if ( verbose )
-      fprintf(stderr, "it %d, err %g -> %g, ib %d -> %d\n", it, errp, err, ibp, ib);
+      fprintf(stderr, "it %d, err %g -> %g, ib %d -> %d\n",
+          it, errp, err, ibp, ib);
+    if ( err < model->tol ) {
+      int brk = uv_switch(uv);
+      if ( uv->stage == 1 ) {
+        getres(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask);
+        mdiis_build(mdiis, cr, res, uv);
+      } else if ( uv->stage == 2 ) {
+        oz(model, ck, vklr, tk, wk, NULL);
+        sphr_k2r(tk, tr, ns, NULL);
+      }
+      if ( brk ) break;
+      it = -1;
+      err = errinf;
+    }
     ibp = ib;
     errp = err;
   }
   *niter = it;
   mdiis_close(mdiis);
+
+  uv_close(uv);
   return err;
 }
 

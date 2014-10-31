@@ -146,6 +146,7 @@ static void initfr(model_t *m, double **fr, double **vrlr, double lam)
       for ( l = 0; l < m->npt; l++ ) {
         if ( m->ljtype  == HARD_SPHERE) {
           z = (fft_ri[l] < sig) ? -1 : 0;
+          vrlr[ij][l] = vrlr[ji][l] = 0;
         } else { /* Lennard-Jones */
           if ( use_c6_12 ) {
             u = ljpot6_12(fft_ri[l], c6, c12, lam);
@@ -187,6 +188,22 @@ static void initwk(model_t *m, double **wk)
       }
     }
   }
+}
+
+
+
+/* compute the number solvents
+ * TODO: to improve this */
+static int getnsv(model_t *m)
+{
+  int i;
+
+  //for ( i = 1; i < m->ns; i++ )
+  //  if ( model->Lpm[i-1] < DBL_MIN ) break;
+  for ( i = 1; i < m->ns; i++ )
+    if ( fabs(m->rho[i] - m->rho[0]) > 1e-3 )
+      break;
+  return i;
 }
 
 
@@ -288,8 +305,15 @@ static double getcr(double tr, double fr, double *dcr, int ietype)
 
 
 
+#include "uv.h" /* manager for solvent/solute interaction */
+#include "lmv.h" /* LMV solver */
+#include "mdiis.h" /* MDIIS solver */
+
+
+
 /* direct Picard iteration
- * do not use this unless for simple models */
+ * do not use this unless for simple models
+ * does not handle solvent-solute interactions */
 static double iter_picard(model_t *model,
     double **fr, double **wk,
     double **cr, double **ck, double **vklr,
@@ -322,11 +346,6 @@ static double iter_picard(model_t *model,
   *niter = it;
   return err;
 }
-
-
-
-#include "lmv.h" /* LMV solver */
-#include "mdiis.h" /* MDIIS solver */
 
 
 
@@ -371,12 +390,7 @@ static double getdiameter(model_t *m)
   int i, j, ipr, ns = m->ns, nsv;
   double vol = 0, si, sj, l;
 
-  /* determine the number of sites of the solvent */
-  for ( i = 1; i < ns; i++ )
-    if ( fabs(m->rho[i] - m->rho[0]) > 1e-3 )
-      break;
-  nsv = i;
-
+  nsv = getnsv(m);
   for ( i = 0; i < nsv; i++ )
     vol += pow( m->sigma[i], 3 );
 
