@@ -136,10 +136,14 @@ static double iter_lmv(model_t *model,
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
+    err = 0;
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ )
-        for ( ij = i*ns + j, l = 0; l < npt; l++ )
-          cr[ij][l] = getcr(tr[ij][l], fr[ij][l], &der[ij][l], model->ietype);
+        for ( ij = i*ns + j, l = 0; l < npt; l++ ) {
+          y = getcr(tr[ij][l], fr[ij][l], &der[ij][l], model->ietype) - cr[ij][l];
+          if ( fabs(y) > err ) err = fabs(y);
+          cr[ij][l] += y;
+        }
     sphr_r2k(cr, ck, ns, NULL);
 
     /* compute Cjk */
@@ -175,15 +179,16 @@ static double iter_lmv(model_t *model,
           if ( j > i ) tk[j*ns+i][l] = tk[ij][l];
         }
       }
+    /* note that error of t(k) is different from that of c(r) in scale */
+    //err = (err1 > err2) ? err1 : err2;
 
     sphr_k2r(tk, tr, ns, NULL);
 
     if ( verbose )
-      fprintf(stderr, "it %d: M %d, errp %g, err1 %g, err2 %g, damp %g\n",
-          it, M, errp, err1, err2, dmp);
-    err = err1 > err2 ? err1 : err2;
+      fprintf(stderr, "it %d: M %d, err %g -> %g, tk_err %g/%g, damp %g\n",
+          it, M, errp, err, err1, err2, dmp);
 
-    if ( err < model->tol ) {
+    if ( it > 0 && err < model->tol ) {
       /* switch between stages */
       if ( stage == 0 ) { /* turn on solute-solvent interaction */
         if ( nsv == ns ) break;
@@ -193,6 +198,7 @@ static double iter_lmv(model_t *model,
                              || (j < nsv && i >= nsv));
         fprintf(stderr, "turning on solute-solvent interaction\n"); //getchar();
         stage = 1;
+        it = -1;
       } else if ( stage == 1 ) { /* turn on solute-solute interaction */
         for ( i = 0; i < ns; i++ )
           for ( j = 0; j < ns; j++ )
@@ -203,6 +209,7 @@ static double iter_lmv(model_t *model,
          * thus, we stop at the case of infinite dilution */
         //fprintf(stderr, "turning on solute-solute interaction\n"); getchar();
         stage = 2;
+        it = 0;
         break;
       } else {
         break;
