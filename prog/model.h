@@ -141,7 +141,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
         inpar = 1; /* enter a parentheses block */
       else if ( inpar && (*p == ')' || *p == ']') )
         inpar = 0; /* leave a parentheses block */
-      *p = tolower(*p);
+      *p = (char) tolower(*p);
     }
     key = buf;
 
@@ -163,94 +163,125 @@ static int model_load(model_t *m, const char *fn, int verbose)
       i = model_getidx(key, ns);
       m->sigma[i] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "sigma(%d)   = %g\n", i, m->sigma[i]);
+        fprintf(stderr, "sigma(%d)     = %g\n", i, m->sigma[i]);
     } else if ( strncmp(key, "eps6", 4) == 0 ) {
       CHECK_NS(key);
       i = model_getidx(key, ns);
       m->eps6_12[i][0] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "eps6(%d)    = %g\n", i, m->eps6_12[i][0]);
+        fprintf(stderr, "eps6(%d)      = %g\n", i, m->eps6_12[i][0]);
     } else if ( strncmp(key, "eps12", 5) == 0 ) {
       CHECK_NS(key);
       i = model_getidx(key, ns);
       m->eps6_12[i][1] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "eps12(%d)   = %g\n", i, m->eps6_12[i][1]);
+        fprintf(stderr, "eps12(%d)     = %g\n", i, m->eps6_12[i][1]);
     } else if ( strncmp(key, "rho", 3) == 0 ) {
       CHECK_NS(key);
       i = model_getidx(key, ns);
       m->rho[i] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "rho(%d)     = %g\n", i, m->rho[i]);
+        fprintf(stderr, "rho(%d)       = %g\n", i, m->rho[i]);
     } else if ( strncmp(key, "charge", 6) == 0 ) {
       CHECK_NS(key);
       i = model_getidx(key, ns);
       m->charge[i] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "charge(%d)  = %g\n", i, m->charge[i]);
+        fprintf(stderr, "charge(%d)    = %g\n", i, m->charge[i]);
     } else if ( strncmp(key, "dis", 3) == 0 ) {
       CHECK_NS(key);
       i = model_getidx2(key, &j, ns);
       ipr = ns*i - (i+1)*(i+2)/2 + j;
       m->dis[ipr] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "dis(%d, %d)  = %g (pair %d)\n", i, j, m->dis[ipr], ipr);
+        fprintf(stderr, "dis(%d, %d)    = %g (pair %d)\n", i, j, m->dis[ipr], ipr);
     } else if ( strncmp(key, "c6", 2) == 0 ) {
       CHECK_NS(key);
       i = model_getidx2(key, &j, ns);
       ipr = ns*i - i*(i+1)/2 + j;
       m->C6_12[ipr][0] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "c6(%d, %d)   = %g (pair %d)\n", i, j, m->C6_12[ipr][0], ipr);
+        fprintf(stderr, "c6(%d, %d)     = %g (pair %d)\n", i, j, m->C6_12[ipr][0], ipr);
     } else if ( strncmp(key, "c12", 3) == 0 ) {
       CHECK_NS(key);
       i = model_getidx2(key, &j, ns);
       ipr = ns*i - i*(i+1)/2 + j;
       m->C6_12[ipr][1] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "c12(%d, %d)  = %g (pair %d)\n", i, j, m->C6_12[ipr][1], ipr);
-    } else if ( strcmp(key, "t") == 0 ) {
-      m->beta = 1/atof(val);
+        fprintf(stderr, "c12(%d, %d)    = %g (pair %d)\n", i, j, m->C6_12[ipr][1], ipr);
+    } else if ( strcmp(key, "t") == 0 || strcmp(key, "temp") == 0 ) {
+      double temp = atof(val);
+      m->beta = 1/temp;
+      if ( verbose >= 2 )
+        fprintf(stderr, "T            = %g\n", temp);
     } else if ( strcmp(key, "ljtype") == 0 ) {
-      const char *ljtype[3];
-      ljtype[HARD_SPHERE] = "hard-sphere";
-      ljtype[LJ_FULL] = "lj-full";
-      ljtype[LJ_REPULSIVE] = "lj-repulsive";
-      m->ljtype = model_select(val, 3, ljtype);
+      const char *ljtypes[3];
+      ljtypes[HARD_SPHERE] = "hard-sphere";
+      ljtypes[LJ_FULL] = "lj-full";
+      ljtypes[LJ_REPULSIVE] = "lj-repulsive";
+      m->ljtype = model_select(val, 3, ljtypes);
+      if ( verbose >= 2 )
+        fprintf(stderr, "LJ type      = %s\n", ljtypes[m->ljtype]);
     } else if ( strcmp(key, "rscreen") == 0 ) {
       m->rscreen = atof(val);
     } else if ( strcmp(key, "closure") == 0
              || strcmp(key, "ietype") == 0 ) {
-      const char *ietype[2];
-      ietype[IE_PY] = "py";
-      ietype[IE_HNC] = "hnc";
-      m->ietype = model_select(val, 2, ietype);
+      const char *ietypes[2];
+      ietypes[IE_PY] = "py";
+      ietypes[IE_HNC] = "hnc";
+      m->ietype = model_select(val, 2, ietypes);
+      if ( verbose >= 2 )
+        fprintf(stderr, "closure      = %s\n", ietypes[m->ietype]);
     } else if ( strcmp(key, "rmax") == 0 ) {
       m->rmax = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "rmax         = %g\n", m->rmax);
     } else if ( strcmp(key, "npt") == 0
              || strcmp(key, "n-pts") == 0 ) {
       m->npt = atoi(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "npt          = %d\n", m->npt);
     } else if ( strncmp(key, "nlambda", 6) == 0 ) {
       m->nlambdas = atoi(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "nlambdas     = %d\n", m->nlambdas);
     } else if ( strcmp(key, "tol") == 0 ) {
       m->tol = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "tol          = %g\n", m->tol);
     } else if ( strcmp(key, "solver") == 0 ) {
       const char *solvers[3];
       solvers[SOLVER_PICARD] = "picard";
       solvers[SOLVER_LMV] = "lmv";
       solvers[SOLVER_MDIIS] = "mdiis";
       m->solver = model_select(val, 3, solvers);
+      if ( verbose >= 2 )
+        fprintf(stderr, "solver       = %s\n", solvers[m->solver]);
     } else if ( strcmp(key, "picard_damp") == 0 ) {
       m->picard_damp = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "Picard_damp  = %g\n", m->picard_damp);
     } else if ( strcmp(key, "lmv_m") == 0 ) {
       m->lmv_M = atoi(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "LMV_M        = %d\n", m->lmv_M);
     } else if ( strcmp(key, "lmv_damp") == 0 ) {
       m->lmv_damp = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "LMV_damp     = %g\n", m->lmv_damp);
     } else if ( strcmp(key, "mdiis_nbases") == 0 ) {
       m->mdiis_nbases = atoi(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "MDIIS_nbases = %d\n", m->mdiis_nbases);
     } else if ( strcmp(key, "mdiis_damp") == 0 ) {
       m->mdiis_damp = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "MDIIS_damp   = %g\n", m->mdiis_damp);
     }
+  }
+  if ( verbose >= 2 ) {
+    fprintf(stderr, "press Enter to start...");
+    getchar();
   }
 
   fclose(fp);
