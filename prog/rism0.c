@@ -17,8 +17,81 @@
 
 
 int model_id = 16;
-int verbose = 2;
+int verbose = 0;
 const char *fncrtr = "out.dat";
+
+
+
+/* print help message and die */
+static void help(const char *prog)
+{
+  fprintf(stderr,
+      "Reference site interaction model (RISM)\n"
+      "Usage:\n"
+      "  %s [Options] [input.cfg|model_id]\n"
+      "\n"
+      "Options:\n"
+      "  -o:    followed by the output file, default: %s\n"
+      "  -v:    be verbose\n"
+      "  -vv:   be more verbose\n"
+      "  -h:    display this message\n",
+      prog, fncrtr);
+  exit(1);
+}
+
+
+
+/* handle command line arguments */
+static model_t *doargs(int argc, char **argv)
+{
+  model_t *m;
+  int i, j, ch;
+  const char *p, *fncfg = NULL;
+
+  for ( i = 1; i < argc; i++ ) {
+    printf("i %d/%d, %s\n", i, argc, argv[i]);
+    /* it's an argument */
+    if ( argv[i][0] != '-' ) {
+      if ( striscnum(argv[i]) ) { /* use the stock model */
+        model_id = atoi(argv[i]);
+      } else { /* load a configuration file */
+        model_id = 0;
+        fncfg = argv[i];
+      }
+      continue;
+    }
+
+    /* it is an option */
+    for ( j = 1; (ch = argv[i][j]) != '\0'; j++ ) {
+      if ( ch == 'o' ) {
+        p = argv[i] + j + 1;
+        if ( *p != '\0' ) {
+          fncrtr = p;
+        } else if ( ++i >= argc ) {
+          fprintf(stderr, "-o requires an argument!\n");
+          help(argv[0]);
+        } else {
+          fncrtr = argv[i];
+          break;
+        }
+      } else if ( ch == 'v' ) {
+        verbose++;
+      } else {
+        fprintf(stderr, "unknown option %s\n", argv[i]);
+        help(argv[0]);
+      }
+    }
+  }
+
+  m = models + model_id;
+  if ( fncfg != NULL )
+    if ( model_load(m, fncfg, verbose) != 0 ) {
+      fprintf(stderr, "failed to load %s\n", fncfg);
+      help(argv[0]);
+    }
+
+  return m;
+}
 
 
 
@@ -337,6 +410,7 @@ static int output(model_t *model,
     }
   }
   fclose(fp);
+  fprintf(stderr, "saved result to %s\n", fn);
   return 0;
 }
 
@@ -441,17 +515,8 @@ static void dorism(model_t *model)
 
 int main(int argc, char **argv)
 {
-  model_t *m = models + model_id;
+  model_t *m = doargs(argc, argv);
 
-  if ( argc > 1 ) {
-    char *s = argv[1];
-    if ( striscnum(s) ) { /* use the stock model */
-      m = models + (model_id = atoi(s));
-    } else { /* load a configuration file */
-      if ( model_load(m = models, s, verbose) != 0 )
-        return -1;
-    }
-  }
   dorism(m);
   return 0;
 }

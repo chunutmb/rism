@@ -301,9 +301,9 @@ __inline static char *strstrip(char *s)
     *p = '\0';
 
   /* remove leading spaces */
-  //for ( p = s; *p && isspace(*p); p++ )  ;
-  //if ( p != s )
-  //  for ( q = s; (*q++ = *p++) != '\0'; ) ;
+  for ( p = s; *p && isspace(*p); p++ )  ;
+  if ( p != s )
+    for ( q = s; (*q++ = *p++) != '\0'; ) ;
   return s;
 }
 
