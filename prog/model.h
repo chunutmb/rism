@@ -252,7 +252,6 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->mdiis_damp = atof(val);
     }
   }
-  getchar();
 
   fclose(fp);
 
