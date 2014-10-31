@@ -51,7 +51,7 @@ model_t models[] =
     {}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
-    SOLVER_PICARD,
+    SOLVER_MDIIS,
     1.0,
     0, 1.0,
     5, 1.0
@@ -63,9 +63,9 @@ model_t models[] =
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.1,
+    0.5,
     0, 1.0,
-    5, 0.1
+    5, 1.0
   },
   /* 3. Model III of CHS 1977 */
   {2, {0.675, 1.000}, {{1, 1}, {1, 1}}, {{0}},
@@ -73,29 +73,32 @@ model_t models[] =
     {}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
-    SOLVER_LMV,
-    0.01,
-    0, 0.5
+    SOLVER_MDIIS,
+    0.3,
+    0, 0.5,
+    5, 1.0
   },
   /* 4. LC1973, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
     {0.696, 0.696}, {1.1/3.341}, 1/1.83, LJ_REPULSIVE,
     {}, 0, 0,
     IE_PY, 20.48, 1024,
-    1, 100000, 1e-7,
+    1, 10000, 1e-7,
     SOLVER_LMV,
-    0.01,
-    0, 0.5
+    0.15,
+    0, 0.5,
+    3, 0.02
   },
   /* 5. KA1978, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
     {0.6964, 0.6964}, {1.1/3.341}, 1/1.61, LJ_FULL,
     {}, 0, 0,
     IE_PY, 20.48, 1024,
-    5, 100000, 1e-7,
-    SOLVER_LMV,
-    0.01,
-    20, 0.5
+    5, 10000, 1e-7,
+    SOLVER_MDIIS,
+    0.01, /* does not work */
+    0, 0.5,
+    5, 0.2
   },
   /* 6. HR1981, liquid nitrogen, neutral */
   {2, {3.341, 3.341}, {{1, 1}, {1, 1}}, {{0}},
@@ -103,9 +106,10 @@ model_t models[] =
     {}, 0, 0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
-    SOLVER_LMV,
+    SOLVER_MDIIS,
     0.01,
-    10, 0.2
+    10, 0.3,
+    5, 0.1
   },
   /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
   {2, {3.341, 3.341}, {{44.0, 44.0}, {44.0, 44.0}}, {{0}},
@@ -115,7 +119,8 @@ model_t models[] =
     10, 100000, 1e-7,
     SOLVER_LMV,
     0.01,
-    10, 0.2
+    10, 0.5,
+    5, 0.1 /* does not work! */
   },
   /* 8. HPR1982, HCl, model II */
   {2, {2.735, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, {{0}},
@@ -125,7 +130,8 @@ model_t models[] =
     10, 100000, 1e-7,
     SOLVER_LMV,
     0.01,
-    10, 0.2
+    10, 0.5,
+    5, 0.1
   },
   /* 9. HPR1982, HCl, model III */
   {2, {0.4, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, {{0}},
@@ -135,7 +141,8 @@ model_t models[] =
     10, 100000, 1e-7,
     SOLVER_LMV,
     0.01,
-    10, 0.2
+    10, 0.5,
+    5, 0.1
   },
   /* 10. PR1982, H2O, model I
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -152,7 +159,8 @@ model_t models[] =
     10, 100000, 1e-7,
     SOLVER_LMV,
     0.01,
-    10, 0.3
+    20, 0.5,
+    5, 0.5
   },
   /* 11. PR1982, H2O, model II (SPC)
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -169,7 +177,8 @@ model_t models[] =
     10, 100000, 1e-7,
     SOLVER_LMV,
     0.01,
-    10, 0.3
+    20, 0.5,
+    5, 0.5
   },
   /* 12. PR1982, H2O, model III (TIPS)
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -184,9 +193,10 @@ model_t models[] =
     {-0.8, 0.4, 0.4}, KE2C, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
-    SOLVER_LMV,
+    SOLVER_MDIIS,
     0.01,
-    10, 0.3
+    20, 0.5,
+    5, 0.5
   },
   /* 13. SPCE, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -198,9 +208,10 @@ model_t models[] =
     {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
-    SOLVER_LMV,
+    SOLVER_MDIIS,
     0.01,
-    25, 0.3
+    25, 0.5,
+    5, 0.5
   },
   /* 14. TIP3, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -212,9 +223,10 @@ model_t models[] =
     {-0.834, 0.417, 0.417}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
-    SOLVER_LMV,
+    SOLVER_MDIIS,
     0.01,
-    25, 0.3
+    25, 0.5,
+    5, 0.5
   },
   /* 15. HRP1983, solvent + solute (+/- ion pair)
    * Cf. model 7 */
@@ -224,10 +236,11 @@ model_t models[] =
     {1.1}, 1./200, LJ_FULL,
     {0.200, -0.200, 1.0, -1.0}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
-    12, 100000, 1e-7,
+    10, 100000, 1e-7,
     SOLVER_LMV,
     0.01,
-    10, 0.2
+    15, 0.5,
+    5, 0.5
   },
   /* 16. SPCE, H2O, Na+, Cl-
    * atom 0: O, atom 1: H1, atom 2: H2, atom 3: Na, atom 4: Cl-
@@ -242,7 +255,8 @@ model_t models[] =
     10, 100000, 1e-7,
     SOLVER_LMV,
     0.01,
-    10, 0.3
+    15, 0.5,
+    5, 0.5
   },
   {0} /* empty model, place holder */
 };

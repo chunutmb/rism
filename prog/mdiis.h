@@ -128,7 +128,7 @@ static double getdot(double *a, double *b, int n)
   double x = 0;
 
   for ( i = 0; i < n; i++ ) x += a[i] * b[i];
-  return x;
+  return x / n;
 }
 
 
@@ -181,9 +181,13 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res)
 
     dot = getdot(res, res, nps2);
     if ( dot > max ) {
-      fprintf(stderr, "mdiis warning: %g is greater than %g, resetting\n", dot, max);
-      mdiis_build(m, cr, res);
-      return 1;
+      int reset = sqrt(dot) < 1;
+      fprintf(stderr, "MDIIS: bad basis, %g is greater than %g%s\n",
+          dot, max, reset ? ", reset" : "");
+      if ( reset ) {
+        mdiis_build(m, cr, res);
+        return 1;
+      }
     }
   }
 
