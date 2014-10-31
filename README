@@ -1,8 +1,26 @@
 Reference Interaction Site Model
-with the Labik-Malijevsky-Vonka solver
+
+Features
+=========
+ * Picard solver
+ * Labik-Malijevsky-Vonka solver
+ * modified (MDIIS) solver 
+
+
+
+Download
+=========
 
 Dropbox link:
 https://www.dropbox.com/sh/85y8gnm40hfspo1/AADyeYAYAYnmfvGTo6hVhksga?dl=0
+
+GitHub
+https://github.com/3ki5tj/rism
+
+
+
+Notes
+=====
 
 Reference implementations
 /Bossman/Software/rism/

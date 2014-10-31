@@ -14,15 +14,16 @@ bins_d = $(patsubst %,%_d, $(bins))
 
 all: $(bins)
 
-rism0_deps = util.h models.h lmv.h mdiis.h Makefile
+rism0_deps = util.h models.h lmv.h mdiis.h uv.h Makefile
 
 rism0 : rism0.c $(rism0_deps)
 	$(CX) -o $@ $< $(LMX)
 
 rism0_d : rism0.c $(rism0_deps)
 	$(CX) -o $@ $< $(LMX)
+
 clean:
-	rm -f $(bins) $(bins_d) *~ a.out *.dat gmon.out MTSEED
+	rm -f $(bins) $(bins_d) *~ a.out *.dat gmon.out .*.un~ MTSEED
 	rm -rf r[0-9]*hs
 	rstrip.py -Rlv
 

@@ -94,7 +94,7 @@ static double iter_lmv(model_t *model,
   int ns = model->ns, npt = model->npt;
   double **Cjk = NULL, *mat = NULL, *b = NULL, **costab = NULL;
   double y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
-  int *prmask, nsv, stage;
+  uv_t *uv;
 
   /* initialize t(k) and t(r) */
   sphr_r2k(cr, ck, ns, NULL);
@@ -124,15 +124,8 @@ static double iter_lmv(model_t *model,
         costab[j][i] = cos(PI*(i+.5)*(j-M)/npt);
   }
 
-  /* initialize the prmask for solvent-solvent iteraction */
-  xnew(prmask, ns * ns);
-  for ( i = 1; i < ns; i++ )
-    if ( model->Lpm[i-1] < DBL_MIN ) break;
-  nsv = i;
-  for ( i = 0; i < ns; i++ )
-    for ( j = 0; j < ns; j++ )
-      prmask[i*ns + j] = (i < nsv && j < nsv);
-  stage = 0;
+  /* initialize the manager for solvent-solvent iteraction */
+  uv = uv_open(model);
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
@@ -153,7 +146,7 @@ static double iter_lmv(model_t *model,
     oz(model, ck, vklr, ntk, wk, invwc1w);
 
     /* compute the Jacobian matrix for the Newton-Raphson method */
-    getjacob(mat, b, M, npr, ns, prmask, ntk, tk, Cjk, invwc1w);
+    getjacob(mat, b, M, npr, ns, uv->prmask, ntk, tk, Cjk, invwc1w);
 
     if ( lusolve(mat, b, Mp, DBL_MIN) != 0 ) break;
 
@@ -162,7 +155,7 @@ static double iter_lmv(model_t *model,
     for ( ipr = 0, i = 0; i < ns; i++ )
       for ( j = i; j < ns; j++, ipr++ ) {
         ij = i*ns + j;
-        if ( !prmask[ij] ) continue;
+        if ( !uv->prmask[ij] ) continue;
 
         for ( l = 0; l < npt; l++ ) {
           if ( l < M ) {
@@ -190,30 +183,16 @@ static double iter_lmv(model_t *model,
 
     if ( it > 0 && err < model->tol ) {
       /* switch between stages */
-      if ( stage == 0 ) { /* turn on solute-solvent interaction */
-        if ( nsv == ns ) break;
-        for ( i = 0; i < ns; i++ )
-          for ( j = 0; j < ns; j++ )
-            prmask[i*ns + j] = ((i < nsv && j >= nsv)
-                             || (j < nsv && i >= nsv));
-        fprintf(stderr, "turning on solute-solvent interaction\n"); //getchar();
-        stage = 1;
-        it = -1;
-      } else if ( stage == 1 ) { /* turn on solute-solute interaction */
-        for ( i = 0; i < ns; i++ )
-          for ( j = 0; j < ns; j++ )
-            prmask[i*ns + j] = (i >= nsv && j >= nsv);
+      int brk = uv_switch(uv);
+      if ( uv->stage == 2 ) {
         oz(model, ck, vklr, tk, wk, invwc1w);
         sphr_k2r(tk, tr, ns, NULL);
         /* NOTE currently the we cannot continue from here
          * thus, we stop at the case of infinite dilution */
         //fprintf(stderr, "turning on solute-solute interaction\n"); getchar();
-        stage = 2;
-        it = 0;
-        break;
-      } else {
-        break;
       }
+      if ( brk ) break;
+      it = -1;
       err = errinf;
     }
 /*
@@ -233,7 +212,7 @@ static double iter_lmv(model_t *model,
     delarr(b);
     delarr2d(costab, 3*M);
   }
-  free(prmask);
+  uv_close(uv);
   return err;
 }
 
