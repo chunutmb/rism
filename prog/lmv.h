@@ -9,20 +9,18 @@
 
 /* compute Cjk */
 static void getCjk(double **Cjk, int npt, int M, int ns,
-    double **der, double **costab)
+    double **der, double **costab, double *dp)
 {
   int i, j, ij, ji, m, k, l;
-  double y, *dp;
 
-  newarr(dp, 3*M);
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
 
       for ( m = 1; m < 3*M - 1; m++ ) {
-        for ( y = 0, l = 0; l < npt; l++ )
-          y += der[ij][l] * costab[m][l];
-        dp[m] = y / npt;
+        for ( dp[m] = 0, l = 0; l < npt; l++ )
+          dp[m] += der[ij][l] * costab[m][l];
+        dp[m] /= npt;
       }
 
       for ( m = 0; m < M; m++ )
@@ -36,7 +34,6 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
         Cjk[ji][m] = Cjk[ij][m];
     }
   }
-  delarr(dp);
 }
 
 
@@ -92,7 +89,7 @@ static double iter_lmv(model_t *model,
 {
   int i, j, l, ij, it, M, npr, ipr, Mp;
   int ns = model->ns, npt = model->npt;
-  double **Cjk = NULL, *mat = NULL, *b = NULL, **costab = NULL;
+  double **Cjk = NULL, *mat = NULL, *b = NULL, **costab = NULL, *dp = NULL;
   double y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
   uv_t *uv;
 
@@ -118,6 +115,7 @@ static double iter_lmv(model_t *model,
     newarr2d(Cjk, ns*ns, M*M);
     newarr(mat, Mp*Mp);
     newarr(b, Mp);
+    newarr(dp, 3*M);
     newarr2d(costab, 3*M, npt);
     for ( j = 0; j < 3*M; j++ )
       for ( i = 0; i < npt; i++ )
@@ -140,7 +138,7 @@ static double iter_lmv(model_t *model,
     sphr_r2k(cr, ck, ns, NULL);
 
     /* compute Cjk */
-    getCjk(Cjk, npt, M, ns, der, costab);
+    getCjk(Cjk, npt, M, ns, der, costab, dp);
 
     /* compute the new t(k) */
     oz(model, ck, vklr, ntk, wk, invwc1w);
@@ -210,6 +208,7 @@ static double iter_lmv(model_t *model,
     delarr2d(Cjk, ns*ns);
     delarr(mat);
     delarr(b);
+    delarr(dp);
     delarr2d(costab, 3*M);
   }
   uv_close(uv);

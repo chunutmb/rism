@@ -20,7 +20,7 @@ rism0 : rism0.c $(rism0_deps)
 	$(CX) -o $@ $< $(LMX)
 
 rism0_d : rism0.c $(rism0_deps)
-	$(CX) -o $@ $< $(LMX)
+	$(CC) -o $@ $< $(LM)
 
 clean:
 	rm -f $(bins) $(bins_d) *~ a.out *.dat gmon.out .*.un~ MTSEED
