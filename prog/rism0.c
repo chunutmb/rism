@@ -334,29 +334,26 @@ static double getcr(double tr, double fr, double *dcr, int ietype)
 
 
 
-/* a step of direct iteration (Picard)
+/* apply the closure
  * compute residue vector if needed */
-static double step_picard(model_t *model,
-    double *res, double **fr, double **wk,
-    double **cr, double **ck, double **vklr,
-    double **tr, double **tk, int *prmask,
-    int update)
+static double closure(model_t *model,
+    double *res, double **der, double **fr,
+    double **cr, double **tr, int *prmask,
+    int update, double damp)
 {
   int ns = model->ns, npt = model->npt, i, j, ij, id, l;
   double y, err = 0, max = 0;
 
-  sphr_r2k(cr, ck, ns, NULL);
-  oz(model, ck, vklr, tk, wk, NULL);
-  sphr_k2r(tk, tr, ns, NULL);
   for ( id = 0, i = 0; i < ns; i++ )
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
       if ( prmask && !prmask[ij] ) continue;
       for ( l = 0; l < npt; l++, id++ ) {
-        y = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
+        y = getcr(tr[ij][l], fr[ij][l], der ? &der[ij][l] : NULL,
+                  model->ietype) - cr[ij][l];
         if ( res != NULL ) res[id] = y;
         //if ( prmask[ns*ns-1] && fabs(y) > err && i >= ns - 2) { printf("update %d, i %d, j %d, l %d, cr %g (del %g) tr %g\n", update, i, j, l, cr[ij][l], y, tr[ij][l]); getchar(); }
-        if ( update ) cr[ij][l] += y;
+        if ( update ) cr[ij][l] += damp * y;
         if ( fabs(y) > err ) err = fabs(y);
         if ( fabs(cr[ij][l]) > max ) max = fabs(cr[ij][l]);
       }
@@ -365,6 +362,24 @@ static double step_picard(model_t *model,
   /* the c(r) between two ions can be extremely large
    * so we use the relative error to be compared with the tolerance */
   return err / (max + 1e-3);
+}
+
+
+
+
+/* a step of direct iteration (Picard)
+ * compute residue vector if needed */
+static double step_picard(model_t *model,
+    double *res, double **der,
+    double **fr, double **wk,
+    double **cr, double **ck, double **vklr,
+    double **tr, double **tk, int *prmask,
+    int update, double damp)
+{
+  sphr_r2k(cr, ck, model->ns, NULL);
+  oz(model, ck, vklr, tk, wk, NULL);
+  sphr_k2r(tk, tr, model->ns, NULL);
+  return closure(model, res, der, fr, cr, tr, prmask, update, damp);
 }
 
 
@@ -384,24 +399,12 @@ static double iter_picard(model_t *model,
     double **cr, double **ck, double **vklr,
     double **tr, double **tk, int *niter)
 {
-  int it, ns = model->ns, npt = model->npt, i, j, ij, l;
-  double dcr, err = 0, errp = errinf;
+  int it;
+  double err = 0, errp = errinf;
 
   for ( it = 0; it < model->itmax; it++ ) {
-    sphr_r2k(cr, ck, ns, NULL);
-    oz(model, ck, vklr, tk, wk, NULL);
-    sphr_k2r(tk, tr, ns, NULL);
-
-    /* solve the closure */
-    err = 0;
-    for ( i = 0; i < ns; i++ )
-      for ( j = 0; j < ns; j++ )
-        for ( ij = i*ns + j, l = 0; l < npt; l++ ) {
-          dcr = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
-          if ( fabs(dcr) > err ) err = fabs(dcr);
-          cr[ij][l] += dcr * model->picard.damp;
-        }
-
+    err = step_picard(model, NULL, NULL, fr, wk, cr, ck, vklr,
+        tr, tk, NULL, 1, model->picard.damp);
     if ( err < model->tol ) break;
     if ( verbose )
       fprintf(stderr, "it %d err %g -> %g\n", it, errp, err); //getchar();

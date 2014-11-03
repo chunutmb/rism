@@ -127,15 +127,9 @@ static double iter_lmv(model_t *model,
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
-    err = 0;
-    for ( i = 0; i < ns; i++ )
-      for ( j = 0; j < ns; j++ )
-        for ( ij = i*ns + j, l = 0; l < npt; l++ ) {
-          y = getcr(tr[ij][l], fr[ij][l], &der[ij][l], model->ietype) - cr[ij][l];
-          if ( fabs(y) > err ) err = fabs(y);
-          cr[ij][l] += y;
-        }
+    err = closure(model, NULL, der, fr, cr, tr, uv->prmask, 1, 1.0);
     sphr_r2k(cr, ck, ns, NULL);
+    //printf("stage %d, it %d, cr %g, ck %g, tr %g, tk %g, err %g\n", uv->stage, it, cr[0][0], ck[0][0], tr[0][0], tk[0][0], err);
 
     /* compute Cjk */
     getCjk(Cjk, npt, M, ns, der, costab, dp);
@@ -146,7 +140,10 @@ static double iter_lmv(model_t *model,
     /* compute the Jacobian matrix for the Newton-Raphson method */
     getjacob(mat, b, M, npr, ns, uv->prmask, ntk, tk, Cjk, invwc1w);
 
-    if ( lusolve(mat, b, Mp, DBL_MIN) != 0 ) break;
+    if ( lusolve(mat, b, Mp, DBL_MIN) != 0 ) {
+      fprintf(stderr, "LU solve failed: stage %d, it %d\n", uv->stage, it);
+      exit(1);
+    }
 
     /* compute the new t(k) */
     err1 = err2 = 0;
@@ -179,16 +176,14 @@ static double iter_lmv(model_t *model,
       fprintf(stderr, "it %d: M %d, err %g -> %g, tk_err %g/%g, damp %g\n",
           it, M, errp, err, err1, err2, dmp);
 
-    if ( it > 0 && err < model->tol ) {
+    if ( err < model->tol ) {
+      //fprintf(stderr, "switching stage %d, it %d, err %g, tol %g\n", uv->stage, it, err, model->tol); getchar();
       /* switch between stages */
       if ( uv_switch(uv) != 0 ) break;
-      if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->infdil ) {
-          /* NOTE currently the we cannot continue from here
-           * thus, we stop at the case of infinite dilution */
-          step_picard(model, NULL, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 1);
-          break;
-        }
+      if ( uv->stage == SOLUTE_SOLUTE && uv->infdil ) {
+        step_picard(model, NULL, NULL, fr, wk, cr, ck, vklr, tr, tk,
+            uv->prmask, 1, 1.);
+        break; /* no need to iterate further */
       }
       it = -1;
       err = errinf;

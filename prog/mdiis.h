@@ -222,13 +222,15 @@ static double iter_mdiis(model_t *model,
   res = mdiis->res[mdiis->mnb];
 
   /* construct the initial base set */
-  step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 0);
+  step_picard(model, res, NULL, fr, wk, cr, ck, vklr, tr, tk,
+      uv->prmask, 0, 0.);
   mdiis_build(mdiis, cr, res, uv);
 
   for ( it = 0; it < model->itmax; it++ ) {
     mdiis_solve(mdiis);
     mdiis_gencr(mdiis, cr, damp, uv);
-    err = step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 0);
+    err = step_picard(model, res, NULL, fr, wk, cr, ck, vklr, tr, tk,
+        uv->prmask, 0, 0.);
     ib = mdiis_update(mdiis, cr, res, uv);
 
     if ( verbose )
@@ -236,15 +238,15 @@ static double iter_mdiis(model_t *model,
           it, errp, err, ibp, ib);
     if ( err < model->tol ) {
       if ( uv_switch(uv) != 0 ) break;
-      if ( uv->stage == SOLUTE_SOLUTE ) {
-        /* if all solutes are of zero density, break the loop */
-        if ( uv->infdil ) {
-          step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 1);
-          break;
-        }
+      /* if all solutes are of zero density, break the loop */
+      if ( uv->stage == SOLUTE_SOLUTE && uv->infdil ) {
+        step_picard(model, res, NULL, fr, wk, cr, ck, vklr, tr, tk,
+            uv->prmask, 1, 1.);
+        break;
       }
       /* reset the bases */
-      step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 0);
+      step_picard(model, res, NULL, fr, wk, cr, ck, vklr, tr, tk,
+          uv->prmask, 0, 0.);
       mdiis_build(mdiis, cr, res, uv);
       it = -1;
       err = errinf;
