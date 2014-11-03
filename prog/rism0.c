@@ -229,8 +229,6 @@ static int getnsv(model_t *m)
 {
   int i;
 
-  //for ( i = 1; i < m->ns; i++ )
-  //  if ( model->dis[i-1] < DBL_MIN ) break;
   for ( i = 1; i < m->ns; i++ )
     if ( fabs(m->rho[i] - m->rho[0]) > 1e-3 )
       break;
@@ -336,7 +334,42 @@ static double getcr(double tr, double fr, double *dcr, int ietype)
 
 
 
-const double errinf = 1e9;
+/* a step of direct iteration (Picard)
+ * compute residue vector if needed */
+static double step_picard(model_t *model,
+    double *res, double **fr, double **wk,
+    double **cr, double **ck, double **vklr,
+    double **tr, double **tk, int *prmask,
+    int update)
+{
+  int ns = model->ns, npt = model->npt, i, j, ij, id, l;
+  double y, err = 0, max = 0;
+
+  sphr_r2k(cr, ck, ns, NULL);
+  oz(model, ck, vklr, tk, wk, NULL);
+  sphr_k2r(tk, tr, ns, NULL);
+  for ( id = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++ ) {
+      ij = i*ns + j;
+      if ( prmask && !prmask[ij] ) continue;
+      for ( l = 0; l < npt; l++, id++ ) {
+        y = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
+        if ( res != NULL ) res[id] = y;
+        //if ( prmask[ns*ns-1] && fabs(y) > err && i >= ns - 2) { printf("update %d, i %d, j %d, l %d, cr %g (del %g) tr %g\n", update, i, j, l, cr[ij][l], y, tr[ij][l]); getchar(); }
+        if ( update ) cr[ij][l] += y;
+        if ( fabs(y) > err ) err = fabs(y);
+        if ( fabs(cr[ij][l]) > max ) max = fabs(cr[ij][l]);
+      }
+    }
+  //if ( prmask[ns*ns-1] ) { printf("update %d, err %g, max %g\n", update, err, max); getchar(); }
+  /* the c(r) between two ions can be extremely large
+   * so we use the relative error to be compared with the tolerance */
+  return err / (max + 1e-3);
+}
+
+
+
+const double errinf = 1e20;
 #include "uv.h" /* manager for solvent/solute interaction */
 #include "lmv.h" /* LMV solver */
 #include "mdiis.h" /* MDIIS solver */
