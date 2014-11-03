@@ -181,15 +181,15 @@ static double iter_lmv(model_t *model,
 
     if ( it > 0 && err < model->tol ) {
       /* switch between stages */
-      int brk = uv_switch(uv);
-      if ( uv->stage == 2 ) {
-        oz(model, ck, vklr, tk, wk, invwc1w);
-        sphr_k2r(tk, tr, ns, NULL);
-        /* NOTE currently the we cannot continue from here
-         * thus, we stop at the case of infinite dilution */
-        //fprintf(stderr, "turning on solute-solute interaction\n"); getchar();
+      if ( uv_switch(uv) != 0 ) break;
+      if ( uv->stage == SOLUTE_SOLUTE ) {
+        if ( uv->infdil ) {
+          /* NOTE currently the we cannot continue from here
+           * thus, we stop at the case of infinite dilution */
+          step_picard(model, NULL, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 1);
+          break;
+        }
       }
-      if ( brk ) break;
       it = -1;
       err = errinf;
     }

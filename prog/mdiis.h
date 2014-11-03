@@ -58,33 +58,6 @@ static void mdiis_close(mdiis_t *m)
 
 
 
-/* compute residue from direct iteration (Picard) */
-static double getres(model_t *model,
-    double *res, double **fr, double **wk,
-    double **cr, double **ck, double **vklr,
-    double **tr, double **tk, int *prmask)
-{
-  int ns = model->ns, npt = model->npt, i, j, ij, id, l;
-  double y, err = 0;
-
-  sphr_r2k(cr, ck, ns, NULL);
-  oz(model, ck, vklr, tk, wk, NULL);
-  sphr_k2r(tk, tr, ns, NULL);
-  for ( id = 0, i = 0; i < ns; i++ )
-    for ( j = i; j < ns; j++ ) {
-      ij = i*ns + j;
-      if ( !prmask[ij] ) continue;
-      for ( l = 0; l < npt; l++, id++ ) {
-        y = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
-        res[id] = y;
-        if ( fabs(y) > err ) err = fabs(y);
-      }
-    }
-  return err;
-}
-
-
-
 /* solve the coefficients of combination */
 static int mdiis_solve(mdiis_t *m)
 {
@@ -200,7 +173,8 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
     dot = getdot(res, res, uv->npr * npt);
     if ( dot > max ) {
       int reset = sqrt(dot) < 1;
-      fprintf(stderr, "MDIIS: bad basis, %g is greater than %g%s\n",
+      if ( verbose )
+        fprintf(stderr, "MDIIS: bad basis, %g is greater than %g%s\n",
           dot, max, reset ? ", reset" : "");
       if ( reset ) {
         mdiis_build(m, cr, res, uv);
@@ -248,28 +222,30 @@ static double iter_mdiis(model_t *model,
   res = mdiis->res[mdiis->mnb];
 
   /* construct the initial base set */
-  getres(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask);
+  step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 0);
   mdiis_build(mdiis, cr, res, uv);
 
   for ( it = 0; it < model->itmax; it++ ) {
     mdiis_solve(mdiis);
     mdiis_gencr(mdiis, cr, damp, uv);
-    err = getres(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask);
+    err = step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 0);
     ib = mdiis_update(mdiis, cr, res, uv);
 
     if ( verbose )
       fprintf(stderr, "it %d, err %g -> %g, ib %d -> %d\n",
           it, errp, err, ibp, ib);
     if ( err < model->tol ) {
-      int brk = uv_switch(uv);
-      if ( uv->stage == 1 ) {
-        getres(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask);
-        mdiis_build(mdiis, cr, res, uv);
-      } else if ( uv->stage == 2 ) {
-        oz(model, ck, vklr, tk, wk, NULL);
-        sphr_k2r(tk, tr, ns, NULL);
+      if ( uv_switch(uv) != 0 ) break;
+      if ( uv->stage == SOLUTE_SOLUTE ) {
+        /* if all solutes are of zero density, break the loop */
+        if ( uv->infdil ) {
+          step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 1);
+          break;
+        }
       }
-      if ( brk ) break;
+      /* reset the bases */
+      step_picard(model, res, fr, wk, cr, ck, vklr, tr, tk, uv->prmask, 0);
+      mdiis_build(mdiis, cr, res, uv);
       it = -1;
       err = errinf;
     }
