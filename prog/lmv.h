@@ -99,13 +99,13 @@ static double iter_lmv(model_t *model,
   sphr_k2r(tk, tr, ns, NULL);
 
   /* set the optimal M */
-  M = (model->lmv_M > 0) ? model->lmv_M :
+  M = (model->lmv.M > 0) ? model->lmv.M :
        (int) (2 * model->rmax/model->sigma[ns-1]);
   if ( M >= npt ) M = npt;
   if ( verbose ) fprintf(stderr, "select M = %d\n", M);
 
   /* set the damping factor */
-  dmp = (model->lmv_damp > 0) ? model->lmv_damp : 1;
+  dmp = (model->lmv.damp > 0) ? model->lmv.damp : 1;
 
   npr = ns * (ns + 1) / 2;
   Mp = M * npr;

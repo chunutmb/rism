@@ -399,7 +399,7 @@ static double iter_picard(model_t *model,
         for ( ij = i*ns + j, l = 0; l < npt; l++ ) {
           dcr = getcr(tr[ij][l], fr[ij][l], NULL, model->ietype) - cr[ij][l];
           if ( fabs(dcr) > err ) err = fabs(dcr);
-          cr[ij][l] += dcr * model->picard_damp;
+          cr[ij][l] += dcr * model->picard.damp;
         }
 
     if ( err < model->tol ) break;
