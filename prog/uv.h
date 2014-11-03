@@ -53,15 +53,27 @@ static int uv_switch(uv_t *uv)
     if ( nsv == ns ) return 1;
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ )
-        uv->prmask[i*ns + j] = (i < nsv || j < nsv);
-    uv->npr = nsv * (ns - nsv) + nsv * (nsv + 1) / 2;
+        if ( uv->infdil ) {
+          /* turn on only solvent-solute interaction
+           * shut down the solvent-solvent interaction */
+          uv->prmask[i*ns + j] = ((i < nsv && j >= nsv)
+                               || (j < nsv && i >= nsv));
+        } else {
+          /* keep the solvent-solvent interaction */
+          uv->prmask[i*ns + j] = (i < nsv || j < nsv);
+        }
+    uv->npr = nsv * (ns - nsv) + ( !uv->infdil ? nsv * (nsv + 1) / 2 : 0 );
     fprintf(stderr, "turning on solute-solvent interaction\n");
     uv->stage = SOLUTE_SOLVENT;
   } else if ( uv->stage == SOLUTE_SOLVENT ) { /* turn on solute-solute interaction */
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ )
-        uv->prmask[i*ns + j] = 1;
-    uv->npr = ns * (ns + 1) / 2;
+        if ( uv->infdil ) {
+          uv->prmask[i*ns + j] = (i >= nsv && j >= nsv);
+        } else {
+          uv->prmask[i*ns + j] = 1;
+        }
+    uv->npr = ( !uv->infdil ? nsv * (nsv + 1) / 2 : ns * (ns + 1) / 2 );
     uv->stage = SOLUTE_SOLUTE;
     fprintf(stderr, "turning on solute-solute interaction\n");
   } else {
