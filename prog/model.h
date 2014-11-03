@@ -14,6 +14,22 @@ enum { IE_PY, IE_HNC };
 enum { SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS };
 
 typedef struct {
+  double damp;
+} picard_params_t;
+
+typedef struct {
+  int M; /* number of points for the Newton-Raphson method */
+  double damp;
+} lmv_params_t;
+
+typedef struct {
+  int nbases; /* number of bases */
+  double damp;
+} mdiis_params_t;
+
+
+
+typedef struct {
   int ns;
   double sigma[MAXATOM];
   double eps6_12[MAXATOM][2];
@@ -36,13 +52,9 @@ typedef struct {
   double tol; /* tolerance of error */
   int solver; /* solver */
 
-  double picard_damp; /* damping factor for the Picard solver */
-
-  int lmv_M; /* number of points for the Newton-Raphson method (LMV) */
-  double lmv_damp; /* damping factor for the LMV solver */
-
-  int mdiis_nbases; /* number of bases for the MDIIS solver */
-  double mdiis_damp; /* damping factor for the MDIIS solver */
+  picard_params_t picard;
+  lmv_params_t    lmv;
+  mdiis_params_t  mdiis;
 } model_t;
 
 
@@ -258,25 +270,25 @@ static int model_load(model_t *m, const char *fn, int verbose)
       if ( verbose >= 2 )
         fprintf(stderr, "solver       = %s\n", solvers[m->solver]);
     } else if ( strcmp(key, "picard_damp") == 0 ) {
-      m->picard_damp = atof(val);
+      m->picard.damp = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "Picard_damp  = %g\n", m->picard_damp);
+        fprintf(stderr, "Picard_damp  = %g\n", m->picard.damp);
     } else if ( strcmp(key, "lmv_m") == 0 ) {
-      m->lmv_M = atoi(val);
+      m->lmv.M = atoi(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "LMV_M        = %d\n", m->lmv_M);
+        fprintf(stderr, "LMV_M        = %d\n", m->lmv.M);
     } else if ( strcmp(key, "lmv_damp") == 0 ) {
-      m->lmv_damp = atof(val);
+      m->lmv.damp = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "LMV_damp     = %g\n", m->lmv_damp);
+        fprintf(stderr, "LMV_damp     = %g\n", m->lmv.damp);
     } else if ( strcmp(key, "mdiis_nbases") == 0 ) {
-      m->mdiis_nbases = atoi(val);
+      m->mdiis.nbases = atoi(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "MDIIS_nbases = %d\n", m->mdiis_nbases);
+        fprintf(stderr, "MDIIS_nbases = %d\n", m->mdiis.nbases);
     } else if ( strcmp(key, "mdiis_damp") == 0 ) {
-      m->mdiis_damp = atof(val);
+      m->mdiis.damp = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "MDIIS_damp   = %g\n", m->mdiis_damp);
+        fprintf(stderr, "MDIIS_damp   = %g\n", m->mdiis.damp);
     }
   }
   if ( verbose >= 2 ) {
@@ -343,9 +355,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.01,
-    20, 0.5,
-    5, 0.5
+    {0.01},
+    {20, 0.5},
+    {5, 0.5}
   },
   /* 1. LC 1973, and Model I of CHS 1977 */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
@@ -365,9 +377,9 @@ model_t models[] =
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.5,
-    0, 1.0,
-    5, 1.0
+    {0.5},
+    {0, 1.0},
+    {5, 1.0}
   },
   /* 3. Model III of CHS 1977 */
   {2, {0.675, 1.000}, {{1, 1}, {1, 1}}, {{0}},
@@ -376,9 +388,9 @@ model_t models[] =
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.3,
-    0, 0.5,
-    5, 1.0
+    {0.3},
+    {0, 0.5},
+    {5, 1.0}
   },
   /* 4. LC1973, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
@@ -387,9 +399,9 @@ model_t models[] =
     IE_PY, 20.48, 1024,
     1, 10000, 1e-7,
     SOLVER_LMV,
-    0.15,
-    0, 0.5,
-    3, 0.02
+    {0.15},
+    {0, 0.5},
+    {3, 0.02}
   },
   /* 5. KA1978, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
@@ -398,9 +410,9 @@ model_t models[] =
     IE_PY, 20.48, 1024,
     5, 10000, 1e-7,
     SOLVER_MDIIS,
-    0.01, /* does not work */
-    0, 0.5,
-    5, 0.2
+    {0.01}, /* does not work */
+    {0, 0.5},
+    {5, 0.2}
   },
   /* 6. HR1981, liquid nitrogen, neutral */
   {2, {3.341, 3.341}, {{1, 1}, {1, 1}}, {{0}},
@@ -409,9 +421,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.01,
-    10, 0.3,
-    5, 0.1
+    {0.01},
+    {10, 0.3},
+    {5, 0.1}
   },
   /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
   {2, {3.341, 3.341}, {{44.0, 44.0}, {44.0, 44.0}}, {{0}},
@@ -420,9 +432,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_LMV,
-    0.01,
-    10, 0.5,
-    5, 0.1 /* does not work! */
+    {0.01},
+    {10, 0.5},
+    {5, 0.1} /* does not work! */
   },
   /* 8. HPR1982, HCl, model II */
   {2, {2.735, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, {{0}},
@@ -431,9 +443,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_LMV,
-    0.01,
-    10, 0.5,
-    5, 0.1
+    {0.01},
+    {10, 0.5},
+    {5, 0.1}
   },
   /* 9. HPR1982, HCl, model III */
   {2, {0.4, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, {{0}},
@@ -442,9 +454,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_LMV,
-    0.01,
-    10, 0.5,
-    5, 0.1
+    {0.01},
+    {10, 0.5},
+    {5, 0.1}
   },
   /* 10. PR1982, H2O, model I
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -460,9 +472,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_LMV,
-    0.01,
-    20, 0.5,
-    5, 0.5
+    {0.01},
+    {20, 0.5},
+    {5, 0.5}
   },
   /* 11. PR1982, H2O, model II (SPC)
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -478,9 +490,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_LMV,
-    0.01,
-    20, 0.5,
-    5, 0.5
+    {0.01},
+    {20, 0.5},
+    {5, 0.5}
   },
   /* 12. PR1982, H2O, model III (TIPS)
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -496,9 +508,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.01,
-    20, 0.5,
-    5, 0.5
+    {0.01},
+    {20, 0.5},
+    {5, 0.5}
   },
   /* 13. SPCE, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -511,9 +523,9 @@ model_t models[] =
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.01,
-    25, 0.5,
-    5, 0.5
+    {0.01},
+    {25, 0.5},
+    {5, 0.5}
   },
   /* 14. TIP3, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -526,9 +538,9 @@ model_t models[] =
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.01,
-    25, 0.5,
-    5, 0.5
+    {0.01},
+    {25, 0.5},
+    {5, 0.5}
   },
   /* 15. HRP1983, solvent + solute (+/- ion pair)
    * Cf. model 7 */
@@ -540,9 +552,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.01,
-    15, 0.5,
-    5, 0.5
+    {0.01},
+    {15, 0.5},
+    {5, 0.5}
   },
   /* 16. SPCE, H2O, Na+, Cl-
    * atom 0: O, atom 1: H1, atom 2: H2, atom 3: Na, atom 4: Cl-
@@ -556,9 +568,9 @@ model_t models[] =
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
-    0.01,
-    15, 0.5,
-    5, 0.5
+    {0.01},
+    {15, 0.5},
+    {5, 0.5}
   },
   {0} /* empty model, place holder */
 };
