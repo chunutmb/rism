@@ -20,6 +20,7 @@ int model_id = 16;
 int verbose = 0;
 const char *fncrtr = "out.dat";
 int sepout = 0;
+const char *fncrdnum = "crdnum.dat";
 
 
 
@@ -34,10 +35,11 @@ static void help(const char *prog)
       "Options:\n"
       "  -o:    followed by the output file, default: %s\n"
       "  -$:    separately output file for each lambda, default %d\n"
+      "  -#:    followed by the coordination number file, default: %s\n"
       "  -v:    be verbose\n"
       "  -vv:   be more verbose\n"
       "  -h:    display this message\n",
-      prog, fncrtr, sepout);
+      prog, fncrtr, sepout, fncrdnum);
   exit(1);
 }
 
@@ -48,7 +50,7 @@ static model_t *doargs(int argc, char **argv)
 {
   model_t *m;
   int i, j, ch;
-  const char *p, *fncfg = NULL;
+  const char *p, *q, *fncfg = NULL;
 
   for ( i = 1; i < argc; i++ ) {
     /* it's an argument */
@@ -64,16 +66,28 @@ static model_t *doargs(int argc, char **argv)
 
     /* it is an option */
     for ( j = 1; (ch = argv[i][j]) != '\0'; j++ ) {
-      if ( ch == 'o' ) {
-        p = argv[i] + j + 1;
+      if ( ch == 'o' || ch == '#' ) {
+        /* handle options that require an argument */
+        q = p = argv[i] + j + 1;
         if ( *p != '\0' ) {
-          fncrtr = p;
-        } else if ( ++i >= argc ) {
-          fprintf(stderr, "-o requires an argument!\n");
-          help(argv[0]);
+          /* the argument follows immediately after the option
+           * e.g., -oa.dat */
+          q = p;
+        } else if ( ++i < argc ) {
+          /* the option and argument are separated by a space
+           * then the argument belongs to the next argv[] element,
+           * hence ++i
+           * e.g., -o a.dat */
+          q = argv[i];
+          j = q[strlen(q) - 1]; /* to break the loop */
         } else {
-          fncrtr = argv[i];
-          break;
+          fprintf(stderr, "-%c requires an argument!\n", ch);
+          help(argv[0]);
+        }
+        if ( ch == 'o' ) {
+          fncrtr = q;
+        } else if ( ch == '#' ) {
+          fncrdnum = q;
         }
       } else if ( ch == '$' ) {
         sepout = 1;
@@ -547,6 +561,8 @@ static void dorism(model_t *model)
   }
 
   calcU(model, ur, cr, tr, fr, um);
+  calckirk(model, cr, tr, NULL);
+  calccrdnum(model, cr, tr, fr, fncrdnum);
 
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);
@@ -570,7 +586,6 @@ static void dorism(model_t *model)
 int main(int argc, char **argv)
 {
   model_t *m = doargs(argc, argv);
-
   dorism(m);
   return 0;
 }

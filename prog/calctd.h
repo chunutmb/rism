@@ -79,6 +79,73 @@ static int getnsv(model_t *m)
 
 
 
+/* compute the Kirkword integrals */
+static int calckirk(model_t *m, double **cr, double **tr,
+    double *kirk)
+{
+  int i, j, ij, l, ns = m->ns, npt = m->npt;
+  double kij, dr, ri, hr;
+
+  dr = m->rmax / m->npt;
+  for ( i = 0; i < ns; i++ ) {
+    for ( j = i; j < ns; j++ ) {
+      ij = i * ns + j;
+      kij = 0;
+      /* integrating over other radius */
+      for ( l = 0; l < npt; l++ ) {
+        ri = (l + .5) * dr;
+        hr = cr[ij][l] + tr[ij][l];
+        kij += hr * ri * ri;
+      }
+      kij *= 4 * PI * dr;
+      if (kirk != NULL)
+        kirk[j*ns + i] = kirk[i*ns + j] = kij;
+      printf("i %d, j %d, Kij %g\n", i, j, kij);
+    }
+  }
+  return 0;
+}
+
+
+
+/* compute the running coordination numbers */
+static int calccrdnum(model_t *m,
+    double **cr, double **tr, double **fr,
+    const char *fn)
+{
+  int i, j, ij, l, dohnc, ns = m->ns, npt = m->npt;
+  double nij, dr, ri, gr;
+  FILE *fp;
+
+  if ( (fp = fopen(fn, "w")) == NULL ) {
+    fprintf(stderr, "cannot open %s\n", fn);
+    return -1;
+  }
+
+  dohnc = (m->ietype == IE_HNC);
+  dr = m->rmax / m->npt;
+  for ( i = 0; i < ns; i++ ) {
+    for ( j = 0; j < ns; j++ ) {
+      ij = i * ns + j;
+      nij = 0;
+      /* integrating over other radius */
+      for ( l = 0; l < npt; l++ ) {
+        ri = (l + .5) * dr;
+        gr = cr[ij][l] + tr[ij][l] + 1;
+        if ( gr < 0 || dohnc ) /* only for HNC */
+          gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
+        nij += m->rho[j] * 4 * PI * gr * ri * ri * dr;
+        fprintf(fp, "%g %g %d %d\n", ri, nij, i, j);
+      }
+      fprintf(fp, "\n");
+    }
+  }
+  fclose(fp);
+  return 0;
+}
+
+
+
 /* compute the internal energy
  * NOTE: this routine does not work for charged systems */
 static int calcU(model_t *m, double **ur,
@@ -107,50 +174,13 @@ static int calcU(model_t *m, double **ur,
         if ( gr < 0 || dohnc ) /* only for HNC */
           gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
         uij += ur[ij][l] * gr * ri * ri;
-        //printf("i %d, j %d, ri %g, ur %g, g(r) %g, u(r) g(r) %g\n", i, j, ri, ur[ij][l], gr, ur[ij][l]*gr);
       }
       uij *= .5 * 4 * PI * m->rho[j] * dr;
       um[im] += uij;
-      //printf("i %d, j %d, uij %g\n", i, j, uij);
     }
   }
   for ( i = 0; i < m->nmol; i++ )
     printf("mol %d: U %g\n", i, um[i]);
-  return m->nmol;
-}
-
-
-
-/* compute the Kirkword integrals */
-static int calckirk(model_t *m,
-    double **cr, double **tr, double **fr,
-    double *kirk)
-{
-  int i, j, ij, jm, l, dohnc, ns = m->ns, npt = m->npt;
-  double kij, dr, ri, gr;
-
-  dohnc = (m->ietype == IE_HNC);
-  getmols(m);
-  dr = m->rmax / m->npt;
-  for ( i = 0; i < ns; i++ ) {
-    for ( j = 0; j < ns; j++ ) {
-      jm = m->mol[j];
-      ij = i * ns + j;
-      kij = 0;
-      /* integrating over other radius */
-      for ( l = 0; l < npt; l++ ) {
-        ri = (l + .5) * dr;
-        /* the following formula may produce negative values */
-        gr = cr[ij][l] + tr[ij][l] + 1;
-        if ( gr < 0 || dohnc ) /* only for HNC */
-          gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
-        kij += gr * ri * ri;
-      }
-      kij *= 4 * PI * dr;
-      kirk[i*m->nmol + jm] += kij;
-      //printf("i %d, j %d, kij %g\n", i, j, kij);
-    }
-  }
   return m->nmol;
 }
 
