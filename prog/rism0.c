@@ -19,6 +19,7 @@
 int model_id = 16;
 int verbose = 0;
 const char *fncrtr = "out.dat";
+int sepout = 0;
 
 
 
@@ -32,10 +33,11 @@ static void help(const char *prog)
       "\n"
       "Options:\n"
       "  -o:    followed by the output file, default: %s\n"
+      "  -$:    separately output file for each lambda, default %d\n"
       "  -v:    be verbose\n"
       "  -vv:   be more verbose\n"
       "  -h:    display this message\n",
-      prog, fncrtr);
+      prog, fncrtr, sepout);
   exit(1);
 }
 
@@ -73,6 +75,8 @@ static model_t *doargs(int argc, char **argv)
           fncrtr = argv[i];
           break;
         }
+      } else if ( ch == '$' ) {
+        sepout = 1;
       } else if ( ch == 'v' ) {
         verbose++;
       } else {
@@ -420,13 +424,19 @@ static double iter_picard(model_t *model,
 static int output(model_t *model,
     double **cr, double **vrlr, double **tr, double **fr,
     double **ck, double **vklr, double **tk, double **wk,
-    const char *fn)
+    const char *fn, int ilam)
 {
   int i, j, ij, l, ns = model->ns;
   FILE *fp;
+  char fnl[80];
 
-  if ((fp = fopen(fn, "w")) == NULL) {
-    fprintf(stderr, "cannot open %s\n", fn);
+  if ( sepout ) {
+    sprintf(fnl, "%s%d", fn, ilam);
+  } else {
+    strcpy(fnl, fn);
+  }
+  if ((fp = fopen(fnl, "w")) == NULL) {
+    fprintf(stderr, "cannot open %s\n", fnl);
     return -1;
   }
   for ( i = 0; i < ns; i++ ) {
@@ -444,7 +454,7 @@ static int output(model_t *model,
     }
   }
   fclose(fp);
-  fprintf(stderr, "saved result to %s\n", fn);
+  fprintf(stderr, "saved result to %s\n", fnl);
   return 0;
 }
 
@@ -531,7 +541,7 @@ static void dorism(model_t *model)
     } else {
       err = iter_picard(model, fr, wk, cr, ck, vklr, tr, tk, &it);
     }
-    output(model, cr, vrlr, tr, fr, ck, vklr, tk, wk, fncrtr);
+    output(model, cr, vrlr, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
         lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
