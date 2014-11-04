@@ -23,7 +23,7 @@ rism0_d : rism0.c $(rism0_deps)
 	$(CC) -o $@ $< $(LM)
 
 clean:
-	rm -f $(bins) $(bins_d) *~ a.out *.dat gmon.out .*.un~ MTSEED
+	rm -f $(bins) $(bins_d) *~ a.out *.dat* gmon.out .*.un~ MTSEED
 	rm -rf r[0-9]*hs
 	rstrip.py -Rlv
 

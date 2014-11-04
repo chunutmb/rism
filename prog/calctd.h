@@ -55,12 +55,12 @@ static int getmols(model_t *m)
       q[nq++] = i;
     }
   }
+  /* print out the molecular partition at the first time of calling */
   if ( !once ) {
     for ( i = 0; i < ns; i++ )
       fprintf(stderr, "site %d: molecule %d\n", i, mol[i]);
     once = 1;
   }
-
   return m->nmol = im + 1;
 }
 
@@ -91,7 +91,7 @@ static int calckirk(model_t *m, double **cr, double **tr,
     for ( j = i; j < ns; j++ ) {
       ij = i * ns + j;
       kij = 0;
-      /* integrating over other radius */
+      /* integrating over the radius */
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
         hr = cr[ij][l] + tr[ij][l];
@@ -100,7 +100,7 @@ static int calckirk(model_t *m, double **cr, double **tr,
       kij *= 4 * PI * dr;
       if (kirk != NULL)
         kirk[j*ns + i] = kirk[i*ns + j] = kij;
-      printf("i %d, j %d, Kij %g\n", i, j, kij);
+      printf("i %d, j %d, Gij %g\n", i, j, kij);
     }
   }
   return 0;
@@ -114,7 +114,7 @@ static int calccrdnum(model_t *m,
     const char *fn)
 {
   int i, j, ij, l, dohnc, ns = m->ns, npt = m->npt;
-  double nij, dr, ri, gr;
+  double nij, dr, ri, gr, gr_tiny = m->tol * 100;
   FILE *fp;
 
   if ( (fp = fopen(fn, "w")) == NULL ) {
@@ -132,7 +132,7 @@ static int calccrdnum(model_t *m,
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
         gr = cr[ij][l] + tr[ij][l] + 1;
-        if ( gr < 0 || dohnc ) /* only for HNC */
+        if ( gr < gr_tiny || dohnc ) /* only for HNC */
           gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
         nij += m->rho[j] * 4 * PI * gr * ri * ri * dr;
         fprintf(fp, "%g %g %d %d\n", ri, nij, i, j);
@@ -153,7 +153,7 @@ static int calcU(model_t *m, double **ur,
     double *um)
 {
   int i, j, ij, im, l, dohnc, ns = m->ns, npt = m->npt;
-  double uij, dr, ri, gr;
+  double uij, dr, ri, gr, gr_tiny = m->tol * 100;
 
   dohnc = (m->ietype == IE_HNC);
   getmols(m);
@@ -161,7 +161,6 @@ static int calcU(model_t *m, double **ur,
   for ( i = 0; i < m->nmol; i++ ) um[i] = 0;
   for ( i = 0; i < ns; i++ ) {
     im = m->mol[i];
-    //printf("i %d, im %d\n", i, im);
     for ( j = 0; j < ns; j++ ) {
       if ( m->rho[j] <= 0 ) continue;
       ij = i * ns + j;
@@ -171,7 +170,7 @@ static int calcU(model_t *m, double **ur,
         ri = (l + .5) * dr;
         /* the following formula may produce negative values */
         gr = cr[ij][l] + tr[ij][l] + 1;
-        if ( gr < 0 || dohnc ) /* only for HNC */
+        if ( gr < gr_tiny || dohnc ) /* only for HNC */
           gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
         uij += ur[ij][l] * gr * ri * ri;
       }

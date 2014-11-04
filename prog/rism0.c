@@ -188,8 +188,8 @@ static void initfr(model_t *m, double **ur, double **nrdur,
   double beta = m->beta, z, u, uelec, nrdu, ulr;
   double sig, eps6, eps12, c6, c12;
 
-  for ( ipr = 0, i = 0; i < ns; i++ ) {
-    for ( j = i; j < ns; j++, ipr++ ) {
+  for ( ipr = 0, i = 0; i < ns; i++ ) { /* the first site */
+    for ( j = i; j < ns; j++, ipr++ ) { /* the second site */
       ij = i*ns + j;
       ji = j*ns + i;
       sig = .5 * (m->sigma[i] + m->sigma[j]);
@@ -200,7 +200,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
       c12 = m->C6_12[ipr][1];
       use_c6_12 = (fabs(eps6) < DBL_MIN && fabs(eps12) < DBL_MIN);
 
-      for ( l = 0; l < m->npt; l++ ) {
+      for ( l = 0; l < m->npt; l++ ) { /* the radius */
         if ( m->ljtype  == HARD_SPHERE) {
           z = (fft_ri[l] < sig) ? -1 : 0;
           nrdur[ij][l] = ur[ij][l] = 0;
@@ -216,7 +216,6 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           uelec = lam * m->ampch * m->charge[i] * m->charge[j] / fft_ri[l];
           ur[ij][l] = u + uelec;
           nrdur[ij][l] = nrdu + uelec;
-          //printf("i %d, j %d, r %g, u %g, %g\n", i, j, m->rmax/m->npt*(l+.5), u, uelec);
           /* set the screen length as sig */
           ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
           vrlr[ij][l] = beta * ulr;
@@ -226,11 +225,14 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           z = exp(-beta*u) - 1;
         }
         fr[ij][l] = z;
-        if ( j > i ) fr[ji][l] = fr[ij][l];
-      }
-      //getchar();
-    }
-  }
+        if ( j > i ) {
+          ur[ji][l] = ur[ij][l];
+          nrdur[ji][l] = nrdur[ij][l];
+          fr[ji][l] = fr[ij][l];
+        }
+      } /* loop over l, the radius */
+    } /* loop over j, the second site */
+  } /* loop over i, the first site */
 }
 
 
@@ -358,24 +360,26 @@ static double closure(model_t *model,
     double **cr, double **tr, int *prmask,
     int update, double damp)
 {
-  int ns = model->ns, npt = model->npt, i, j, ij, id, l;
+  int ns = model->ns, npt = model->npt, i, j, ij, ji, id, l;
   double y, err = 0, max = 0;
 
   for ( id = 0, i = 0; i < ns; i++ )
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
+      ji = j*ns + i;
       if ( prmask && !prmask[ij] ) continue;
       for ( l = 0; l < npt; l++, id++ ) {
         y = getcr(tr[ij][l], fr[ij][l], der ? &der[ij][l] : NULL,
                   model->ietype) - cr[ij][l];
         if ( res != NULL ) res[id] = y;
-        //if ( prmask[ns*ns-1] && fabs(y) > err && i >= ns - 2) { printf("update %d, i %d, j %d, l %d, cr %g (del %g) tr %g\n", update, i, j, l, cr[ij][l], y, tr[ij][l]); getchar(); }
-        if ( update ) cr[ij][l] += damp * y;
+        if ( update ) {
+          cr[ij][l] += damp * y;
+          if ( j > i ) cr[ji][l] = cr[ij][l];
+        }
         if ( fabs(y) > err ) err = fabs(y);
         if ( fabs(cr[ij][l]) > max ) max = fabs(cr[ij][l]);
       }
     }
-  //if ( prmask[ns*ns-1] ) { printf("update %d, err %g, max %g\n", update, err, max); getchar(); }
   /* the c(r) between two ions can be extremely large
    * so we use the relative error to be compared with the tolerance */
   return err / (max + 1e-3);
