@@ -13,7 +13,7 @@
 
 #include "util.h"
 #include "model.h"
-
+#include "calctd.h"
 
 
 int model_id = 16;
@@ -96,7 +96,7 @@ static model_t *doargs(int argc, char **argv)
 
 /* Lennard-Jones potential in terms of sigma and epsilon */
 static double ljpot(double r, double sig, double eps6, double eps12,
-    double lam)
+    double lam, double *nrdu)
 {
   double ir, ir6, u1, u2, eps;
 
@@ -107,14 +107,17 @@ static double ljpot(double r, double sig, double eps6, double eps12,
     if ( ir6 < eps6/(2*eps12) ) { /* r > rm */
       u1 = 0; /* repulsive */
       u2 = 4*ir6*(ir6*eps12 - eps6); /* attractive */
+      *nrdu = ir6 * (48 * ir6 * eps12 - 24 * eps6) * lam;
     } else { /* r < rm */
       eps = eps6 * eps6 / eps12;
       u1 = 4*ir6*(ir6*eps12 - eps6) + eps; /* repulsive */
       u2 = -eps; /* attractive */
+      *nrdu = ir6 * (48 * ir6 * eps12 - 24 * eps6);
     }
   } else { /* purely repulsive */
     u1 = 4*ir6*(ir6*eps12 - eps6); /* repulsive */
     u2 = 0; /* no attractive tail */
+    *nrdu = ir6 * (48 * ir6 * eps12 - 24 * eps6);
   }
   return u1 + u2 * lam;
 }
@@ -122,25 +125,28 @@ static double ljpot(double r, double sig, double eps6, double eps12,
 
 
 /* Lennard-Jones potential in terms of C6 and C12 */
-static double ljpot6_12(double r, double c6, double c12, double lam)
+static double ljpot6_12(double r, double c6, double c12,
+    double lam, double *nrdu)
 {
   double sig, eps, ir, ir6;
 
   if ( c6 < 0 ) { /* attractive */
     sig = pow(-c12/c6, 1./6);
     eps = c6*c6/4/c12;
-    return ljpot(r, sig, eps, eps, lam);
+    return ljpot(r, sig, eps, eps, lam, nrdu);
   }
   ir = 1/r;
   ir6 = ir * ir * ir;
   ir6 *= ir6;
+  *nrdu = ir6 * (12 * c12 * ir6 + 6 * c6);
   return ir6 * (c12 * ir6 + c6);
 }
 
 
 
 /* repulsive Lennard-Jones potential */
-static double ljrpot(double r, double sig, double eps6, double eps12)
+static double ljrpot(double r, double sig, double eps6, double eps12,
+    double *nrdu)
 {
   double ir, ir6, eps = 0;
 
@@ -150,16 +156,18 @@ static double ljrpot(double r, double sig, double eps6, double eps12)
   if ( ir6 < eps6/(2*eps12) ) return 0;
   if ( eps6 > 0 && eps12 > 0 )
     eps = eps6 * eps6 / eps12;
+  *nrdu = ir6*(48*ir6*eps12 - 24*eps6);
   return 4*ir6*(ir6*eps12 - eps6) + eps;
 }
 
 
 
 /* initialize f(r) */
-static void initfr(model_t *m, double **fr, double **vrlr, double lam)
+static void initfr(model_t *m, double **ur, double **nrdur,
+    double **fr, double **vrlr, double lam)
 {
   int i, j, ij, ji, ipr, l, ns = m->ns, use_c6_12;
-  double beta = m->beta, z, u, uelec, ulr;
+  double beta = m->beta, z, u, uelec, nrdu, ulr;
   double sig, eps6, eps12, c6, c12;
 
   for ( ipr = 0, i = 0; i < ns; i++ ) {
@@ -177,16 +185,20 @@ static void initfr(model_t *m, double **fr, double **vrlr, double lam)
       for ( l = 0; l < m->npt; l++ ) {
         if ( m->ljtype  == HARD_SPHERE) {
           z = (fft_ri[l] < sig) ? -1 : 0;
+          nrdur[ij][l] = ur[ij][l] = 0;
           vrlr[ij][l] = vrlr[ji][l] = 0;
         } else { /* Lennard-Jones */
           if ( use_c6_12 ) {
-            u = ljpot6_12(fft_ri[l], c6, c12, lam);
+            u = ljpot6_12(fft_ri[l], c6, c12, lam, &nrdu);
           } else if ( m->ljtype == LJ_REPULSIVE ) {
-            u = ljrpot(fft_ri[l], sig, eps6, eps12);
+            u = ljrpot(fft_ri[l], sig, eps6, eps12, &nrdu);
           } else {
-            u = ljpot(fft_ri[l], sig, eps6, eps12, lam);
+            u = ljpot(fft_ri[l], sig, eps6, eps12, lam, &nrdu);
           }
           uelec = lam * m->ampch * m->charge[i] * m->charge[j] / fft_ri[l];
+          ur[ij][l] = u + uelec;
+          nrdur[ij][l] = nrdu + uelec;
+          //printf("i %d, j %d, r %g, u %g, %g\n", i, j, m->rmax/m->npt*(l+.5), u, uelec);
           /* set the screen length as sig */
           ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
           vrlr[ij][l] = beta * ulr;
@@ -198,6 +210,7 @@ static void initfr(model_t *m, double **fr, double **vrlr, double lam)
         fr[ij][l] = z;
         if ( j > i ) fr[ji][l] = fr[ij][l];
       }
+      //getchar();
     }
   }
 }
@@ -219,20 +232,6 @@ static void initwk(model_t *m, double **wk)
       }
     }
   }
-}
-
-
-
-/* compute the number solvents
- * TODO: to improve this */
-static int getnsv(model_t *m)
-{
-  int i;
-
-  for ( i = 1; i < m->ns; i++ )
-    if ( fabs(m->rho[i] - m->rho[0]) > 1e-3 )
-      break;
-  return i;
 }
 
 
@@ -483,14 +482,18 @@ static void dorism(model_t *model)
 {
   int it, ns, npt, ilam, nlam;
   double err = 0, dia, lam;
-  double **fr, **wk, **cr, **cp, **ck, **tr, **tk;
+  double **ur, **nrdur, **fr, **wk;
+  double **cr, **cp, **ck, **tr, **tk;
   double **der, **ntk, **vrlr, **vklr;
+  double *um;
 
   /* equivalent diameter of the solvent molecule */
   dia = getdiameter(model);
 
   ns = model->ns;
   npt = model->npt;
+  newarr2d(ur,    ns * ns, npt);
+  newarr2d(nrdur, ns * ns, npt);
   newarr2d(fr,    ns * ns, npt);
   newarr2d(wk,    ns * ns, npt);
   newarr2d(cr,    ns * ns, npt);
@@ -502,6 +505,7 @@ static void dorism(model_t *model)
   newarr2d(ntk,   ns * ns, npt);
   newarr2d(vrlr,  ns * ns, npt);
   newarr2d(vklr,  ns * ns, npt);
+  xnew(um, ns);
 
   initfftw(model->rmax, npt);
   initwk(model, wk);
@@ -513,7 +517,7 @@ static void dorism(model_t *model)
   for ( ilam = 1; ilam <= nlam; ilam++ ) {
     lam = 1.*ilam/nlam;
 
-    initfr(model, fr, vrlr, lam);
+    initfr(model, ur, nrdur, fr, vrlr, lam);
     sphr_r2k(vrlr, vklr, ns, NULL);
 
     /* use f(r) as the initial c(r) for the lowest lambda */
@@ -532,6 +536,10 @@ static void dorism(model_t *model)
         lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
 
+  calcU(model, ur, cr, tr, fr, um);
+
+  delarr2d(ur,    ns * ns);
+  delarr2d(nrdur, ns * ns);
   delarr2d(fr,    ns * ns);
   delarr2d(wk,    ns * ns);
   delarr2d(cr,    ns * ns);
@@ -543,6 +551,7 @@ static void dorism(model_t *model)
   delarr2d(ntk,   ns * ns);
   delarr2d(vrlr,  ns * ns);
   delarr2d(vklr,  ns * ns);
+  free(um);
   donefftw();
 }
 

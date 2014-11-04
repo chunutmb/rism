@@ -55,6 +55,10 @@ typedef struct {
   picard_params_t picard;
   lmv_params_t    lmv;
   mdiis_params_t  mdiis;
+
+  /* the rest of the elements are to be computed by the program */
+  double disij[MAXATOM][MAXATOM]; /* matrix form of dis[] */
+  int nmol, mol[MAXATOM];
 } model_t;
 
 
@@ -565,11 +569,11 @@ model_t models[] =
     {0.033314, 0.033314, 0.033314, 0.0, 0.0},
     {1.0, 1.0, 0, 0, 1.633}, 1./300, LJ_FULL,
     {-0.8476, 0.4238, 0.4238, 1, -1}, KE2PK, 1.0,
-    IE_HNC, 20.48, 1024,
+    IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
     {0.01},
-    {15, 0.5},
+    {25, 0.5},
     {5, 0.5}
   },
   {0} /* empty model, place holder */
