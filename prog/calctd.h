@@ -119,4 +119,41 @@ static int calcU(model_t *m, double **ur,
   return m->nmol;
 }
 
+
+
+/* compute the Kirkword integrals */
+static int calckirk(model_t *m,
+    double **cr, double **tr, double **fr,
+    double *kirk)
+{
+  int i, j, ij, jm, l, dohnc, ns = m->ns, npt = m->npt;
+  double kij, dr, ri, gr;
+
+  dohnc = (m->ietype == IE_HNC);
+  getmols(m);
+  dr = m->rmax / m->npt;
+  for ( i = 0; i < ns; i++ ) {
+    for ( j = 0; j < ns; j++ ) {
+      jm = m->mol[j];
+      ij = i * ns + j;
+      kij = 0;
+      /* integrating over other radius */
+      for ( l = 0; l < npt; l++ ) {
+        ri = (l + .5) * dr;
+        /* the following formula may produce negative values */
+        gr = cr[ij][l] + tr[ij][l] + 1;
+        if ( gr < 0 || dohnc ) /* only for HNC */
+          gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
+        kij += gr * ri * ri;
+      }
+      kij *= 4 * PI * dr;
+      kirk[i*m->nmol + jm] += kij;
+      //printf("i %d, j %d, kij %g\n", i, j, kij);
+    }
+  }
+  return m->nmol;
+}
+
+
+
 #endif /* TDCALC_H__ */
