@@ -258,6 +258,20 @@ static void initwk(model_t *m, double **wk)
 
 
 
+/* compute the number solvents
+ * here, solvent are defined as molecules with nonzero density
+ * zero-density molecules must appear at the end of model */
+static int getnsv(model_t *m)
+{
+  int i;
+
+  for ( i = 0; i < m->ns; i++ )
+    if ( m->rho[i] == 0 ) break;
+  return i;
+}
+
+
+
 /* Ornstein-Zernike relation: c(k) --> t(k) */
 static void oz(model_t *m, double **ck, double **vklr,
     double **tk, double **wk, double **invwc1w)
