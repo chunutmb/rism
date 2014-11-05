@@ -64,7 +64,9 @@ static model_t *doargs(int argc, char **argv)
       continue;
     }
 
-    /* it is an option */
+    /* it is an option
+     * loop over characters in the options
+     * in this way, `-vo' is understood as `-v -o' */
     for ( j = 1; (ch = argv[i][j]) != '\0'; j++ ) {
       if ( ch == 'o' || ch == '#' ) {
         /* handle options that require an argument */
@@ -79,7 +81,6 @@ static model_t *doargs(int argc, char **argv)
            * hence ++i
            * e.g., -o a.dat */
           q = argv[i];
-          j = q[strlen(q) - 1]; /* to break the loop */
         } else {
           fprintf(stderr, "-%c requires an argument!\n", ch);
           help(argv[0]);
@@ -89,12 +90,13 @@ static model_t *doargs(int argc, char **argv)
         } else if ( ch == '#' ) {
           fncrdnum = q;
         }
+        break; /* skip the rest of the characters in the option */
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
         verbose++;
       } else {
-        fprintf(stderr, "unknown option %s\n", argv[i]);
+        fprintf(stderr, "unknown option %s, j %d, ch %c\n", argv[i], j, ch);
         help(argv[0]);
       }
     }
