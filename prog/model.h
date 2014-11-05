@@ -10,7 +10,7 @@
 #define MAXATOM 6 /* maximal number of atoms/sites */
 
 enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
-enum { IE_PY, IE_HNC };
+enum { IE_PY, IE_HNC, IE_KH };
 enum { SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS };
 
 typedef struct {
@@ -36,7 +36,9 @@ typedef struct {
   double C6_12[MAXATOM*(MAXATOM+1)/2][2]; /* alternative to sigma/epsilon */
   double rho[MAXATOM];
   double dis[MAXATOM*(MAXATOM-1)/2];
-  double beta;
+  double beta; /* sometimes it is given as 1/T without kB */
+  double kB; /* Boltzmann constant, only used if the unit
+                of LJ energy is already divided by kB */
   int ljtype;
 
   double charge[MAXATOM];
@@ -230,6 +232,10 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->beta = 1/temp;
       if ( verbose >= 2 )
         fprintf(stderr, "T            = %g\n", temp);
+    } else if ( strcmp(key, "kb") == 0 ) {
+      m->kB = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "kB           = %g\n", m->kB);
     } else if ( strcmp(key, "ljtype") == 0 ) {
       const char *ljtypes[3];
       ljtypes[HARD_SPHERE] = "hard-sphere";
@@ -242,10 +248,11 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->rscreen = atof(val);
     } else if ( strcmp(key, "closure") == 0
              || strcmp(key, "ietype") == 0 ) {
-      const char *ietypes[2];
+      const char *ietypes[3];
       ietypes[IE_PY] = "py";
       ietypes[IE_HNC] = "hnc";
-      m->ietype = model_select(val, 2, ietypes);
+      ietypes[IE_KH] = "kh";
+      m->ietype = model_select(val, 3, ietypes);
       if ( verbose >= 2 )
         fprintf(stderr, "closure      = %s\n", ietypes[m->ietype]);
     } else if ( strcmp(key, "rmax") == 0 ) {
@@ -354,7 +361,11 @@ model_t models[] =
 {
   /* 0. default model */
   {0, {0}, {{0}}, {{0}},
-    {0}, {0}, 1./300, LJ_FULL,
+    {0}, {0}, 1./300,
+    /* the unit of the Boltzmann constant is kJ/mol/K
+     * however, the parameter is often multiplied
+     * in the Lennard-Jones parameters */
+    KBNA, LJ_FULL,
     {0}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -365,7 +376,7 @@ model_t models[] =
   },
   /* 1. LC 1973, and Model I of CHS 1977 */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.500, 0.500}, {0.600}, 1.000, HARD_SPHERE,
+    {0.500, 0.500}, {0.600}, 1.000, 1.0, HARD_SPHERE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
@@ -376,7 +387,7 @@ model_t models[] =
   },
   /* 2. Model II of CHS 1977 */
   {2, {0.790, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.686, 0.686}, {0.490}, 1.000, HARD_SPHERE,
+    {0.686, 0.686}, {0.490}, 1.000, 1.0, HARD_SPHERE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
@@ -387,7 +398,7 @@ model_t models[] =
   },
   /* 3. Model III of CHS 1977 */
   {2, {0.675, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.825, 0.825}, {0.346}, 1.000, HARD_SPHERE,
+    {0.825, 0.825}, {0.346}, 1.000, 1.0, HARD_SPHERE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
@@ -398,7 +409,7 @@ model_t models[] =
   },
   /* 4. LC1973, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.696, 0.696}, {1.1/3.341}, 1/1.83, LJ_REPULSIVE,
+    {0.696, 0.696}, {1.1/3.341}, 1/1.83, 1.0, LJ_REPULSIVE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 10000, 1e-7,
@@ -409,7 +420,7 @@ model_t models[] =
   },
   /* 5. KA1978, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.6964, 0.6964}, {1.1/3.341}, 1/1.61, LJ_FULL,
+    {0.6964, 0.6964}, {1.1/3.341}, 1/1.61, 1.0, LJ_FULL,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     5, 10000, 1e-7,
@@ -419,8 +430,9 @@ model_t models[] =
     {5, 0.2}
   },
   /* 6. HR1981, liquid nitrogen, neutral */
-  {2, {3.341, 3.341}, {{1, 1}, {1, 1}}, {{0}},
-    {0.01867, 0.01867}, {1.1}, 1/1.636, LJ_FULL,
+  {2, {3.341, 3.341},
+    {{1, 1}, {1, 1}}, {{0}},
+    {0.01867, 0.01867}, {1.1}, 1/1.636, 1.0, LJ_FULL,
     {0}, 0, 0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -430,8 +442,9 @@ model_t models[] =
     {5, 0.1}
   },
   /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
-  {2, {3.341, 3.341}, {{44.0, 44.0}, {44.0, 44.0}}, {{0}},
-    {0.01867, 0.01867}, {1.1}, 1./72, LJ_FULL,
+  {2, {3.341, 3.341},
+    {{44.0, 44.0}, {44.0, 44.0}}, /* in Kelvins */ {{0}},
+    {0.01867, 0.01867}, {1.1}, 1./72, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -441,8 +454,9 @@ model_t models[] =
     {5, 0.1} /* does not work! */
   },
   /* 8. HPR1982, HCl, model II */
-  {2, {2.735, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, {{0}},
-    {0.018, 0.018}, {1.257}, 1./210, LJ_FULL,
+  {2, {2.735, 3.353},
+    {{20.0, 20.0}, {259.0, 259.0}}, /* in Kelvins */ {{0}},
+    {0.018, 0.018}, {1.257}, 1./210, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -452,8 +466,9 @@ model_t models[] =
     {5, 0.1}
   },
   /* 9. HPR1982, HCl, model III */
-  {2, {0.4, 3.353}, {{20.0, 20.0}, {259.0, 259.0}}, {{0}},
-    {0.018, 0.018}, {1.3}, 1./210, LJ_FULL,
+  {2, {0.4, 3.353},
+    {{20.0, 20.0}, {259.0, 259.0}}, /* in Kelvins */ {{0}},
+    {0.018, 0.018}, {1.3}, 1./210, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -465,13 +480,16 @@ model_t models[] =
   /* 10. PR1982, H2O, model I
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
+   * the unit of C6 is kcal A^6 / mol
+   * the unit of C12 is kcal A^12 / mol
    * d(H1, H2) = 1.51369612 (104.5 degree) */
   {3, {2.8, 0.4, 0.4}, {{0}},
     { {262.566, 309408} /* O-O */,
       {0, 689.348} /* O-H1 */, {0, 689.348} /* O-H2 */,
-      {0, 610.455} /* H1-H1 */, {0, 610.455} /* H1-H2 */, {0, 610.455} /* H2-H2 */ },
+      {0, 610.455} /* H1-H1 */, {0, 610.455} /* H1-H2 */,
+      {0, 610.455} /* H2-H2 */ },
     {0.03334, 0.03334, 0.03334},
-    {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
+    {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), 1.0, LJ_FULL,
     {-0.866088, 0.433044, 0.433044}, KE2C, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -483,13 +501,16 @@ model_t models[] =
   /* 11. PR1982, H2O, model II (SPC)
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
+   * the unit of C6 is kcal A^6 / mol
+   * the unit of C12 is kcal A^12 / mol
    * d(H1, H2) = 1.633081624 (109.48 degree) */
   {3, {3.166, 0.4, 0.4}, {{0}},
     { {-625.731, 629624} /* O-O */,
       {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
-      {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ },
+      {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */,
+      {0, 0} /* H2-H2 */ },
     {0.03334, 0.03334, 0.03334},
-    {1.0, 1.0, 1.633081624}, 1./(KBNAC*300), LJ_FULL,
+    {1.0, 1.0, 1.633081624}, 1./(KBNAC*300), 1.0, LJ_FULL,
     {-0.82, 0.41, 0.41}, KE2C, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -501,13 +522,16 @@ model_t models[] =
   /* 12. PR1982, H2O, model III (TIPS)
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
+   * the unit of C6 is kcal A^6 / mol
+   * the unit of C12 is kcal A^12 / mol
    * d(H1, H2) = 1.51369612 (104.5 degree) */
   {3, {3.215, 0.4, 0.4}, {{0}},
     { {-525.000, 580000} /* O-O */,
       {0, 225.180} /* O-H1 */, {0, 225.180} /* O-H2 */,
-      {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */, {0, 0} /* H2-H2 */ },
+      {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */,
+      {0, 0} /* H2-H2 */ },
     {0.03334, 0.03334, 0.03334},
-    {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), LJ_FULL,
+    {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), 1.0, LJ_FULL,
     {-0.8, 0.4, 0.4}, KE2C, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -518,11 +542,14 @@ model_t models[] =
   },
   /* 13. SPCE, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
-   * the following data are copied from /Bossman/Software/3Drism/h2o_lib/spce */
+   * the following data are copied from
+   *  /Bossman/Software/3Drism/h2o_lib/spce
+   * the unit of LJ energy is Kelvin */
   {3, {3.1666, 0.4, 0.4},
-    {{78.2083543, 78.2083543}, {0, 23.150478}, {0, 23.150478}}, {{0}},
+    { {78.2083543, 78.2083543}, /* O */
+      {0, 23.150478}, /* H1 */ {0, 23.150478} /* H2 */ }, {{0}},
     {0.033314, 0.033314, 0.033314},
-    {1.0, 1.0, 1.633}, 1./300, LJ_FULL,
+    {1.0, 1.0, 1.633}, 1./300, KBNA, LJ_FULL,
     {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
@@ -533,11 +560,14 @@ model_t models[] =
   },
   /* 14. TIP3, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
-   * the following data are copied from /Bossman/Software/3Drism/h2o_lib/tip3 */
+   * the following data are copied from
+   *  /Bossman/Software/3Drism/h2o_lib/tip3
+   * the unit of LJ energy is Kelvin */
   {3, {3.15, 0.4, 0.4},
-    { {76.5364, 76.5364}, {0, 23.1509}, {0, 23.1509} }, {{0}},
+    { {76.5364, 76.5364}, /* O */
+      {0, 23.1509}, /* H1 */ {0, 23.1509} /* H2 */ }, {{0}},
     {0.033314, 0.033314, 0.033314},
-    {0.95719835, 0.95719835, 1.5139}, 1./300, LJ_FULL,
+    {0.95719835, 0.95719835, 1.5139}, 1./300, KBNA, LJ_FULL,
     {-0.834, 0.417, 0.417}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
@@ -549,9 +579,11 @@ model_t models[] =
   /* 15. HRP1983, solvent + solute (+/- ion pair)
    * Cf. model 7 */
   {4, {3.341, 3.341, 3.341, 3.341},
-    { {44.0, 44.0}, {44.0, 44.0}, {44.0, 44.0}, {44.0, 44.0} }, {{0}},
+    { {44.0, 44.0}, {44.0, 44.0},
+      {44.0, 44.0}, {44.0, 44.0} }, /* in Kelvins */
+    {{0}},
     {0.01867, 0.01867, 0, 0},
-    {1.1}, 1./200, LJ_FULL,
+    {1.1}, 1./200, KBNA, LJ_FULL,
     {0.200, -0.200, 1.0, -1.0}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -562,12 +594,15 @@ model_t models[] =
   },
   /* 16. SPCE, H2O, Na+, Cl-
    * atom 0: O, atom 1: H1, atom 2: H2, atom 3: Na, atom 4: Cl-
-   * the following data are copied from /Bossman/Software/3Drism/h2o_lib/spce */
+   * the following data are copied from
+   *  /Bossman/Software/3Drism/h2o_lib/spce
+   * the unit of LJ energy is Kelvin */
   {5, {3.1666, 0.4, 0.4, 2.35, 4.4},
-    { {78.2083543, 78.2083543}, {0, 23.150478}, {0, 23.150478},
+    { {78.2083543, 78.2083543}, /* O */
+      {0, 23.150478}, /* H1 */ {0, 23.150478}, /* H2 */
       {65.42, 65.42}, {50.32, 50.32} }, {{0}},
     {0.033314, 0.033314, 0.033314, 0.0, 0.0},
-    {1.0, 1.0, 0, 0, 1.633}, 1./300, LJ_FULL,
+    {1.0, 1.0, 0, 0, 1.633}, 1./300, KBNA, LJ_FULL,
     {-0.8476, 0.4238, 0.4238, 1, -1}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,

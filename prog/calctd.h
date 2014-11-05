@@ -95,13 +95,25 @@ static int calckirk(model_t *m, double **cr, double **tr,
 
 
 
+/* return the radial distribution function */
+static double getgr(model_t *m, double cr, double tr, double fr)
+{
+  double gr_tiny = m->tol * 100, gr;
+  gr = cr + tr + 1;
+  if ( gr < gr_tiny || m->ietype == IE_HNC ) /* only for HNC */
+    gr = (fr + 1) * exp( tr );
+  return gr;
+}
+
+
+
 /* compute the running coordination numbers */
 static int calccrdnum(model_t *m,
     double **cr, double **tr, double **fr,
     const char *fn)
 {
-  int i, j, ij, l, dohnc, ns = m->ns, npt = m->npt;
-  double nij, dr, ri, gr, gr_tiny = m->tol * 100;
+  int i, j, ij, l, ns = m->ns, npt = m->npt;
+  double nij, dr, ri, gr;
   FILE *fp;
 
   if ( (fp = fopen(fn, "w")) == NULL ) {
@@ -109,7 +121,6 @@ static int calccrdnum(model_t *m,
     return -1;
   }
 
-  dohnc = (m->ietype == IE_HNC);
   dr = m->rmax / m->npt;
   for ( i = 0; i < ns; i++ ) {
     for ( j = 0; j < ns; j++ ) {
@@ -118,9 +129,7 @@ static int calccrdnum(model_t *m,
       /* integrating over other radius */
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
-        gr = cr[ij][l] + tr[ij][l] + 1;
-        if ( gr < gr_tiny || dohnc ) /* only for HNC */
-          gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
+        gr = getgr(m, cr[ij][l], tr[ij][l], fr[ij][l]);
         nij += m->rho[j] * 4 * PI * gr * ri * ri * dr;
         fprintf(fp, "%g %g %d %d\n", ri, nij, i, j);
       }
@@ -139,10 +148,9 @@ static int calcU(model_t *m, double **ur,
     double **cr, double **tr, double **fr,
     double *um)
 {
-  int i, j, ij, im, l, dohnc, ns = m->ns, npt = m->npt;
-  double uij, dr, ri, gr, gr_tiny = m->tol * 100;
+  int i, j, ij, im, l, ns = m->ns, npt = m->npt;
+  double uij, dr, ri, gr;
 
-  dohnc = (m->ietype == IE_HNC);
   getmols(m);
   dr = m->rmax / m->npt;
   for ( i = 0; i < m->nmol; i++ ) um[i] = 0;
@@ -155,18 +163,51 @@ static int calcU(model_t *m, double **ur,
       uij = 0;
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
-        /* the following formula may produce negative values */
-        gr = cr[ij][l] + tr[ij][l] + 1;
-        if ( gr < gr_tiny || dohnc ) /* only for HNC */
-          gr = (fr[ij][l] + 1) * exp( tr[ij][l] );
+        gr = getgr(m, cr[ij][l], tr[ij][l], fr[ij][l]);
         uij += ur[ij][l] * gr * ri * ri;
       }
-      uij *= .5 * 4 * PI * m->rho[j] * dr;
+      uij *= m->kB * .5 * 4 * PI * m->rho[j] * dr;
       um[im] += uij;
     }
   }
   for ( i = 0; i < m->nmol; i++ )
     printf("mol %d: U %g\n", i, um[i]);
+  return m->nmol;
+}
+
+
+
+/* compute the chemical potential
+ * NOTE: this routine does not work for charged systems */
+static int calcmu(model_t *m, double **cr, double **tr, double *mum)
+{
+  int i, j, ij, im, l, ns = m->ns, npt = m->npt;
+  double muij, dr, ri;
+
+  if ( m->ietype != IE_HNC )
+    fprintf(stderr, "Warning: chemical potential only works for the HNC closure\n");
+
+  getmols(m);
+  dr = m->rmax / m->npt;
+  for ( i = 0; i < m->nmol; i++ ) mum[i] = 0;
+  for ( i = 0; i < ns; i++ ) {
+    im = m->mol[i];
+    for ( j = 0; j < ns; j++ ) {
+      if ( m->rho[j] <= 0 ) continue;
+      ij = i * ns + j;
+      /* integrating over other radius */
+      muij = 0;
+      for ( l = 0; l < npt; l++ ) {
+        ri = (l + .5) * dr;
+        muij += (0.5*(cr[ij][l] + tr[ij][l])*tr[ij][l] - cr[ij][l]) * ri * ri;
+      }
+      muij *= (m->kB / m->beta) * 4 * PI * m->rho[j] * dr;
+      //printf("i %d, j %d, muij %g\n", i, j, muij);
+      mum[im] += muij;
+    }
+  }
+  for ( i = 0; i < m->nmol; i++ )
+    printf("mol %d: mu %g\n", i, mum[i]);
   return m->nmol;
 }
 

@@ -16,6 +16,7 @@
 #include "calctd.h"
 
 
+
 int model_id = 16;
 int verbose = 0;
 const char *fncrtr = "out.dat";
@@ -266,7 +267,7 @@ static int getnsv(model_t *m)
   int i;
 
   for ( i = 0; i < m->ns; i++ )
-    if ( m->rho[i] == 0 ) break;
+    if ( m->rho[i] < DBL_MIN ) break;
   return i;
 }
 
@@ -529,7 +530,7 @@ static void dorism(model_t *model)
   double **ur, **nrdur, **fr, **wk;
   double **cr, **cp, **ck, **tr, **tk;
   double **der, **ntk, **vrlr, **vklr;
-  double *um;
+  double *um, *mum;
 
   /* equivalent diameter of the solvent molecule */
   dia = getdiameter(model);
@@ -550,6 +551,7 @@ static void dorism(model_t *model)
   newarr2d(vrlr,  ns * ns, npt);
   newarr2d(vklr,  ns * ns, npt);
   xnew(um, ns);
+  xnew(mum, ns);
 
   initfftw(model->rmax, npt);
   initwk(model, wk);
@@ -581,6 +583,7 @@ static void dorism(model_t *model)
   }
 
   calcU(model, ur, cr, tr, fr, um);
+  calcmu(model, cr, tr, mum);
   calckirk(model, cr, tr, NULL);
   calccrdnum(model, cr, tr, fr, fncrdnum);
 
@@ -598,6 +601,7 @@ static void dorism(model_t *model)
   delarr2d(vrlr,  ns * ns);
   delarr2d(vklr,  ns * ns);
   free(um);
+  free(mum);
   donefftw();
 }
 
