@@ -66,19 +66,6 @@ static int getmols(model_t *m)
 
 
 
-/* compute the number solvents */
-static int getnsv(model_t *m)
-{
-  int i, c;
-
-  getmols(m);
-  for ( c = 0, i = 0; i < m->ns; i++ )
-    if ( m->mol[i] == 0 ) c++;
-  return c;
-}
-
-
-
 /* compute the Kirkword integrals */
 static int calckirk(model_t *m, double **cr, double **tr,
     double *kirk)
