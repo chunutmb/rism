@@ -244,8 +244,14 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->ljtype = model_select(val, 3, ljtypes);
       if ( verbose >= 2 )
         fprintf(stderr, "LJ type      = %s\n", ljtypes[m->ljtype]);
+    } else if ( strcmp(key, "ampch") == 0 ) {
+      m->ampch = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "unit of e^2  = %g\n", m->ampch);
     } else if ( strcmp(key, "rscreen") == 0 ) {
       m->rscreen = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "r_screen     = %g\n", m->rscreen);
     } else if ( strcmp(key, "closure") == 0
              || strcmp(key, "ietype") == 0 ) {
       const char *ietypes[3];
