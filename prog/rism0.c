@@ -185,7 +185,7 @@ static double ljrpot(double r, double sig, double eps6, double eps12,
 
 /* initialize f(r) */
 static void initfr(model_t *m, double **ur, double **nrdur,
-    double **fr, double **vrlr, double lam)
+    double **fr, double **vrlr, double **vrsr, double lam)
 {
   int i, j, ij, ji, ipr, l, ns = m->ns, use_c6_12;
   double beta = m->beta, z, u, uelec, nrdu, ulr;
@@ -205,9 +205,15 @@ static void initfr(model_t *m, double **ur, double **nrdur,
 
       for ( l = 0; l < m->npt; l++ ) { /* the radius */
         if ( m->ljtype  == HARD_SPHERE) {
-          z = (fft_ri[l] < sig) ? -1 : 0;
+          if (fft_ri[l] < sig) {
+            vrsr[ij][l] = 2*INFTY;
+            z = -1;
+          } else {
+            vrsr[ij][l] = 0;
+            z = 0;
+          }
           nrdur[ij][l] = ur[ij][l] = 0;
-          vrlr[ij][l] = vrlr[ji][l] = 0;
+          vrlr[ij][l] = 0;
         } else { /* Lennard-Jones */
           if ( use_c6_12 ) {
             u = ljpot6_12(fft_ri[l], c6, c12, lam, &nrdu);
@@ -222,15 +228,16 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           /* set the screen length as sig */
           ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
           vrlr[ij][l] = beta * ulr;
+          vrsr[ij][l] = beta * (u + uelec - ulr);
 
-          u += uelec - ulr; /* add the short-ranged component */
-          z = exp(-beta*u) - 1;
+          z = exp(-vrsr[ij][l]) - 1;
         }
         fr[ij][l] = z;
         if ( j > i ) {
           ur[ji][l] = ur[ij][l];
           nrdur[ji][l] = nrdur[ij][l];
           vrlr[ji][l] = vrlr[ij][l];
+          vrsr[ji][l] = vrsr[ij][l];
           fr[ji][l] = fr[ij][l];
         }
       } /* loop over l, the radius */
@@ -343,29 +350,35 @@ static void oz(model_t *m, double **ck, double **vklr,
 
 
 
-/* return the cavity distribution function */
-static double getyr(double tr, double *dy, int ietype)
-{
-  double xp;
-  if ( ietype == IE_HNC ) {
-    xp = exp(tr);
-    if ( dy ) *dy = xp;
-    return xp;
-  } else {
-    if ( dy ) *dy = 1;
-    return 1 + tr;
-  }
-}
-
-
-
 /* return the update of cr */
-static double getcr(double tr, double fr, double *dcr, int ietype)
+static double getcr(double tr, double vrsr,
+                    double *dcr, int ietype)
 {
-  double y, dy;
-  y = getyr(tr, &dy, ietype);
-  if ( dcr != NULL ) *dcr = (fr + 1) * dy - 1;
-  return (fr + 1) * y - 1 - tr;
+  double xp, del, fr;
+
+  del = -vrsr + tr;
+  if ( ietype == IE_HNC ) {
+    xp = ( del <= -INFTY ) ? 0 : exp(del);
+    if ( dcr != NULL ) *dcr = xp - 1;
+    return xp - 1 - tr;
+  } else if ( ietype == IE_PY ) {
+    fr = ( vrsr >= INFTY ) ? -1 : exp(-vrsr) - 1;
+    if ( dcr != NULL ) *dcr = fr;
+    return fr * (1 + tr);
+  } else if ( ietype == IE_KH ) {
+    if ( del <= 0 ) { /* HNC */
+      xp = ( del <= -INFTY ) ? 0 : exp(del);
+      if ( dcr != NULL ) *dcr = xp - 1;
+      return xp - 1 - tr;
+    } else {
+      if ( dcr != NULL ) *dcr = 0;
+      return -vrsr;
+    }
+  } else {
+    fprintf(stderr, "unknown closure %d\n", ietype);
+    exit(1);
+  }
+  return 0;
 }
 
 
@@ -373,7 +386,7 @@ static double getcr(double tr, double fr, double *dcr, int ietype)
 /* apply the closure
  * compute residue vector if needed */
 static double closure(model_t *model,
-    double *res, double **der, double **fr,
+    double *res, double **der, double **vrsr,
     double **cr, double **tr, int *prmask,
     int update, double damp)
 {
@@ -386,7 +399,7 @@ static double closure(model_t *model,
       ji = j*ns + i;
       if ( prmask && !prmask[ij] ) continue;
       for ( l = 0; l < npt; l++, id++ ) {
-        y = getcr(tr[ij][l], fr[ij][l], der ? &der[ij][l] : NULL,
+        y = getcr(tr[ij][l], vrsr[ij][l], der ? &der[ij][l] : NULL,
                   model->ietype) - cr[ij][l];
         if ( res != NULL ) res[id] = y;
         if ( update ) {
@@ -409,7 +422,7 @@ static double closure(model_t *model,
  * compute residue vector if needed */
 static double step_picard(model_t *model,
     double *res, double **der,
-    double **fr, double **wk,
+    double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
     double **tr, double **tk, int *prmask,
     int update, double damp)
@@ -417,7 +430,7 @@ static double step_picard(model_t *model,
   sphr_r2k(cr, ck, model->ns, NULL);
   oz(model, ck, vklr, tk, wk, NULL);
   sphr_k2r(tk, tr, model->ns, NULL);
-  return closure(model, res, der, fr, cr, tr, prmask, update, damp);
+  return closure(model, res, der, vrsr, cr, tr, prmask, update, damp);
 }
 
 
@@ -433,7 +446,7 @@ const double errinf = 1e20;
  * do not use this unless for simple models
  * does not handle solvent-solute interactions */
 static double iter_picard(model_t *model,
-    double **fr, double **wk,
+    double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
     double **tr, double **tk, int *niter)
 {
@@ -441,7 +454,7 @@ static double iter_picard(model_t *model,
   double err = 0, errp = errinf;
 
   for ( it = 0; it < model->itmax; it++ ) {
-    err = step_picard(model, NULL, NULL, fr, wk, cr, ck, vklr,
+    err = step_picard(model, NULL, NULL, vrsr, wk, cr, ck, vklr,
         tr, tk, NULL, 1, model->picard.damp);
     if ( err < model->tol ) break;
     if ( verbose )
@@ -531,7 +544,7 @@ static void dorism(model_t *model)
   double err = 0, dia, lam;
   double **ur, **nrdur, **fr, **wk;
   double **cr, **cp, **ck, **tr, **tk;
-  double **der, **ntk, **vrlr, **vklr;
+  double **der, **ntk, **vrlr, **vrsr, **vklr;
   double *um, *mum;
 
   /* equivalent diameter of the solvent molecule */
@@ -542,6 +555,7 @@ static void dorism(model_t *model)
   newarr2d(ur,    ns * ns, npt);
   newarr2d(nrdur, ns * ns, npt);
   newarr2d(vrlr,  ns * ns, npt);
+  newarr2d(vrsr,  ns * ns, npt);
   newarr2d(vklr,  ns * ns, npt);
   newarr2d(fr,    ns * ns, npt);
   newarr2d(wk,    ns * ns, npt);
@@ -565,7 +579,7 @@ static void dorism(model_t *model)
   for ( ilam = 1; ilam <= nlam; ilam++ ) {
     lam = 1.*ilam/nlam;
 
-    initfr(model, ur, nrdur, fr, vrlr, lam);
+    initfr(model, ur, nrdur, fr, vrlr, vrsr, lam);
     sphr_r2k(vrlr, vklr, ns, NULL);
 
     /* use f(r) as the initial c(r) for the lowest lambda */
@@ -573,11 +587,11 @@ static void dorism(model_t *model)
       cparr2d(cr, fr, ns * ns, npt);
 
     if ( model->solver == SOLVER_LMV ) {
-      err = iter_lmv(model, fr, wk, cr, der, ck, vklr, tr, tk, ntk, cp, &it);
+      err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr, tr, tk, ntk, cp, &it);
     } else if ( model->solver == SOLVER_MDIIS ) {
-      err = iter_mdiis(model, fr, wk, cr, ck, vklr, tr, tk, &it);
+      err = iter_mdiis(model, vrsr, wk, cr, ck, vklr, tr, tk, &it);
     } else {
-      err = iter_picard(model, fr, wk, cr, ck, vklr, tr, tk, &it);
+      err = iter_picard(model, vrsr, wk, cr, ck, vklr, tr, tk, &it);
     }
     output(model, cr, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
@@ -592,6 +606,7 @@ static void dorism(model_t *model)
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);
   delarr2d(vrlr,  ns * ns);
+  delarr2d(vrsr,  ns * ns);
   delarr2d(vklr,  ns * ns);
   delarr2d(fr,    ns * ns);
   delarr2d(wk,    ns * ns);

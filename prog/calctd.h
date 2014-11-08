@@ -2,8 +2,8 @@
 #define TDCALC_H__
 
 
-/* compute thermodynamic quantities */
 
+/* compute thermodynamic quantities */
 
 
 

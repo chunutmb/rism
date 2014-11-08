@@ -19,6 +19,7 @@
 
 
 #define PI 3.14159265358979323846
+#define INFTY 1e30
 
 #define KB    1.3806488e-23       /* Boltzmann constant: m^2*kg/s^2/K = J/K */
 #define NA    6.02214129e23       /* Avogadro constant: mol^{-1} */

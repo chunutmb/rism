@@ -82,7 +82,7 @@ static void getjacob(double *mat, double *b, int M, int npr, int ns,
  * A rapidly convergent method of solving the OZ equation
  * Molecular Physics, 1985, Vol. 56, No. 3, 709-715 */
 static double iter_lmv(model_t *model,
-    double **fr, double **wk,
+    double **vrsr, double **wk,
     double **cr, double **der, double **ck, double **vklr,
     double **tr, double **tk, double **ntk,
     double **invwc1w, int *niter)
@@ -127,7 +127,7 @@ static double iter_lmv(model_t *model,
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
-    err = closure(model, NULL, der, fr, cr, tr, uv->prmask, 1, 1.0);
+    err = closure(model, NULL, der, vrsr, cr, tr, uv->prmask, 1, 1.0);
     sphr_r2k(cr, ck, ns, NULL);
     //printf("stage %d, it %d, cr %g, ck %g, tr %g, tk %g, err %g\n", uv->stage, it, cr[0][0], ck[0][0], tr[0][0], tk[0][0], err);
 
@@ -181,8 +181,8 @@ static double iter_lmv(model_t *model,
       /* switch between stages */
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE && uv->infdil ) {
-        step_picard(model, NULL, NULL, fr, wk, cr, ck, vklr, tr, tk,
-            uv->prmask, 1, 1.);
+        step_picard(model, NULL, NULL, vrsr, wk,
+            cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
         break; /* no need to iterate further */
       }
       it = -1;
