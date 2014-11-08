@@ -79,6 +79,27 @@ static int model_select(const char *s, int n, const char **arr)
 
 
 
+typedef struct {
+  const char *key;
+  double val;
+} constmap_t;
+
+
+
+/* map the string value to the numerical value */
+static double model_map(const char *s, const constmap_t *arr)
+{
+  int i;
+
+  for ( i = 0; arr[i].key != NULL; i++ )
+    if ( strcmp(arr[i].key, s) == 0 )
+      return arr[i].val;
+  fprintf(stderr, "cannot find %s\n", s);
+  return 0;
+}
+
+
+
 /* return the index of an array index */
 static int model_getidx(char *s, int n)
 {
@@ -137,6 +158,16 @@ static int model_load(model_t *m, const char *fn, int verbose)
   FILE *fp;
   char buf[800], *p, *key, *val;
   int i, j, ipr, ns = -1, inpar;
+  const constmap_t constants[] = {
+    {"kb",        KB},
+    {"na",        NA},
+    {"kbna",      KBNA},
+    {"kbnac",     KBNAC},
+    {"ke2",       KE2},
+    {"ke2c",      KE2C},
+    {"ke2pk",     KE2PK},
+    {NULL,        0},
+  };
 
   if ( (fp = fopen(fn, "r")) == NULL ) {
     fprintf(stderr, "cannot load %s\n", fn);
@@ -233,7 +264,11 @@ static int model_load(model_t *m, const char *fn, int verbose)
       if ( verbose >= 2 )
         fprintf(stderr, "T            = %g\n", temp);
     } else if ( strcmp(key, "kb") == 0 ) {
-      m->kB = atof(val);
+      if ( isalpha(val[0]) ) {
+        m->kB = model_map(val, constants);
+      } else {
+        m->kB = atof(val);
+      }
       if ( verbose >= 2 )
         fprintf(stderr, "kB           = %g\n", m->kB);
     } else if ( strcmp(key, "ljtype") == 0 ) {
@@ -245,7 +280,11 @@ static int model_load(model_t *m, const char *fn, int verbose)
       if ( verbose >= 2 )
         fprintf(stderr, "LJ type      = %s\n", ljtypes[m->ljtype]);
     } else if ( strcmp(key, "ampch") == 0 ) {
-      m->ampch = atof(val);
+      if ( isalpha(val[0]) ) {
+        m->ampch = model_map(val, constants);
+      } else {
+        m->ampch = atof(val);
+      }
       if ( verbose >= 2 )
         fprintf(stderr, "unit of e^2  = %g\n", m->ampch);
     } else if ( strcmp(key, "rscreen") == 0 ) {
