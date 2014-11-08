@@ -222,7 +222,6 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           /* set the screen length as sig */
           ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
           vrlr[ij][l] = beta * ulr;
-          if ( j > i ) vrlr[ji][l] = vrlr[ij][l];
 
           u += uelec - ulr; /* add the short-ranged component */
           z = exp(-beta*u) - 1;
@@ -231,6 +230,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
         if ( j > i ) {
           ur[ji][l] = ur[ij][l];
           nrdur[ji][l] = nrdur[ij][l];
+          vrlr[ji][l] = vrlr[ij][l];
           fr[ji][l] = fr[ij][l];
         }
       } /* loop over l, the radius */
@@ -456,12 +456,12 @@ static double iter_picard(model_t *model,
 
 
 /* save correlation functions to file `fn' */
-static int output(model_t *model,
-    double **cr, double **vrlr, double **tr, double **fr,
+static int output(model_t *m,
+    double **cr, double **vrlr, double **ur, double **tr, double **fr,
     double **ck, double **vklr, double **tk, double **wk,
     const char *fn, int ilam)
 {
-  int i, j, ij, l, ns = model->ns;
+  int i, j, ij, l, ns = m->ns, npt = m->npt;
   FILE *fp;
   char fnl[80];
 
@@ -474,16 +474,18 @@ static int output(model_t *model,
     fprintf(stderr, "cannot open %s\n", fnl);
     return -1;
   }
+  /* print some basic information on the first line */
+  fprintf(fp, "# %g %g %g %d\n", m->beta, m->kB, m->ampch, m->ietype);
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
-      for ( l = 0; l < model->npt; l++ ) {
-        double vr = vrlr[ij][l], vk = vklr[ij][l];
-        fprintf(fp, "%g %g %g %g %g %d %d %g %g %g %g %g\n",
-            fft_ri[l], cr[ij][l] - vr, tr[ij][l] + vr, fr[ij][l],
-            vr, i, j,
-            fft_ki[l], ck[ij][l] - vk, tk[ij][l] + vk, wk[ij][l],
-            vk);
+      for ( l = 0; l < npt; l++ ) {
+        double vrl = vrlr[ij][l], vkl = vklr[ij][l];
+        fprintf(fp, "%g %g %g %g %g %g %d %d %g %g %g %g %g\n",
+            fft_ri[l], cr[ij][l] - vrl, tr[ij][l] + vrl, fr[ij][l],
+            vrl, m->beta * ur[ij][l], i, j,
+            fft_ki[l], ck[ij][l] - vkl, tk[ij][l] + vkl, wk[ij][l],
+            vkl);
       }
       fprintf(fp, "\n");
     }
@@ -539,6 +541,8 @@ static void dorism(model_t *model)
   npt = model->npt;
   newarr2d(ur,    ns * ns, npt);
   newarr2d(nrdur, ns * ns, npt);
+  newarr2d(vrlr,  ns * ns, npt);
+  newarr2d(vklr,  ns * ns, npt);
   newarr2d(fr,    ns * ns, npt);
   newarr2d(wk,    ns * ns, npt);
   newarr2d(cr,    ns * ns, npt);
@@ -548,8 +552,6 @@ static void dorism(model_t *model)
   newarr2d(tk,    ns * ns, npt);
   newarr2d(der,   ns * ns, npt);
   newarr2d(ntk,   ns * ns, npt);
-  newarr2d(vrlr,  ns * ns, npt);
-  newarr2d(vklr,  ns * ns, npt);
   xnew(um, ns);
   xnew(mum, ns);
 
@@ -577,7 +579,7 @@ static void dorism(model_t *model)
     } else {
       err = iter_picard(model, fr, wk, cr, ck, vklr, tr, tk, &it);
     }
-    output(model, cr, vrlr, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
+    output(model, cr, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
         lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
@@ -589,6 +591,8 @@ static void dorism(model_t *model)
 
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);
+  delarr2d(vrlr,  ns * ns);
+  delarr2d(vklr,  ns * ns);
   delarr2d(fr,    ns * ns);
   delarr2d(wk,    ns * ns);
   delarr2d(cr,    ns * ns);
@@ -598,8 +602,6 @@ static void dorism(model_t *model)
   delarr2d(tk,    ns * ns);
   delarr2d(der,   ns * ns);
   delarr2d(ntk,   ns * ns);
-  delarr2d(vrlr,  ns * ns);
-  delarr2d(vklr,  ns * ns);
   free(um);
   free(mum);
   donefftw();
