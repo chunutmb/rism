@@ -604,9 +604,10 @@ static void dorism(model_t *model)
   }
 
   calcU(model, ur, cr, tr, fr, um);
-  calcmu(model, cr, tr, mum);
+  calcchempot(model, cr, tr, mum);
   calckirk(model, cr, tr, NULL);
   calccrdnum(model, cr, tr, fr, fncrdnum);
+  calcdielec(model);
 
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);

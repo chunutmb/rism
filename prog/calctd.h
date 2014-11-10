@@ -66,6 +66,61 @@ static int getmols(model_t *m)
 
 
 
+/* compute the dielectric constant */
+static double calcdielec(model_t *m)
+{
+  int imol, i, j, k, ic, arr[MAXATOM];
+  double mu, y, eps = 0;
+
+  getmols(m);
+  for ( imol = 0; imol < m->nmol; imol++ ) {
+    /* collect atoms that belong to this molecule */
+    for ( ic = 0, i = 0; i < m->ns; i++ )
+      if ( m->mol[i] == imol && m->rho[i] > 0 )
+        arr[ic++] = i;
+    /* skip an atomic solvent or solute of infite dilution */
+    if ( ic <= 1 ) continue;
+
+    /* compute the dipole moment of molecule imol */
+    if ( ic == 2 ) {
+      i = arr[0];
+      j = arr[1];
+      mu = fabs(m->charge[j] * m->disij[i][j]);
+    } else if ( ic == 3 ) {
+      double rij, rjk, rki, cosang, sinang, mux, muy;
+      i = arr[0];
+      j = arr[1];
+      k = arr[2];
+      rij = m->disij[i][j];
+      rjk = m->disij[j][k];
+      rki = m->disij[i][k];
+      cosang = (rij*rij + rki*rki - rjk*rjk)/2/(rij*rki);
+      if ( cosang < -1 || cosang > 1 ) {
+        fprintf(stderr, "Error: invalid geometry of "
+            "molecule %d (%d,%d,%d), %g, %g, %g, cos %g\n",
+            imol, i, j, k, rij, rki, rki, cosang);
+        exit(1);
+      }
+      sinang = sqrt(1 - cosang*cosang);
+      mux = m->charge[j]*rij + m->charge[j]*rki*cosang;
+      muy = m->charge[j]*rki*sinang;
+      mu = sqrt(mux*mux + muy*muy);
+    } else {
+      fprintf(stderr, "Error: dipole moment of %d atoms not implemented\n", ic);
+      mu = 0;
+    }
+
+    y = 4 * PI * m->beta * m->rho[arr[0]] * mu * mu * m->ampch / 9;
+    eps += y;
+    printf("imol %d, %d sites, dipole moment %g, y %g\n", imol, ic, mu, y);
+  }
+  eps = 1 + 3 * eps;
+  printf("dielectric constant %g\n", eps);
+  return eps;
+}
+
+
+
 /* compute the Kirkword integrals */
 static int calckirk(model_t *m, double **cr, double **tr,
     double *kirk)
@@ -179,7 +234,7 @@ static int calcU(model_t *m, double **ur,
 
 /* compute the chemical potential
  * NOTE: this routine does not work for charged systems */
-static int calcmu(model_t *m, double **cr, double **tr, double *mum)
+static int calcchempot(model_t *m, double **cr, double **tr, double *mum)
 {
   int i, j, ij, im, l, ns = m->ns, npt = m->npt;
   double muij, dr, ri;
@@ -207,7 +262,7 @@ static int calcmu(model_t *m, double **cr, double **tr, double *mum)
     }
   }
   for ( i = 0; i < m->nmol; i++ )
-    printf("mol %d: mu %g\n", i, mum[i]);
+    printf("mol %d: chem. pot. %g\n", i, mum[i]);
   return m->nmol;
 }
 
