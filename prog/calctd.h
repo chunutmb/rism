@@ -166,7 +166,7 @@ static int calcU(model_t *m, double **ur,
         gr = getgr(m, cr[ij][l], tr[ij][l], fr[ij][l]);
         uij += ur[ij][l] * gr * ri * ri;
       }
-      uij *= m->kB * .5 * 4 * PI * m->rho[j] * dr;
+      uij *= m->kBU * .5 * 4 * PI * m->rho[j] * dr;
       um[im] += uij;
     }
   }
@@ -201,7 +201,7 @@ static int calcmu(model_t *m, double **cr, double **tr, double *mum)
         ri = (l + .5) * dr;
         muij += (0.5*(cr[ij][l] + tr[ij][l])*tr[ij][l] - cr[ij][l]) * ri * ri;
       }
-      muij *= (m->kB / m->beta) * 4 * PI * m->rho[j] * dr;
+      muij *= (m->kBU / m->beta) * 4 * PI * m->rho[j] * dr;
       //printf("i %d, j %d, muij %g\n", i, j, muij);
       mum[im] += muij;
     }
