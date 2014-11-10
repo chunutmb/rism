@@ -180,7 +180,8 @@ static double iter_lmv(model_t *model,
       //fprintf(stderr, "switching stage %d, it %d, err %g, tol %g\n", uv->stage, it, err, model->tol); getchar();
       /* switch between stages */
       if ( uv_switch(uv) != 0 ) break;
-      if ( uv->stage == SOLUTE_SOLUTE && uv->infdil ) {
+      if ( uv->stage == SOLUTE_SOLUTE
+        && uv->infdil && uv->simplesolvent ) {
         step_picard(model, NULL, NULL, vrsr, wk,
             cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
         break; /* no need to iterate further */
