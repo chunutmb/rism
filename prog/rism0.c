@@ -22,6 +22,7 @@ int verbose = 0;
 const char *fncrtr = "out.dat";
 int sepout = 0;
 const char *fncrdnum = "crdnum.dat";
+int printk = 0;
 
 
 
@@ -35,12 +36,13 @@ static void help(const char *prog)
       "\n"
       "Options:\n"
       "  -o:    followed by the output file, default: %s\n"
+      "  -k:    print k-space correlation functions, default %d\n"
       "  -$:    separately output file for each lambda, default %d\n"
       "  -#:    followed by the coordination number file, default: %s\n"
       "  -v:    be verbose\n"
       "  -vv:   be more verbose\n"
       "  -h:    display this message\n",
-      prog, fncrtr, sepout, fncrdnum);
+      prog, fncrtr, printk, sepout, fncrdnum);
   exit(1);
 }
 
@@ -494,11 +496,14 @@ static int output(model_t *m,
       ij = i*ns + j;
       for ( l = 0; l < npt; l++ ) {
         double vrl = vrlr[ij][l], vkl = vklr[ij][l];
-        fprintf(fp, "%g %g %g %g %g %g %d %d %g %g %g %g %g\n",
+        fprintf(fp, "%g %g %g %g %g %g %d %d ",
             fft_ri[l], cr[ij][l] - vrl, tr[ij][l] + vrl, fr[ij][l],
-            vrl, m->beta * ur[ij][l], i, j,
-            fft_ki[l], ck[ij][l] - vkl, tk[ij][l] + vkl, wk[ij][l],
-            vkl);
+            vrl, m->beta * ur[ij][l], i, j);
+        if ( printk )
+          fprintf(fp, "%g %g %g %g %g",
+              fft_ki[l], ck[ij][l] - vkl, tk[ij][l] + vkl, wk[ij][l],
+              vkl);
+        fprintf(fp, "\n");
       }
       fprintf(fp, "\n");
     }
