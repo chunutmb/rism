@@ -37,8 +37,9 @@ typedef struct {
   double rho[MAXATOM];
   double dis[MAXATOM*(MAXATOM-1)/2];
   double beta; /* sometimes it is given as 1/T without kB */
-  double kB; /* Boltzmann constant, only used if the unit
-                of LJ energy is already divided by kB */
+  double kBT; /* Boltzman constant, to be multiplied on T */
+  double kBU; /* Boltzmann constant, only used if the unit
+                 of LJ energy is already divided by kB */
   int ljtype;
 
   double charge[MAXATOM];
@@ -158,6 +159,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
   FILE *fp;
   char buf[800], *p, *key, *val;
   int i, j, ipr, ns = -1, inpar;
+  double temp = 300;
   const constmap_t constants[] = {
     {"kb",        KB},
     {"na",        NA},
@@ -213,6 +215,12 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->sigma[i] = atof(val);
       if ( verbose >= 2 )
         fprintf(stderr, "sigma(%d)     = %g\n", i, m->sigma[i]);
+    } else if ( strncmp(key, "eps(", 4) == 0 ) {
+      CHECK_NS(key);
+      i = model_getidx(key, ns);
+      m->eps6_12[i][0] = m->eps6_12[i][1] = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "eps6/12(%d)    = %g\n", i, m->eps6_12[i][0]);
     } else if ( strncmp(key, "eps6", 4) == 0 ) {
       CHECK_NS(key);
       i = model_getidx(key, ns);
@@ -259,18 +267,27 @@ static int model_load(model_t *m, const char *fn, int verbose)
       if ( verbose >= 2 )
         fprintf(stderr, "c12(%d, %d)    = %g (pair %d)\n", i, j, m->C6_12[ipr][1], ipr);
     } else if ( strcmp(key, "t") == 0 || strcmp(key, "temp") == 0 ) {
-      double temp = atof(val);
-      m->beta = 1/temp;
+      temp = atof(val);
       if ( verbose >= 2 )
         fprintf(stderr, "T            = %g\n", temp);
-    } else if ( strcmp(key, "kb") == 0 ) {
+    } else if ( strcmp(key, "kbt") == 0 ) {
       if ( isalpha(val[0]) ) {
-        m->kB = model_map(val, constants);
+        m->kBT = model_map(val, constants);
       } else {
-        m->kB = atof(val);
+        m->kBT = atof(val);
       }
       if ( verbose >= 2 )
-        fprintf(stderr, "kB           = %g\n", m->kB);
+        fprintf(stderr, "kBT          = %g\n", m->kBT);
+    } else if ( strcmp(key, "kb") == 0 ||
+                strcmp(key, "kbu") == 0 ||
+                strcmp(key, "kbe") == 0 ) {
+      if ( isalpha(val[0]) ) {
+        m->kBU = model_map(val, constants);
+      } else {
+        m->kBU = atof(val);
+      }
+      if ( verbose >= 2 )
+        fprintf(stderr, "kBU          = %g\n", m->kBU);
     } else if ( strcmp(key, "ljtype") == 0 ) {
       const char *ljtypes[3];
       ljtypes[HARD_SPHERE] = "hard-sphere";
@@ -353,6 +370,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
   }
 
   fclose(fp);
+  m->beta = 1./(m->kBT * temp);
 
   if ( m->ns < 1 ) {
     fprintf(stderr, "invalid number of sites %d\n", m->ns);
@@ -408,9 +426,9 @@ model_t models[] =
   {0, {0}, {{0}}, {{0}},
     {0}, {0}, 1./300,
     /* the unit of the Boltzmann constant is kJ/mol/K
-     * however, the parameter is often multiplied
+     * however, the parameter is often already multiplied
      * in the Lennard-Jones parameters */
-    KBNA, LJ_FULL,
+    1.0, KBNA, LJ_FULL,
     {0}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -421,7 +439,8 @@ model_t models[] =
   },
   /* 1. LC 1973, and Model I of CHS 1977 */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.500, 0.500}, {0.600}, 1.000, 1.0, HARD_SPHERE,
+    {0.500, 0.500}, {0.600},
+    1.000, 1.0, 1.0, HARD_SPHERE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
@@ -432,7 +451,8 @@ model_t models[] =
   },
   /* 2. Model II of CHS 1977 */
   {2, {0.790, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.686, 0.686}, {0.490}, 1.000, 1.0, HARD_SPHERE,
+    {0.686, 0.686}, {0.490},
+    1.000, 1.0, 1.0, HARD_SPHERE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
@@ -443,7 +463,8 @@ model_t models[] =
   },
   /* 3. Model III of CHS 1977 */
   {2, {0.675, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.825, 0.825}, {0.346}, 1.000, 1.0, HARD_SPHERE,
+    {0.825, 0.825}, {0.346},
+    1.000, 1.0, 1.0, HARD_SPHERE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 100000, 1e-7,
@@ -454,7 +475,8 @@ model_t models[] =
   },
   /* 4. LC1973, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.696, 0.696}, {1.1/3.341}, 1/1.83, 1.0, LJ_REPULSIVE,
+    {0.696, 0.696}, {1.1/3.341},
+    1/1.83, 1.0, 1.0, LJ_REPULSIVE,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     1, 10000, 1e-7,
@@ -465,7 +487,8 @@ model_t models[] =
   },
   /* 5. KA1978, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
-    {0.6964, 0.6964}, {1.1/3.341}, 1/1.61, 1.0, LJ_FULL,
+    {0.6964, 0.6964}, {1.1/3.341},
+    1/1.61, 1.0, 1.0, LJ_FULL,
     {0}, 0, 0,
     IE_PY, 20.48, 1024,
     5, 10000, 1e-7,
@@ -477,7 +500,8 @@ model_t models[] =
   /* 6. HR1981, liquid nitrogen, neutral */
   {2, {3.341, 3.341},
     {{1, 1}, {1, 1}}, {{0}},
-    {0.01867, 0.01867}, {1.1}, 1/1.636, 1.0, LJ_FULL,
+    {0.01867, 0.01867}, {1.1},
+    1/1.636, 1.0, 1.0, LJ_FULL,
     {0}, 0, 0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -489,7 +513,8 @@ model_t models[] =
   /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
   {2, {3.341, 3.341},
     {{44.0, 44.0}, {44.0, 44.0}}, /* in Kelvins */ {{0}},
-    {0.01867, 0.01867}, {1.1}, 1./72, KBNA, LJ_FULL,
+    {0.01867, 0.01867}, {1.1},
+    1./72, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -501,7 +526,8 @@ model_t models[] =
   /* 8. HPR1982, HCl, model II */
   {2, {2.735, 3.353},
     {{20.0, 20.0}, {259.0, 259.0}}, /* in Kelvins */ {{0}},
-    {0.018, 0.018}, {1.257}, 1./210, KBNA, LJ_FULL,
+    {0.018, 0.018}, {1.257},
+    1./210, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -513,7 +539,8 @@ model_t models[] =
   /* 9. HPR1982, HCl, model III */
   {2, {0.4, 3.353},
     {{20.0, 20.0}, {259.0, 259.0}}, /* in Kelvins */ {{0}},
-    {0.018, 0.018}, {1.3}, 1./210, KBNA, LJ_FULL,
+    {0.018, 0.018}, {1.3},
+    1./210, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -534,7 +561,8 @@ model_t models[] =
       {0, 610.455} /* H1-H1 */, {0, 610.455} /* H1-H2 */,
       {0, 610.455} /* H2-H2 */ },
     {0.03334, 0.03334, 0.03334},
-    {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), 1.0, LJ_FULL,
+    {0.9572, 0.9572, 1.513696},
+    1./(KBNAC*300), KBNAC, 1.0, LJ_FULL,
     {-0.866088, 0.433044, 0.433044}, KE2C, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -555,7 +583,8 @@ model_t models[] =
       {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */,
       {0, 0} /* H2-H2 */ },
     {0.03334, 0.03334, 0.03334},
-    {1.0, 1.0, 1.633081624}, 1./(KBNAC*300), 1.0, LJ_FULL,
+    {1.0, 1.0, 1.633081624},
+    1./(KBNAC*300), KBNAC, 1.0, LJ_FULL,
     {-0.82, 0.41, 0.41}, KE2C, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -576,7 +605,8 @@ model_t models[] =
       {0, 0} /* H1-H1 */, {0, 0} /* H1-H2 */,
       {0, 0} /* H2-H2 */ },
     {0.03334, 0.03334, 0.03334},
-    {0.9572, 0.9572, 1.513696}, 1./(KBNAC*300), 1.0, LJ_FULL,
+    {0.9572, 0.9572, 1.513696},
+    1./(KBNAC*300), KBNAC, 1.0, LJ_FULL,
     {-0.8, 0.4, 0.4}, KE2C, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -594,7 +624,8 @@ model_t models[] =
     { {78.2083543, 78.2083543}, /* O */
       {0, 23.150478}, /* H1 */ {0, 23.150478} /* H2 */ }, {{0}},
     {0.033314, 0.033314, 0.033314},
-    {1.0, 1.0, 1.633}, 1./300, KBNA, LJ_FULL,
+    {1.0, 1.0, 1.633},
+    1./300, 1.0, KBNA, LJ_FULL,
     {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
@@ -612,7 +643,8 @@ model_t models[] =
     { {76.5364, 76.5364}, /* O */
       {0, 23.1509}, /* H1 */ {0, 23.1509} /* H2 */ }, {{0}},
     {0.033314, 0.033314, 0.033314},
-    {0.95719835, 0.95719835, 1.5139}, 1./300, KBNA, LJ_FULL,
+    {0.95719835, 0.95719835, 1.5139},
+    1./300, 1.0, KBNA, LJ_FULL,
     {-0.834, 0.417, 0.417}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,
@@ -628,7 +660,8 @@ model_t models[] =
       {44.0, 44.0}, {44.0, 44.0} }, /* in Kelvins */
     {{0}},
     {0.01867, 0.01867, 0, 0},
-    {1.1}, 1./200, KBNA, LJ_FULL,
+    {1.1},
+    1./200, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200, 1.0, -1.0}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
@@ -647,7 +680,8 @@ model_t models[] =
       {0, 23.150478}, /* H1 */ {0, 23.150478}, /* H2 */
       {65.42, 65.42}, {50.32, 50.32} }, {{0}},
     {0.033314, 0.033314, 0.033314, 0.0, 0.0},
-    {1.0, 1.0, 0, 0, 1.633}, 1./300, KBNA, LJ_FULL,
+    {1.0, 1.0, 0, 0, 1.633},
+    1./300, 1.0, KBNA, LJ_FULL,
     {-0.8476, 0.4238, 0.4238, 1, -1}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
     10, 100000, 1e-7,

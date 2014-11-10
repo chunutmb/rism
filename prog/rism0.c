@@ -488,7 +488,7 @@ static int output(model_t *m,
     return -1;
   }
   /* print some basic information on the first line */
-  fprintf(fp, "# %g %g %g %d\n", m->beta, m->kB, m->ampch, m->ietype);
+  fprintf(fp, "# %g %g %g %d\n", 1/(m->kBT*m->beta), m->kBU, m->ampch, m->ietype);
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
