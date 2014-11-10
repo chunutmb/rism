@@ -14,6 +14,7 @@ typedef struct {
   int stage;
   int npr; /* number of active pairs */
   int infdil; /* infinite dilution */
+  int simplesolvent; /* solvent molecules are atomic, not molecular */
 } uv_t;
 
 
@@ -21,7 +22,7 @@ typedef struct {
 static uv_t *uv_open(model_t *m)
 {
   uv_t *uv;
-  int i, j, ns = m->ns;
+  int i, j, ipr, ns = m->ns;
 
   xnew(uv, 1);
   uv->ns = ns;
@@ -36,6 +37,14 @@ static uv_t *uv_open(model_t *m)
     if ( m->rho[i] > 0 )
       break;
   uv->infdil = (i == uv->ns);
+  /* check if the solute is simple */
+  uv->simplesolvent = 1;
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i + 1; j < ns; j++, ipr++ )
+      if ( i >= uv->nsv && j >= uv->nsv && m->dis[ipr] > 0 ) {
+        uv->simplesolvent = 0;
+        break;
+      }
   return uv;
 }
 
