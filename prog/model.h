@@ -220,7 +220,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
       i = model_getidx(key, ns);
       m->eps6_12[i][0] = m->eps6_12[i][1] = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "eps6/12(%d)    = %g\n", i, m->eps6_12[i][0]);
+        fprintf(stderr, "eps6/12(%d)   = %g\n", i, m->eps6_12[i][0]);
     } else if ( strncmp(key, "eps6", 4) == 0 ) {
       CHECK_NS(key);
       i = model_getidx(key, ns);
@@ -307,7 +307,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
     } else if ( strcmp(key, "rscreen") == 0 ) {
       m->rscreen = atof(val);
       if ( verbose >= 2 )
-        fprintf(stderr, "r_screen     = %g\n", m->rscreen);
+        fprintf(stderr, "rscreen      = %g\n", m->rscreen);
     } else if ( strcmp(key, "closure") == 0
              || strcmp(key, "ietype") == 0 ) {
       const char *ietypes[3];
@@ -362,6 +362,9 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->mdiis.damp = atof(val);
       if ( verbose >= 2 )
         fprintf(stderr, "MDIIS_damp   = %g\n", m->mdiis.damp);
+    } else {
+      fprintf(stderr, "Warning: unknown option %s = %s\n", key, val);
+      getchar();
     }
   }
   if ( verbose >= 2 ) {
