@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+  <title>.cfg generator</title>
+  <link rel="stylesheet" type="text/css" href="css/default.css" />
+  <script src="js/jquery-1.11.1.min.js"></script>
+  <!--
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  -->
+  <script src="js/cfg.js"></script>
+</head>
+<body>
+
+<h2>Configuration file generator for the XRISM program <span class="code">rism0</span></h2>
+
+<form>
+  <div style="font-size:120%; text-align:center">
+    E<b>x</b>tended <b>R</b>eference <b>I</b>nteraction <b>S</b>ite <b>M</b>odel (XRISM)
+    parameters
+  </div>
+  <br>
+
+  Number of sites (on all solvent and solute molecules):
+  <input type="text" size="4" value="0" id="ns"
+    onChange="change_ns()">
+  <br>
+
+  <table>
+    <tr>
+      <th>
+        Site #
+      </th>
+      <th>
+        <span class="math"><i>&sigma;</i></span>
+        (&#197;)
+      </th>
+      <th>
+        <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
+        (<select id="unit_eps6" onChange="change_unit_eps()">
+          <option value="K" selected>K</option>
+          <option value="kJpermol">kJ/mol</option>
+          <option value="kcalpermol">kcal/mol</option>
+        </select>)
+      </th>
+      <th>
+        <span class="math"><i>&epsilon;</i><sub>&#8321;&#8322;</sub></span>
+        (<select id="unit_eps12" disabled>
+          <option value="K" selected>K</option>
+          <option value="kJpermol">kJ/mol</option>
+          <option value="kcalpermol">kcal/mol</option>
+        </select>)
+      </th>
+      <th>
+        <span class="math"><i>&rho;</i></span>
+        (<select id="unit_rho">
+          <option value="molperA3" selected>mol/&#197;&#179;</option>
+          <option value="gpercm3" disabled>g/cm&#179;</option>
+        </select>)
+      </th>
+      <th>
+        <span class="math"><i>q</i></span>
+        <span class="math">(<i>e</i>)</span>
+      </th>
+    </tr>
+
+    <tr id="row_1">
+      <td> 1 </td>
+      <td> <input type="text" size="12" value="0" id="sigma_1"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_1"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_1"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_1"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_1"> </td>
+    </tr>
+
+    <tr id="row_2">
+      <td> 2 </td>
+      <td> <input type="text" size="12" value="0" id="sigma_2"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_2"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_2"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_2"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_2"> </td>
+    </tr>
+
+    <tr id="row_3">
+      <td> 3 </td>
+      <td> <input type="text" size="12" value="0" id="sigma_3"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_3"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_3"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_3"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_3"> </td>
+    </tr>
+
+    <tr id="row_4">
+      <td> 4 </td>
+      <td> <input type="text" size="12" value="0" id="sigma_4"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_4"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_4"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_4"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_4"> </td>
+    </tr>
+
+    <tr id="row_5">
+      <td> 5 </td>
+      <td> <input type="text" size="12" value="0" id="sigma_5"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_5"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_5"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_5"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_5"> </td>
+    </tr>
+
+    <tr id="row_6">
+      <td> 6 </td>
+      <td> <input type="text" size="12" value="0" id="sigma_6"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_6"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_6"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_6"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_6"> </td>
+    </tr>
+
+    <tr id="row_7">
+      <td> 7 </td>
+      <td> <input type="text" size="12" value="0" id="sigma_7"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_7"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_7"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_7"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_7"> </td>
+    </tr>
+
+    <tr id="row_8">
+      <td> 8 </th>
+      <td> <input type="text" size="12" value="0" id="sigma_8"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_8"> </td>
+      <td> <input type="text" size="12" value="0" id="eps12_8"> </td>
+      <td> <input type="text" size="12" value="0" id="rho_8"> </td>
+      <td> <input type="text" size="12" value="0" id="charge_8"> </td>
+    </tr>
+  </table>
+  <br>
+
+  <div>
+    Chemical bonds, the format of each line is<br>
+    <span class="code"> &nbsp; site1 site2 distance-in-angstroms</span><br>
+    e.g.,<br>
+    <span class="code"> &nbsp; 1 2 3.34</span>:
+    <br>
+  <textarea rows="4" id="chembonds">#1 2 1.2</textarea>
+  </div>
+
+  Temperature:
+  <input type="text" size="6" value="300" id="temp">
+  K
+  <br>
+
+  Lennard-Jones type:
+  <select id="ljtype">
+    <option value="Hard-sphere">Hard-sphere interaction</option>
+    <option value="LJ-repulsive">Repulsive part of Lennard-Jones interaction</option>
+    <option value="LJ-full" selected>Full Lennard-Jones interaction</option>
+  </select>
+  <br>
+
+  Closure:
+  <select id="ietype">
+    <option value="PY">Percus-Yevick (PY)</option>
+    <option value="HNC" selected>Hypernetted-chain (HNC)</option>
+    <option value="KH">Kovalenko-Hirata (KH)</option>
+  </select>
+  <br>
+
+  Radius cutoff,
+  <span class="math"><i>r</i><sub>max</sub></span>:
+  <input type="text" size="6" value="20.48" id="rmax">
+  &#197;
+  <br>
+
+  Number of sampling points along
+  <span class="math"><i>r</i></span>:
+  <input type="text" size="6" value="1024" id="npt">
+  <sub>(optimally, this should be a power of 2.)</sub>
+  <br>
+
+  The program gradually turns on the long range interaction.<br>
+  The number of stages to turn on the full interaction:
+  <span class="math"><i>N</i><sub>&lambda;</sub></span>:
+  <input type="text" size="6" value="10" id="nlambdas">
+  <br>
+
+  Tolerance of the relative error:
+  <input type="text" size="6" value="1e-6" id="tol">
+  <br>
+
+  Screening radius for electrostatic interaction,
+  <span class="math"><i>r</i><sub>screen</sub></span>:
+  <input type="text" size="6" value="1.0" id="rscreen">
+  &#197;
+  <br>
+
+  Solver:
+  <select id="solver">
+    <option value="Picard">Picard (direct) iteration</option>
+    <option value="LMV">Lab&iacute;k-Malijevsk&yacute;-Vonka (LMV) method (partial Newton-Raphson iteration)</option>
+    <option value="MDIIS" selected>Modified direct inversion of the iterative subspace (MDIIS) method</option>
+  </select>
+  <br>
+
+  <b>Picard iteration:</b>
+  <span title="fraction of the old solution">Damping factor</span>:
+  <input type="text" size="6" value="0.01" id="picard_damp">.
+  &nbsp;
+  <br>
+
+  <b><abbr title="Lab&iacute;k-Malijevsk&yacute;-Vonka method">LMV</abbr>:</b>
+  <span title="fraction of the old solution">Damping factor</span>:
+  <input type="text" size="6" value="0.5" id="lmv_damp">.
+  &nbsp;
+
+  Number of
+  <span class="math"><i>k</i></span> for the Newton-Raphson solver,
+  <span class="math"><i>M</i></span>:
+  <input type="text" size="6" value="15" id="lmv_M">
+  <br>
+
+  <b><abbr title="Modified direct inversion of the iterative subspace method">MDIIS</abbr>:</b>
+  <span title="fraction of the old solution">Damping factor</span>:
+  <input type="text" size="6" value="0.5" id="mdiis_damp">.
+  &nbsp;
+
+  Number of bases:
+  <input type="text" size="6" value="5" id="mdiis_nbases">
+  <br>
+
+  <center>
+  <input type="button" value="Generate configuration file"
+    id="gencfgbtn" onClick="gencfg()">
+
+  <input type="reset" value="Reset" id="resetbtn">
+  </center>
+  <br>
+
+  <div>
+    Output configuration file:<br>
+  <textarea rows="10" id="cfgout"></textarea>
+  </div>
+</form>
+
+
+
+
+</body>
+</html>
