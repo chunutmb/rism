@@ -2,6 +2,11 @@ form {
   width: 780px;
   padding: 10px 10px;
   border: double;
+  margin: auto;
+}
+
+th {
+  vertical-align: top;
 }
 
 td, th {

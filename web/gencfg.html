@@ -12,7 +12,9 @@
 </head>
 <body>
 
-<h2>Configuration file generator for the XRISM program <span class="code">rism0</span></h2>
+<h2 class="center">
+  Configuration file generator for the XRISM program <span class="code">rism0</span>
+</h2>
 
 <form>
   <div style="font-size:120%; text-align:center">
@@ -38,6 +40,7 @@
       <th>
         <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
         (<select id="unit_eps6" onChange="change_unit_eps()">
+          <option value="reduced">reduced</option>
           <option value="K" selected>K</option>
           <option value="kJpermol">kJ/mol</option>
           <option value="kcalpermol">kcal/mol</option>
@@ -46,15 +49,18 @@
       <th>
         <span class="math"><i>&epsilon;</i><sub>&#8321;&#8322;</sub></span>
         (<select id="unit_eps12" disabled>
+          <option value="reduced">reduced</option>
           <option value="K" selected>K</option>
           <option value="kJpermol">kJ/mol</option>
           <option value="kcalpermol">kcal/mol</option>
-        </select>)
+        </select>)<br>
+        <input type="checkbox" id="sameeps" checked> Same as
+        <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </th>
       <th>
         <span class="math"><i>&rho;</i></span>
         (<select id="unit_rho">
-          <option value="molperA3" selected>mol/&#197;&#179;</option>
+          <option value="molperA3" selected>molecules/&#197;&#179;</option>
           <option value="gpercm3" disabled>g/cm&#179;</option>
         </select>)
       </th>
@@ -67,7 +73,7 @@
     <tr id="row_1">
       <td> 1 </td>
       <td> <input type="text" size="12" value="0" id="sigma_1"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_1"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_1" onChange="change_eps6(1)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_1"> </td>
       <td> <input type="text" size="12" value="0" id="rho_1"> </td>
       <td> <input type="text" size="12" value="0" id="charge_1"> </td>
@@ -76,7 +82,7 @@
     <tr id="row_2">
       <td> 2 </td>
       <td> <input type="text" size="12" value="0" id="sigma_2"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_2"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_2" onChange="change_eps6(2)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_2"> </td>
       <td> <input type="text" size="12" value="0" id="rho_2"> </td>
       <td> <input type="text" size="12" value="0" id="charge_2"> </td>
@@ -85,7 +91,7 @@
     <tr id="row_3">
       <td> 3 </td>
       <td> <input type="text" size="12" value="0" id="sigma_3"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_3"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_3" onChange="change_eps6(3)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_3"> </td>
       <td> <input type="text" size="12" value="0" id="rho_3"> </td>
       <td> <input type="text" size="12" value="0" id="charge_3"> </td>
@@ -94,7 +100,7 @@
     <tr id="row_4">
       <td> 4 </td>
       <td> <input type="text" size="12" value="0" id="sigma_4"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_4"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_4" onChange="change_eps6(4)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_4"> </td>
       <td> <input type="text" size="12" value="0" id="rho_4"> </td>
       <td> <input type="text" size="12" value="0" id="charge_4"> </td>
@@ -103,7 +109,7 @@
     <tr id="row_5">
       <td> 5 </td>
       <td> <input type="text" size="12" value="0" id="sigma_5"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_5"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_5" onChange="change_eps6(5)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_5"> </td>
       <td> <input type="text" size="12" value="0" id="rho_5"> </td>
       <td> <input type="text" size="12" value="0" id="charge_5"> </td>
@@ -112,7 +118,7 @@
     <tr id="row_6">
       <td> 6 </td>
       <td> <input type="text" size="12" value="0" id="sigma_6"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_6"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_6" onChange="change_eps6(6)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_6"> </td>
       <td> <input type="text" size="12" value="0" id="rho_6"> </td>
       <td> <input type="text" size="12" value="0" id="charge_6"> </td>
@@ -121,7 +127,7 @@
     <tr id="row_7">
       <td> 7 </td>
       <td> <input type="text" size="12" value="0" id="sigma_7"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_7"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_7" onChange="change_eps6(7)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_7"> </td>
       <td> <input type="text" size="12" value="0" id="rho_7"> </td>
       <td> <input type="text" size="12" value="0" id="charge_7"> </td>
@@ -130,7 +136,7 @@
     <tr id="row_8">
       <td> 8 </th>
       <td> <input type="text" size="12" value="0" id="sigma_8"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_8"> </td>
+      <td> <input type="text" size="12" value="0" id="eps6_8" onChange="change_eps6(8)"> </td>
       <td> <input type="text" size="12" value="0" id="eps12_8"> </td>
       <td> <input type="text" size="12" value="0" id="rho_8"> </td>
       <td> <input type="text" size="12" value="0" id="charge_8"> </td>
@@ -186,14 +192,18 @@
   <input type="text" size="6" value="10" id="nlambdas">
   <br>
 
-  Tolerance of the relative error:
-  <input type="text" size="6" value="1e-6" id="tol">
-  <br>
-
   Screening radius for electrostatic interaction,
   <span class="math"><i>r</i><sub>screen</sub></span>:
   <input type="text" size="6" value="1.0" id="rscreen">
   &#197;
+  <br>
+
+  Maximal number of iterations:
+  <input type="text" size="6" value="100000" id="itmax">
+  <br>
+
+  Tolerance of the relative error:
+  <input type="text" size="6" value="1e-6" id="tol">
   <br>
 
   Solver:
@@ -243,7 +253,6 @@
   <textarea rows="10" id="cfgout"></textarea>
   </div>
 </form>
-
 
 
 
