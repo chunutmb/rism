@@ -1,0 +1,52 @@
+form {
+  width: 780px;
+  padding: 10px 10px;
+  border: double;
+}
+
+td, th {
+  padding: 2px 5px;
+  border: 1px solid #cccccc;
+}
+
+.math {
+  font-family: Times, "Times New Roman", serif;
+  font-size: larger;
+}
+
+.code {
+  font-family: Courier, "Courier New", Monospace;
+  font-weight: bold;
+}
+
+th {
+  font-size: 105%;
+  font-weight: normal;
+}
+
+option {
+  /*background-color: red;*/
+  padding: 3pt;
+}
+
+#gencfgbtn, #resetbtn {
+  font-family: Georgia, serif;
+  font-size: 140%;
+  font-weight: bold;
+  line-height: 240%;
+  padding: 0px 50px;
+}
+
+.center {
+  text-align: center;
+}
+
+textarea {
+  width: 96%;
+  margin: 5px;
+  padding: 2px 10px;
+  color: #202055;
+  background-color: #ffffdd;
+  font-family: "Lucida Console", Courier, "Courier New", Monospace;
+  font-weight: bold;
+}
