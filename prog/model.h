@@ -330,6 +330,10 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->nlambdas = atoi(val);
       if ( verbose >= 2 )
         fprintf(stderr, "nlambdas     = %d\n", m->nlambdas);
+    } else if ( strcmp(key, "itmax") == 0 ) {
+      m->itmax = atoi(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "itmax        = %d\n", m->itmax);
     } else if ( strcmp(key, "tol") == 0 ) {
       m->tol = atof(val);
       if ( verbose >= 2 )
@@ -479,14 +483,14 @@ model_t models[] =
   /* 4. LC1973, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
     {0.696, 0.696}, {1.1/3.341},
-    1/1.83, 1.0, 1.0, LJ_REPULSIVE,
+    1/1.46, 1.0, 1.0, LJ_REPULSIVE,
     {0}, 0, 0,
-    IE_PY, 20.48, 1024,
+    IE_PY, 10.24, 1024,
     1, 10000, 1e-7,
     SOLVER_LMV,
     {0.15},
-    {0, 0.5},
-    {3, 0.02}
+    {20, 0.5},
+    {3, 0.5}
   },
   /* 5. KA1978, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
@@ -524,7 +528,7 @@ model_t models[] =
     SOLVER_LMV,
     {0.01},
     {10, 0.5},
-    {5, 0.1} /* does not work! */
+    {5, 0.1}
   },
   /* 8. HPR1982, HCl, model II */
   {2, {2.735, 3.353},
