@@ -74,7 +74,8 @@ static int model_select(const char *s, int n, const char **arr)
   for ( i = 0; i < n; i++ )
     if ( strcmp(arr[i], s) == 0 )
       return i;
-  fprintf(stderr, "cannot find %s\n", s);
+  fprintf(stderr, "Error: cannot find %s\n", s);
+  exit(1);
   return 0;
 }
 
@@ -95,7 +96,8 @@ static double model_map(const char *s, const constmap_t *arr)
   for ( i = 0; arr[i].key != NULL; i++ )
     if ( strcmp(arr[i].key, s) == 0 )
       return arr[i].val;
-  fprintf(stderr, "cannot find %s\n", s);
+  fprintf(stderr, "Error: cannot find %s\n", s);
+  exit(1);
   return 0;
 }
 
@@ -109,12 +111,12 @@ static int model_getidx(char *s, int n)
 
   if ( p == NULL ) p = strchr(s, '[');
   if ( p == NULL ) {
-    fprintf(stderr, "cannot find the index of %s\n", s);
+    fprintf(stderr, "Error: cannot find the index of %s\n", s);
     exit(1);
   }
   i = atoi(p + 1) - 1;
   if ( i >= n ) {
-    fprintf(stderr, "bad index for %s, i %d >= %d\n", s, i, n);
+    fprintf(stderr, "Error: bad index for %s, i %d >= %d\n", s, i, n);
     exit(1);
   }
   return i;
@@ -130,13 +132,13 @@ static int model_getidx2(char *s, int *j, int n)
 
   if ( p == NULL ) p = strchr(s, '[');
   if ( p == NULL ) {
-    fprintf(stderr, "cannot find the index of %s\n", s);
+    fprintf(stderr, "Error: cannot find the index of %s\n", s);
     exit(1);
   }
   p++;
   q = strchr(p, ',');
   if ( q == NULL ) {
-    fprintf(stderr, "cannot find the second index of %s\n", s);
+    fprintf(stderr, "Error: cannot find the second index of %s\n", s);
     exit(1);
   }
   *q++ = '\0';
@@ -144,7 +146,7 @@ static int model_getidx2(char *s, int *j, int n)
   *j = atoi(strstrip(q)) - 1;
   if ( i > *j ) k = i, i = *j, *j = k;
   if ( i >= n || *j >= n ) {
-    fprintf(stderr, "bad index for %s, i %d or j %d >= %d\n",
+    fprintf(stderr, "Error: bad index for %s, i %d or j %d >= %d\n",
         s, i, *j, n);
     exit(1);
   }
@@ -161,14 +163,44 @@ static int model_load(model_t *m, const char *fn, int verbose)
   int i, j, ipr, ns = -1, inpar;
   double temp = 300;
   const constmap_t constants[] = {
-    {"kb",        KB},
-    {"na",        NA},
-    {"kbna",      KBNA},
-    {"kbnac",     KBNAC},
-    {"ke2",       KE2},
-    {"ke2c",      KE2C},
-    {"ke2pk",     KE2PK},
-    {NULL,        0},
+    {"calpj",           CALPJ},
+    {"na",              NA},
+    {"ec",              EC},
+    {"eps0_si",         EPS0_SI},
+    {"kb_si",           KB_SI},
+    {"kb_kj",           KB_KJ},
+    {"kb_j",            KB_J},
+    {"kb_erg",          KB_ERG},
+    {"kb_kcal",         KB_KCAL},
+    {"kb_cal",          KB_CAL},
+    {"kb",              KB},
+    {"kbna_si",         KBNA_SI},
+    {"kbna_kj",         KBNA_KJ},
+    {"kbna_j",          KBNA_J},
+    {"kbna_erg",        KBNA_ERG},
+    {"kbna_kcal",       KBNA_KCAL},
+    {"kbna_cal",        KBNA_CAL},
+    {"kbna",            KBNA},
+    {"kbnac",           KBNAC},
+    {"ke2_si",          KE2_SI},
+    {"ke2_akj",         KE2_AKJ},
+    {"ke2_aj",          KE2_AJ},
+    {"ke2_aerg",        KE2_AERG},
+    {"ke2_akcal",       KE2_AKCAL},
+    {"ke2_acal",        KE2_ACAL},
+    {"ke2",             KE2},
+    {"ke2na_si",        KE2NA_SI},
+    {"ke2na_akj",       KE2NA_AKJ},
+    {"ke2na_aj",        KE2NA_AJ},
+    {"ke2na_aerg",      KE2NA_AERG},
+    {"ke2na_akcal",     KE2NA_AKCAL},
+    {"ke2na_acal",      KE2NA_ACAL},
+    {"ke2na",           KE2NA},
+    {"ke2nac",          KE2NAC},
+    {"ke2pk_si",        KE2PK_SI},
+    {"ke2pk_a",         KE2PK_A},
+    {"ke2pk",           KE2PK},
+    {NULL,              0},
   };
 
   if ( (fp = fopen(fn, "r")) == NULL ) {
@@ -570,7 +602,7 @@ model_t models[] =
     {0.03334, 0.03334, 0.03334},
     {0.9572, 0.9572, 1.513696},
     1./(KBNAC*300), KBNAC, 1.0, LJ_FULL,
-    {-0.866088, 0.433044, 0.433044}, KE2C, 1.0,
+    {-0.866088, 0.433044, 0.433044}, KE2NAC, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_LMV,
@@ -592,7 +624,7 @@ model_t models[] =
     {0.03334, 0.03334, 0.03334},
     {1.0, 1.0, 1.633081624},
     1./(KBNAC*300), KBNAC, 1.0, LJ_FULL,
-    {-0.82, 0.41, 0.41}, KE2C, 1.0,
+    {-0.82, 0.41, 0.41}, KE2NAC, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_LMV,
@@ -614,7 +646,7 @@ model_t models[] =
     {0.03334, 0.03334, 0.03334},
     {0.9572, 0.9572, 1.513696},
     1./(KBNAC*300), KBNAC, 1.0, LJ_FULL,
-    {-0.8, 0.4, 0.4}, KE2C, 1.0,
+    {-0.8, 0.4, 0.4}, KE2NAC, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
     SOLVER_MDIIS,
