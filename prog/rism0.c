@@ -187,7 +187,8 @@ static double ljrpot(double r, double sig, double eps6, double eps12,
 
 /* initialize f(r) */
 static void initfr(model_t *m, double **ur, double **nrdur,
-    double **fr, double **vrlr, double **vrsr, double lam)
+    double **fr, double **vrqq, double **vrlr, double **vrsr,
+    double lam)
 {
   int i, j, ij, ji, ipr, l, ns = m->ns, use_c6_12;
   double beta = m->beta, z, u, uelec, nrdu, ulr;
@@ -215,7 +216,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
             z = 0;
           }
           nrdur[ij][l] = ur[ij][l] = 0;
-          vrlr[ij][l] = 0;
+          vrlr[ij][l] = vrqq[ij][l] = 0;
         } else { /* Lennard-Jones */
           if ( use_c6_12 ) {
             u = ljpot6_12(fft_ri[l], c6, c12, lam, &nrdu);
@@ -229,6 +230,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           nrdur[ij][l] = nrdu + uelec;
           /* set the screen length as sig */
           ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
+          vrqq[ij][l] = beta * uelec;
           vrlr[ij][l] = beta * ulr;
           vrsr[ij][l] = beta * (u + uelec - ulr);
 
@@ -238,6 +240,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
         if ( j > i ) {
           ur[ji][l] = ur[ij][l];
           nrdur[ji][l] = nrdur[ij][l];
+          vrqq[ji][l] = vrqq[ij][l];
           vrlr[ji][l] = vrlr[ij][l];
           vrsr[ji][l] = vrsr[ij][l];
           fr[ji][l] = fr[ij][l];
@@ -472,13 +475,15 @@ static double iter_picard(model_t *model,
 
 /* save correlation functions to file `fn' */
 static int output(model_t *m,
-    double **cr, double **vrlr, double **ur, double **tr, double **fr,
+    double **cr, double **vrqq, double **vrlr,
+    double **ur, double **tr, double **fr,
     double **ck, double **vklr, double **tk, double **wk,
     const char *fn, int ilam)
 {
   int i, j, ij, l, ns = m->ns, npt = m->npt;
   FILE *fp;
   char fnl[80];
+  double eps_rism;
 
   if ( sepout ) {
     sprintf(fnl, "%s%d", fn, ilam);
@@ -489,20 +494,46 @@ static int output(model_t *m,
     fprintf(stderr, "cannot open %s\n", fnl);
     return -1;
   }
+  eps_rism = calcdielec(m);
   /* print some basic information on the first line */
-  fprintf(fp, "# %g %g %g %d\n", 1/(m->kBT*m->beta), m->kBU, m->ampch, m->ietype);
+  fprintf(fp, "# %g %g %g %d %g\n",
+      1/(m->kBT*m->beta), m->kBU, m->ampch, m->ietype, eps_rism);
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
       for ( l = 0; l < npt; l++ ) {
         double vrl = vrlr[ij][l], vkl = vklr[ij][l];
-        fprintf(fp, "%g %g %g %g %g %g %d %d ",
-            fft_ri[l], cr[ij][l] - vrl, tr[ij][l] + vrl, fr[ij][l],
-            vrl, m->beta * ur[ij][l], i, j);
+        double vrt = m->beta * ur[ij][l], vrq = vrqq[ij][l];
+        /* note that cr[ij][l] and tr[ij][l] exclude
+         * the long-range component vrl */
+        double crt = cr[ij][l] -vrl, trt = tr[ij][l] + vrl;
+        double ckt = ck[ij][l] -vkl, tkt = tk[ij][l] + vkl;
+        /* pmfs = beta dW: the short-range correction to
+         * the continuum primitive model, in which
+         *
+         *  W_c = u_LJ + u_qq/eps  (with u = u_LJ + u_qq)
+         *
+         * `pmfs' is computed from Eq. (50) of the following paper:
+         * [ ``The interionic potential of mean force in a molecular polar
+         *     solvent from an extended RISM equation''
+         *    Hirate, Rossky, and Pettitt,
+         *    J. Chem. Phys. 78(6) 4133-4144 (1983) ]
+         *
+         *    beta dW
+         *  = beta W_rism_corrected - beta W_s
+         *  = (beta W_s - phi_qq/eps) - beta W_c
+         *  = beta W_s + phi*                 (here, phi* = -beta u_LJ)
+         *  = beta W + phi/eps_rism + phi*    (here, phi  = -beta u_qq)
+         *  = beta u - t(r) - beta u_qq/eps_rism - beta u_LJ
+         *  = beta u_q - t(r) - beta u_qq/eps_rism
+         * */
+        double pmfs = vrq - trt - vrq/eps_rism;
+        fprintf(fp, "%g %g %g %g %g %g %d %d %g %g ",
+            fft_ri[l], crt, trt, fr[ij][l],
+            vrl, vrt, i, j, vrq, pmfs);
         if ( printk )
           fprintf(fp, "%g %g %g %g %g",
-              fft_ki[l], ck[ij][l] - vkl, tk[ij][l] + vkl, wk[ij][l],
-              vkl);
+              fft_ki[l], ckt, tkt, wk[ij][l], vkl);
         fprintf(fp, "\n");
       }
       fprintf(fp, "\n");
@@ -549,7 +580,7 @@ static void dorism(model_t *model)
   double err = 0, dia, lam;
   double **ur, **nrdur, **fr, **wk;
   double **cr, **cp, **ck, **tr, **tk;
-  double **der, **ntk, **vrlr, **vrsr, **vklr;
+  double **der, **ntk, **vrlr, **vrqq, **vrsr, **vklr;
   double *um, *mum;
 
   /* equivalent diameter of the solvent molecule */
@@ -559,6 +590,7 @@ static void dorism(model_t *model)
   npt = model->npt;
   newarr2d(ur,    ns * ns, npt);
   newarr2d(nrdur, ns * ns, npt);
+  newarr2d(vrqq,  ns * ns, npt);
   newarr2d(vrlr,  ns * ns, npt);
   newarr2d(vrsr,  ns * ns, npt);
   newarr2d(vklr,  ns * ns, npt);
@@ -584,7 +616,7 @@ static void dorism(model_t *model)
   for ( ilam = 1; ilam <= nlam; ilam++ ) {
     lam = 1.*ilam/nlam;
 
-    initfr(model, ur, nrdur, fr, vrlr, vrsr, lam);
+    initfr(model, ur, nrdur, fr, vrqq, vrlr, vrsr, lam);
     sphr_r2k(vrlr, vklr, ns, NULL);
 
     /* use f(r) as the initial c(r) for the lowest lambda */
@@ -598,7 +630,7 @@ static void dorism(model_t *model)
     } else {
       err = iter_picard(model, vrsr, wk, cr, ck, vklr, tr, tk, &it);
     }
-    output(model, cr, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
+    output(model, cr, vrqq, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
         lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
@@ -611,6 +643,7 @@ static void dorism(model_t *model)
 
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);
+  delarr2d(vrqq,  ns * ns);
   delarr2d(vrlr,  ns * ns);
   delarr2d(vrsr,  ns * ns);
   delarr2d(vklr,  ns * ns);

@@ -112,7 +112,7 @@ static double calcdielec(model_t *m)
 
     y = 4 * PI * m->beta * m->rho[arr[0]] * mu * mu * m->ampch / 9;
     eps += y;
-    printf("imol %d, %d sites, dipole moment %g, y %g\n", imol, ic, mu, y);
+    //printf("imol %d, %d sites, dipole moment %g, y %g\n", imol, ic, mu, y);
   }
   eps = 1 + 3 * eps;
   printf("dielectric constant %g\n", eps);
