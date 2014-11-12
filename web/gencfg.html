@@ -8,7 +8,7 @@
   <!--
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
   -->
-  <script src="js/cfg.js"></script>
+  <script src="js/gencfg.js"></script>
 </head>
 <body>
 
@@ -24,7 +24,7 @@
   <br>
 
   Number of sites (on all solvent and solute molecules):
-  <input type="text" size="4" value="0" id="ns"
+  <input type="text" size="4" value="3" id="ns"
     onChange="change_ns()">
   <br>
 
@@ -42,6 +42,7 @@
         (<select id="unit_eps6" onChange="change_unit_eps()">
           <option value="reduced">reduced</option>
           <option value="K" selected>K</option>
+          <option value="erg">erg</option>
           <option value="kJpermol">kJ/mol</option>
           <option value="kcalpermol">kcal/mol</option>
         </select>)
@@ -51,10 +52,11 @@
         (<select id="unit_eps12" disabled>
           <option value="reduced">reduced</option>
           <option value="K" selected>K</option>
+          <option value="erg">erg</option>
           <option value="kJpermol">kJ/mol</option>
           <option value="kcalpermol">kcal/mol</option>
         </select>)<br>
-        <input type="checkbox" id="sameeps" checked> Same as
+        <input type="checkbox" id="sameeps"> Same as
         <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </th>
       <th>
@@ -72,29 +74,29 @@
 
     <tr id="row_1">
       <td> 1 </td>
-      <td> <input type="text" size="12" value="0" id="sigma_1"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_1" onChange="change_eps6(1)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_1"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_1"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_1"> </td>
+      <td> <input type="text" size="12" value="3.15" id="sigma_1"> </td>
+      <td> <input type="text" size="12" value="76.5364" id="eps6_1" onChange="change_eps6(1)"> </td>
+      <td> <input type="text" size="12" value="76.5364" id="eps12_1"> </td>
+      <td> <input type="text" size="12" value="0.033314" id="rho_1"> </td>
+      <td> <input type="text" size="12" value="-0.834" id="charge_1"> </td>
     </tr>
 
     <tr id="row_2">
       <td> 2 </td>
-      <td> <input type="text" size="12" value="0" id="sigma_2"> </td>
+      <td> <input type="text" size="12" value="0.4" id="sigma_2"> </td>
       <td> <input type="text" size="12" value="0" id="eps6_2" onChange="change_eps6(2)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_2"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_2"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_2"> </td>
+      <td> <input type="text" size="12" value="23.1509" id="eps12_2"> </td>
+      <td> <input type="text" size="12" value="0.033314" id="rho_2"> </td>
+      <td> <input type="text" size="12" value="0.417" id="charge_2"> </td>
     </tr>
 
     <tr id="row_3">
       <td> 3 </td>
-      <td> <input type="text" size="12" value="0" id="sigma_3"> </td>
+      <td> <input type="text" size="12" value="0.4" id="sigma_3"> </td>
       <td> <input type="text" size="12" value="0" id="eps6_3" onChange="change_eps6(3)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_3"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_3"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_3"> </td>
+      <td> <input type="text" size="12" value="23.1509" id="eps12_3"> </td>
+      <td> <input type="text" size="12" value="0.033314" id="rho_3"> </td>
+      <td> <input type="text" size="12" value="0.417" id="charge_3"> </td>
     </tr>
 
     <tr id="row_4">
@@ -150,7 +152,10 @@
     e.g.,<br>
     <span class="code"> &nbsp; 1 2 3.34</span>:
     <br>
-  <textarea rows="4" id="chembonds">#1 2 1.2</textarea>
+  <textarea rows="4" id="chembonds">1 2 1.0
+1 3 1.0
+2 3 1.633
+</textarea>
   </div>
 
   Temperature:
@@ -228,7 +233,7 @@
   Number of
   <span class="math"><i>k</i></span> for the Newton-Raphson solver,
   <span class="math"><i>M</i></span>:
-  <input type="text" size="6" value="15" id="lmv_M">
+  <input type="text" size="6" value="25" id="lmv_M">
   <br>
 
   <b><abbr title="Modified direct inversion of the iterative subspace method">MDIIS</abbr>:</b>

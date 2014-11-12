@@ -34,13 +34,12 @@ function change_unit_eps()
 
 function change_eps6(id)
 {
-  if ( $("#sameeps").val() == "on" ) {
+  if ( $("#sameeps").is(':checked') ) {
     $(("#eps12_" + id)).val( $(("#eps6_" + id)).val() );
   }
 }
 
 $(document).ready(function() {
-  $("#ns").val("0");
   change_ns();
 });
 
@@ -56,13 +55,13 @@ function gencfg()
   s += "ns            = " + ns + "\n";
 
   var ljtype = $("#ljtype").val();
-  var sameeps = $("#sameeps").val();
+  var sameeps = $("#sameeps").is(':checked');
   for ( var i = 0; i < ns; i++ ) {
     var i1 = i + 1;
     s += "\n";
     s += "sigma(" + i1 + ")      = " + $(("#sigma_"  + i1)).val() + "\n";
     if ( ljtype != "Hard-sphere" ) {
-      if ( sameeps == "on") {
+      if ( sameeps ) {
         s += "eps(" + i1 + ")        = " + $(("#eps6_"   + i1)).val() + "\n";
       } else {
         s += "eps6(" + i1 + ")       = " + $(("#eps6_"   + i1)).val() + "\n";
@@ -98,14 +97,18 @@ function gencfg()
     kBT = 1;
     kBU = "KBNA";
     ampch = "KE2PK";
+  } else if ( unit_eps == "erg" ) {
+    kBT = "KB_ERG";
+    kBU = 1;
+    ampch = "KE2_AERG";
   } else if ( unit_eps == "kJpermol" ) {
     kBT = "KBNA";
     kBU = 1;
-    ampch = "KE2";
+    ampch = "KE2NA";
   } else if ( unit_eps == "kcalpermol" ) {
     kBT = "KBNAC";
     kBU = 1;
-    ampch = "KE2C";
+    ampch = "KE2NAC";
   }
 
   s += "T             = " + $("#temp").val() + "\n";
@@ -127,5 +130,5 @@ function gencfg()
   s += "mdiis_damp    = " + $("#mdiis_damp").val() + "\n";
   s += "mdiis_nbases  = " + $("#mdiis_nbases").val() + "\n";
 
-  $("#cfgout").text( s );
+  $("#cfgout").val( s );
 }
