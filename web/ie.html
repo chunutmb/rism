@@ -2,21 +2,124 @@
 <!DOCTYPE html>
 <head>
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-  <title> </title>
+  <title> Integral equation </title>
   <link rel="stylesheet" type="text/css" href="css/default.css" />
-  <script src="js/jquery-1.11.1.min.js"></script>
-  <!--
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-  -->
   <script src="js/dygraph-combined.js"></script>
+  <script src="js/util.js"></script>
   <script src="js/fft.js"></script>
   <script src="js/ie.js"></script>
 </head>
 <body>
-  <input type="button" value="Compute" onClick="mkplot()">
+
+<h2 class="center">
+  Integral equations for simple fluids
+</h2>
+
+<form>
+  <div style="font-size:120%; text-align:center">
+    Parameters for integral equations
+  </div>
   <br>
 
-  <div id="gr_plot"></div>
-  <div id="cr_plot"></div>
+  Density:
+  <input type="text" size="6" value="0.5" id="rho">
+  <br>
+
+  Temperature:
+  <input type="text" size="6" value="2.0" id="temp">
+  <br>
+
+  Short-range interaction:
+  <select id="ljtype">
+    <option value="Hard-sphere" selected>Hard-sphere interaction</option>
+    <option value="LJ-repulsive">Repulsive part of Lennard-Jones interaction</option>
+    <option value="LJ-full">Full Lennard-Jones interaction</option>
+  </select>
+  <br>
+<!--
+  Diameter, <span class="math"><i>&sigma;</i></span>:
+  <input type="text" size="6" value="1.0" id="sigma">.
+  &nbsp;
+
+  Energy unit, <span class="math"><i>&epsilon;</i></span>:
+  <input type="text" size="6" value="1.0" id="eps">.
+  <br>
+-->
+  Closure:
+  <select id="ietype">
+    <option value="PY" selected>Percus-Yevick (PY)</option>
+    <option value="HNC">Hypernetted-chain (HNC)</option>
+  </select>
+  <br>
+
+  Number of sampling points along
+  <span class="math"><i>r</i></span>:
+  <input type="text" size="6" value="256" id="npt">
+  <sub>(Must be a power of 2.)</sub>
+  <br>
+
+  Maximal number of iterations:
+  <input type="text" size="6" value="10000" id="itmax">
+  <br>
+
+  Tolerance of the relative error:
+  <input type="text" size="6" value="1e-7" id="tol">
+  <br>
+
+  Solver:
+  <select id="solver">
+    <option value="Picard" selected>Picard (direct) iteration</option>
+<!--
+    <option value="LMV">Lab&iacute;k-Malijevsk&yacute;-Vonka (LMV) method (partial Newton-Raphson iteration)</option>
+    <option value="MDIIS">Modified direct inversion of the iterative subspace (MDIIS) method</option>
+-->
+  </select>
+  <br>
+
+  <b>Picard iteration:</b>
+  <span title="fraction of the old solution">Damping factor</span>:
+  <input type="text" size="6" value="0.5" id="picard_damp">.
+  &nbsp;
+  <br>
+<!--
+  <b><abbr title="Lab&iacute;k-Malijevsk&yacute;-Vonka method">LMV</abbr>:</b>
+  <span title="fraction of the old solution">Damping factor</span>:
+  <input type="text" size="6" value="0.5" id="lmv_damp">.
+  &nbsp;
+
+  Number of
+  <span class="math"><i>k</i></span> for the Newton-Raphson solver,
+  <span class="math"><i>M</i></span>:
+  <input type="text" size="6" value="25" id="lmv_M">
+  <br>
+
+  <b><abbr title="Modified direct inversion of the iterative subspace method">MDIIS</abbr>:</b>
+  <span title="fraction of the old solution">Damping factor</span>:
+  <input type="text" size="6" value="0.5" id="mdiis_damp">.
+  &nbsp;
+
+  Number of bases:
+  <input type="text" size="6" value="5" id="mdiis_nbases">
+  <br>
+-->
+  <input type="button" value="Compute"
+    id="comutebtn" class="largebtn" onClick="mkplot()">
+
+  <input type="reset" value="Reset"
+    id="resetbtn" class="largebtn">
+  <br>
+
+  <table id="plot_table">
+    <tr>
+      <td>
+        <div id="gr_plot" class="plot"></div>
+      </td>
+      <td>
+        <div id="cr_plot" class="plot"></div>
+      </td>
+    </tr>
+  </table>
+</form>
+
 </body>
 </html>

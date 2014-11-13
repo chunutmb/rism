@@ -1,21 +1,9 @@
 var nsmax = 8;
 
-/* check if `n' is a valid integer */
-function isint(n)
-{
-  return !isNaN(parseInt(n)) && isFinite(n);
-}
-
-/* check if `n' is a valid floating number */
-function isfloat(n)
-{
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
-
 function change_ns()
 {
   var ns = $("#ns").val();
-  if ( !isint(ns) ) return;
+  if ( !is_int(ns) ) return;
   if ( ns > nsmax ) ns = nsmax;
   for ( var i = 0; i < nsmax; i++ ) {
     var disabled = (i >= ns);
@@ -48,7 +36,7 @@ function gencfg()
   var s = "# configuration file for rism0\n";
 
   var ns = $("#ns").val();
-  if ( !isint(ns) || ns > nsmax || ns <= 0 ) {
+  if ( !is_int(ns) || ns > nsmax || ns <= 0 ) {
     alert("# of sites [" + $("#ns").val() + "] is invalid");
     return;
   }

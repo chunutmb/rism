@@ -34,7 +34,7 @@ option {
   padding: 3pt;
 }
 
-#gencfgbtn, #resetbtn {
+.largebtn {
   font-family: Georgia, serif;
   font-size: 140%;
   font-weight: bold;
@@ -54,4 +54,8 @@ textarea {
   background-color: #ffffdd;
   font-family: "Lucida Console", Courier, "Courier New", Monospace;
   font-weight: bold;
+}
+
+.plot {
+  margin: 20px 10px;
 }
