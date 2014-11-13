@@ -11,6 +11,7 @@
 
 
 
+#include "debug.h"
 #include "util.h"
 #include "model.h"
 #include "calctd.h"
@@ -289,68 +290,44 @@ static int getnsv(model_t *m)
 static void oz(model_t *m, double **ck, double **vklr,
     double **tk, double **wk, double **invwc1w)
 {
-  int i, j, ij, l, u, ns = m->ns;
-  double *wkl, *ckl, *cvkl, *wc, *wc1, *invwc1, *iwc1w;
-  double hk;
-
-  newarr(wkl,    ns * ns);
-  newarr(ckl,    ns * ns);
-  newarr(cvkl,   ns * ns);
-  newarr(wc,     ns * ns);
-  newarr(wc1,    ns * ns);
-  newarr(invwc1, ns * ns);
-  newarr(iwc1w,  ns * ns);
+  int i, j, ij, l, ns = m->ns;
+  double wkl[NS2MAX], dw[NS2MAX], ckl[NS2MAX], wc[NS2MAX], invwc1[NS2MAX];
+  double tm1[NS2MAX], tm2[NS2MAX], tm3[NS2MAX];
 
   for ( l = 0; l < m->npt; l++ ) {
-    for ( i = 0; i < ns * ns; i++ ) {
-      wkl[i] = wk[i][l];
-      ckl[i] = ck[i][l];
-      cvkl[i] = ckl[i] - vklr[i][l];
+    for ( ij = 0; ij < ns * ns; ij++ ) {
+      wkl[ij] = wk[ij][l];
+      ckl[ij] = ck[ij][l] - vklr[ij][l];
     }
 
-    /* compute w c
-     * note that w c is not symmetric w.r.t. i and j */
+    /* note that w c is not symmetric w.r.t. i and j */
+    matmul(wc, wkl, ckl, ns); /* wc = w c */
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ ) {
         ij = i*ns + j;
-        wc[ij] = 0;
-        for ( u = 0; u < ns; u++ )
-          wc[ij] += wkl[i*ns + u] * cvkl[u*ns + j];
-        wc1[ij] = (i == j) - m->rho[i] * wc[ij];
+        tm1[ij] = m->rho[i] * wc[ij]; /* tm1 = rho w c */
+        tm2[ij] = (i == j) - tm1[ij]; /* tm2 = 1 - rho w c */
+        dw[ij] = wk[ij][l] - (i == j);
       }
 
-    /* compute the inverse matrix */
-    invmat(wc1, invwc1, ns);
+    invmat(tm2, invwc1, ns); /* invwc1 = (1 - wc)^(-1) */
 
-    /* compute (1 - rho w * c)^(-1) w */
-    for ( i = 0; i < ns; i++ )
-      for ( j = 0; j < ns; j++ ) {
-        ij = i*ns + j;
-        iwc1w[ij] = 0;
-        for ( u = 0; u < ns; u++ )
-          iwc1w[ij] += invwc1[i*ns + u] * wkl[u*ns + j];
-        if ( invwc1w != NULL )
-          invwc1w[ij][l] = iwc1w[ij];
-      }
+    matmul(tm3, invwc1, wkl, ns); /* tm3 = (1 - rho w c)^(-1) w */
+    if ( invwc1w != NULL )
+      for ( ij = 0; ij < ns*ns; ij++ )
+        invwc1w[ij][l] = tm3[ij];
+    matmul(tm2, tm1, tm3, ns); /* tm2 = rho w c (1 - rho w c)^(-1) w */
+    matmul(tm1, wc, tm2, ns); /* tm1 = w c rho w c (1 - rho w c)^(-1) w */
 
-    /* compute w c (1 - rho w * c)^(-1) w */
-    for ( i = 0; i < ns; i++ )
-      for ( j = 0; j < ns; j++ ) {
-        ij = i*ns + j;
-        hk = 0;
-        for ( u = 0; u < ns; u++ )
-          hk += wc[i*ns + u] * iwc1w[u*ns + j];
-        tk[ij][l] = hk - ckl[ij];
-      }
+    /* w c w - c = w c (1 + dw) - c = dw c + w c dw */
+    matmul(tm2, dw, ckl, ns);
+    matmul(tm3, wc, dw, ns);
+
+    /* compute w c (1 - rho w c)^(-1) w - c
+     * = [w c rho w c (1 - rho w c)^(-1) w - w c w] + (w c w - c) */
+    for ( ij = 0; ij < ns*ns; ij++ )
+      tk[ij][l] = tm1[ij] + tm2[ij] + tm3[ij] - vklr[ij][l];
   }
-
-  delarr(wkl);
-  delarr(ckl);
-  delarr(cvkl);
-  delarr(wc);
-  delarr(wc1);
-  delarr(invwc1);
-  delarr(iwc1w);
 }
 
 
@@ -396,13 +373,14 @@ static double closure(model_t *model,
     int update, double damp)
 {
   int ns = model->ns, npt = model->npt, i, j, ij, ji, id, l;
-  double y, err = 0, max = 0;
+  double y, err, max, errm = 0;
 
   for ( id = 0, i = 0; i < ns; i++ )
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
       ji = j*ns + i;
       if ( prmask && !prmask[ij] ) continue;
+      err = max = 0;
       for ( l = 0; l < npt; l++, id++ ) {
         y = getcr(tr[ij][l], vrsr[ij][l], der ? &der[ij][l] : NULL,
                   model->ietype) - cr[ij][l];
@@ -414,10 +392,11 @@ static double closure(model_t *model,
         if ( fabs(y) > err ) err = fabs(y);
         if ( fabs(cr[ij][l]) > max ) max = fabs(cr[ij][l]);
       }
+      /* the c(r) between two ions can be extremely large
+       * so we use the relative error to be compared with the tolerance */
+      if ( (err /= (max + 1e-6)) > errm ) errm = err;
     }
-  /* the c(r) between two ions can be extremely large
-   * so we use the relative error to be compared with the tolerance */
-  return err / (max + 1e-3);
+  return errm;
 }
 
 
@@ -630,6 +609,8 @@ static void dorism(model_t *model)
     } else {
       err = iter_picard(model, vrsr, wk, cr, ck, vklr, tr, tk, &it);
     }
+
+
     output(model, cr, vrqq, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
         lam, it, err, dia, model->rho[0]*dia*dia*dia);

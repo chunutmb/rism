@@ -7,7 +7,9 @@
 
 
 
-#define MAXATOM 16 /* maximal number of atoms/sites */
+#define MAXATOM   16 /* maximal number of atoms/sites */
+#define NSMAX     (MAXATOM)
+#define NS2MAX    (NSMAX * NSMAX)
 
 enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
 enum { IE_PY, IE_HNC, IE_KH };

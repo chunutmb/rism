@@ -190,6 +190,24 @@ static void sphrt(double **fr, double **fk,
 
 
 
+/* multiply two matrices c = a * b */
+static double *matmul(double *c, const double *a, const double *b, int n)
+{
+  int i, j, k;
+  double x;
+
+  for ( i = 0; i < n; i++ )
+    for ( j = 0; j < n; j++ ) {
+      x = 0;
+      for ( k = 0; k < n; k++ )
+        x += a[i*n + k] * b[k*n + j];
+      c[i*n + j] = x;
+    }
+  return c;
+}
+
+
+
 /* compute the inverse matrix b = a^(-1), by Gaussian elimination */
 static int invmat(double *a, double *b, int n)
 {
