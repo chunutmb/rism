@@ -1,6 +1,6 @@
 #!/usr/bin/env gnuplot
 #
-# reproduce Fig 3. of
+# reproduce Fig 4. of
 #
 # The Interionic potential of mean force in a molecular polar
 # solvent from an extended RISM equation
@@ -12,7 +12,7 @@ set encoding iso_8859_1
 
 set terminal push
 set terminal postscript eps enhanced size 5, 5 font "Times, 20"
-set output "hrp1983fig3.eps"
+set output "hrp1983fig4.eps"
 
 eps = 7
 
@@ -34,7 +34,7 @@ set ytics 10
 set mytics 2
 
 set xrange [2:18]
-set yrange [-20:20]
+set yrange [-90:90]
 
 set key spacing 1.5
 
