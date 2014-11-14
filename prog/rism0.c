@@ -525,34 +525,6 @@ static int output(model_t *m,
 
 
 
-/* compute the equivalent diameter of the molecule
- * this value is only used for comparison
- * and it does not affect the solver */
-static double getdiameter(model_t *m)
-{
-  int i, j, ipr, ns = m->ns, nsv;
-  double vol = 0, si, sj, l;
-
-  nsv = getnsv(m);
-  for ( i = 0; i < nsv; i++ )
-    vol += pow( m->sigma[i], 3 );
-
-  /* deduct the overlap */
-  for ( ipr = 0, i = 0; i < ns; i++ )
-    for ( j = i + 1; j < ns; j++, ipr++ ) {
-      si = m->sigma[i];
-      sj = m->sigma[j];
-      l = m->dis[ipr];
-      if ( l < DBL_MIN ) continue;
-      vol -= (si*si*si + sj*sj*sj)/2 - (si*si + sj*sj)*l*3./4
-           - pow(si*si - sj*sj, 2)*3./32/l + l*l*l/2;
-    }
-
-  return pow(vol, 1./3);
-}
-
-
-
 static void dorism(model_t *model)
 {
   int it, ns, npt, ilam, nlam;
@@ -563,7 +535,7 @@ static void dorism(model_t *model)
   double *um, *mum;
 
   /* equivalent diameter of the solvent molecule */
-  dia = getdiameter(model);
+  dia = getdiameters(model);
 
   ns = model->ns;
   npt = model->npt;

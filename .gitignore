@@ -3,3 +3,7 @@ a.out
 out.dat
 .*.swp
 .*.un~
+*.eps
+*.pdf
+rism0
+*.dat

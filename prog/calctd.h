@@ -66,6 +66,40 @@ static int getmols(model_t *m)
 
 
 
+/* compute the equivalent diameter of the molecule
+ * this value is only used for comparison
+ * and it does not affect the solver */
+static double getdiameters(model_t *m)
+{
+  int i, j, ipr, ns = m->ns, imol, nmol;
+  double vol, si, sj, l;
+
+  nmol = getmols(m);
+  for ( imol = 0; imol < nmol; imol++ ) {
+    vol = 0;
+    for ( i = 0; i < ns; i++ )
+      if ( m->mol[i] == imol ) 
+        vol += pow( m->sigma[i], 3 );
+
+    /* deduct the overlap */
+    for ( ipr = 0, i = 0; i < ns; i++ )
+      for ( j = i + 1; j < ns; j++, ipr++ ) {
+        if ( m->mol[i] != imol || m->mol[j] != imol )
+          continue;
+        si = m->sigma[i];
+        sj = m->sigma[j];
+        l = m->dis[ipr];
+        if ( l < DBL_MIN || l > (si + sj)/2 ) continue;
+        vol -= (si*si*si + sj*sj*sj)/2 - (si*si + sj*sj)*l*3./4
+             - pow(si*si - sj*sj, 2)*3./32/l + l*l*l/2;
+      }
+    m->diameter[imol] = pow(vol, 1./3);
+  }
+  return m->diameter[0];
+}
+
+
+
 /* compute the dielectric constant */
 static double calcdielec(model_t *m)
 {
