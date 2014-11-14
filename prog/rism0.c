@@ -229,7 +229,6 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           uelec = lam * m->ampch * m->charge[i] * m->charge[j] / fft_ri[l];
           ur[ij][l] = u + uelec;
           nrdur[ij][l] = nrdu + uelec;
-          /* set the screen length as sig */
           ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
           vrqq[ij][l] = beta * uelec;
           vrlr[ij][l] = beta * ulr;
@@ -268,20 +267,6 @@ static void initwk(model_t *m, double **wk)
       }
     }
   }
-}
-
-
-
-/* compute the number solvents
- * here, solvent are defined as molecules with nonzero density
- * zero-density molecules must appear at the end of model */
-static int getnsv(model_t *m)
-{
-  int i;
-
-  for ( i = 0; i < m->ns; i++ )
-    if ( m->rho[i] < DBL_MIN ) break;
-  return i;
 }
 
 

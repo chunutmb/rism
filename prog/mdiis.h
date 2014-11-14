@@ -240,7 +240,7 @@ static double iter_mdiis(model_t *model,
       if ( uv_switch(uv) != 0 ) break;
       /* if all solutes are of zero density, break the loop */
       if ( uv->stage == SOLUTE_SOLUTE
-        && uv->infdil && uv->simplesolvent ) {
+        && uv->infdil && uv->atomicsolvent ) {
         step_picard(model, res, NULL, vrsr, wk,
             cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
         break;

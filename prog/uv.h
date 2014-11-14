@@ -14,8 +14,22 @@ typedef struct {
   int stage;
   int npr; /* number of active pairs */
   int infdil; /* infinite dilution */
-  int simplesolvent; /* solvent molecules are atomic, not molecular */
+  int atomicsolvent; /* solvent molecules are atomic, not molecular */
 } uv_t;
+
+
+
+/* compute the number solvents
+ * here, solvent are defined as molecules with nonzero density
+ * zero-density molecules must appear at the end of model */
+static int getnsv(model_t *m)
+{
+  int i;
+
+  for ( i = 0; i < m->ns; i++ )
+    if ( m->rho[i] < DBL_MIN ) break;
+  return i;
+}
 
 
 
@@ -37,12 +51,12 @@ static uv_t *uv_open(model_t *m)
     if ( m->rho[i] > 0 )
       break;
   uv->infdil = (i == uv->ns);
-  /* check if the solute is simple */
-  uv->simplesolvent = 1;
+  /* check if the solute is atomic */
+  uv->atomicsolvent = 1;
   for ( ipr = 0, i = 0; i < ns; i++ )
     for ( j = i + 1; j < ns; j++, ipr++ )
       if ( i >= uv->nsv && j >= uv->nsv && m->dis[ipr] > 0 ) {
-        uv->simplesolvent = 0;
+        uv->atomicsolvent = 0;
         break;
       }
   return uv;
@@ -78,8 +92,10 @@ static int uv_switch(uv_t *uv)
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ )
         if ( uv->infdil ) {
+          /* only update u-u interactions */
           uv->prmask[i*ns + j] = (i >= nsv && j >= nsv);
         } else {
+          /* update all interactions */
           uv->prmask[i*ns + j] = 1;
         }
     uv->npr = ( !uv->infdil ? nsv * (nsv + 1) / 2 : ns * (ns + 1) / 2 );

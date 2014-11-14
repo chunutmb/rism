@@ -268,35 +268,37 @@ static int calcU(model_t *m, double **ur,
 
 /* compute the chemical potential
  * NOTE: this routine does not work for charged systems */
-static int calcchempot(model_t *m, double **cr, double **tr, double *mum)
+static int calcchempot(model_t *m, double **cr, double **tr, double *bmum)
 {
   int i, j, ij, im, l, ns = m->ns, npt = m->npt;
-  double muij, dr, ri;
+  double bmuij, dr, ri;
 
   if ( m->ietype != IE_HNC )
     fprintf(stderr, "Warning: chemical potential only works for the HNC closure\n");
 
   getmols(m);
   dr = m->rmax / m->npt;
-  for ( i = 0; i < m->nmol; i++ ) mum[i] = 0;
+  for ( i = 0; i < m->nmol; i++ )
+    bmum[i] = 0;
   for ( i = 0; i < ns; i++ ) {
     im = m->mol[i];
     for ( j = 0; j < ns; j++ ) {
       if ( m->rho[j] <= 0 ) continue;
       ij = i * ns + j;
       /* integrating over other radius */
-      muij = 0;
+      bmuij = 0;
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
-        muij += (0.5*(cr[ij][l] + tr[ij][l])*tr[ij][l] - cr[ij][l]) * ri * ri;
+        bmuij += (0.5*(cr[ij][l] + tr[ij][l])*tr[ij][l] - cr[ij][l]) * ri * ri;
       }
-      muij *= (m->kBU / m->beta) * 4 * PI * m->rho[j] * dr;
-      //printf("i %d, j %d, muij %g\n", i, j, muij);
-      mum[im] += muij;
+      bmuij *= 4 * PI * m->rho[j] * dr;
+      //printf("i %d, j %d, bmuij %g\n", i, j, bmuij);
+      bmum[im] += bmuij;
     }
   }
   for ( i = 0; i < m->nmol; i++ )
-    printf("mol %d: chem. pot. %g\n", i, mum[i]);
+    printf("mol %d: chem. pot. %g, X beta %g\n",
+        i, bmum[i] * m->kBU / m->beta, bmum[i]);
   return m->nmol;
 }
 
