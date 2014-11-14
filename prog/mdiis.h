@@ -12,7 +12,7 @@ typedef struct {
   int npt;
   int mnb; /* maximal number of bases */
   int nb; /* number of bases */
-  double **cr;  /* basic sets */
+  double **cr;  /* basis */
   double **res; /* residues */
   double *mat; /* correlations of residues */
   double *mat2; /* temporary matrix for LU decomposition */

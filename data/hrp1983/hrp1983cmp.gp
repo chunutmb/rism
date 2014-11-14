@@ -26,7 +26,7 @@ set origin 0, 0
 set title "+ +"
 
 set xlabel "{/Times-Italic r} ({\305})"
-set ylabel "{/Symbol-Oblique b} {/Times-Italic W}" offset 1, 0
+set ylabel "{/Symbol-Oblique b d}{/Times-Italic W}" offset 1, 0
 
 set xtics 2,8,18
 set mxtics 2

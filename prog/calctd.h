@@ -78,7 +78,7 @@ static double getdiameters(model_t *m)
   for ( imol = 0; imol < nmol; imol++ ) {
     vol = 0;
     for ( i = 0; i < ns; i++ )
-      if ( m->mol[i] == imol ) 
+      if ( m->mol[i] == imol )
         vol += pow( m->sigma[i], 3 );
 
     /* deduct the overlap */
