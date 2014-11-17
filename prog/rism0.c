@@ -276,17 +276,17 @@ static void oz(model_t *m, double **ck, double **vklr,
     double **tk, double **wk, double **invwc1w)
 {
   int i, j, ij, l, ns = m->ns;
-  double wkl[NS2MAX], dw[NS2MAX], ckl[NS2MAX], wc[NS2MAX], invwc1[NS2MAX];
+  double w[NS2MAX], dw[NS2MAX], c[NS2MAX], wc[NS2MAX], invwc1[NS2MAX];
   double tm1[NS2MAX], tm2[NS2MAX], tm3[NS2MAX];
 
   for ( l = 0; l < m->npt; l++ ) {
     for ( ij = 0; ij < ns * ns; ij++ ) {
-      wkl[ij] = wk[ij][l];
-      ckl[ij] = ck[ij][l] - vklr[ij][l];
+      w[ij] = wk[ij][l];
+      c[ij] = ck[ij][l] - vklr[ij][l];
     }
 
     /* note that w c is not symmetric w.r.t. i and j */
-    matmul(wc, wkl, ckl, ns); /* wc = w c */
+    matmul(wc, w, c, ns); /* wc = w c */
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ ) {
         ij = i*ns + j;
@@ -297,7 +297,7 @@ static void oz(model_t *m, double **ck, double **vklr,
 
     invmat(tm2, invwc1, ns); /* invwc1 = (1 - wc)^(-1) */
 
-    matmul(tm3, invwc1, wkl, ns); /* tm3 = (1 - rho w c)^(-1) w */
+    matmul(tm3, invwc1, w, ns); /* tm3 = (1 - rho w c)^(-1) w */
     if ( invwc1w != NULL )
       for ( ij = 0; ij < ns*ns; ij++ )
         invwc1w[ij][l] = tm3[ij];
@@ -305,19 +305,19 @@ static void oz(model_t *m, double **ck, double **vklr,
     matmul(tm1, wc, tm2, ns); /* tm1 = w c rho w c (1 - rho w c)^(-1) w */
 
     /* w c w - c = w c (1 + dw) - c = dw c + w c dw */
-    matmul(tm2, dw, ckl, ns);
+    matmul(tm2, dw, c, ns);
     matmul(tm3, wc, dw, ns);
 
     /* compute w c (1 - rho w c)^(-1) w - c
      * = [w c rho w c (1 - rho w c)^(-1) w - w c w] + (w c w - c) */
-    for ( ij = 0; ij < ns*ns; ij++ )
+    for ( ij = 0; ij < ns * ns; ij++ )
       tk[ij][l] = tm1[ij] + tm2[ij] + tm3[ij] - vklr[ij][l];
   }
 }
 
 
 
-/* return the update of cr */
+/* return the updated cr */
 static double getcr(double tr, double vrsr,
                     double *dcr, int ietype)
 {
@@ -325,16 +325,16 @@ static double getcr(double tr, double vrsr,
 
   del = -vrsr + tr;
   if ( ietype == IE_HNC ) {
-    xp = ( del <= -INFTY ) ? 0 : exp(del);
+    xp = exp(del);
     if ( dcr != NULL ) *dcr = xp - 1;
     return xp - 1 - tr;
   } else if ( ietype == IE_PY ) {
-    fr = ( vrsr >= INFTY ) ? -1 : exp(-vrsr) - 1;
+    fr = exp(-vrsr) - 1;
     if ( dcr != NULL ) *dcr = fr;
     return fr * (1 + tr);
   } else if ( ietype == IE_KH ) {
     if ( del <= 0 ) { /* HNC */
-      xp = ( del <= -INFTY ) ? 0 : exp(del);
+      xp = exp(del);
       if ( dcr != NULL ) *dcr = xp - 1;
       return xp - 1 - tr;
     } else {
@@ -350,12 +350,14 @@ static double getcr(double tr, double vrsr,
 
 
 
+struct { int l; double err; } errspot[NS2MAX];
+
 /* apply the closure
  * compute residue vector if needed */
 static double closure(model_t *model,
     double *res, double **der, double **vrsr,
-    double **cr, double **tr, int *prmask,
-    int update, double damp)
+    double **cr, double **tr,
+    int *prmask, int update, double damp)
 {
   int ns = model->ns, npt = model->npt, i, j, ij, ji, id, l;
   double y, err, max, errm = 0;
@@ -374,7 +376,11 @@ static double closure(model_t *model,
           cr[ij][l] += damp * y;
           if ( j > i ) cr[ji][l] = cr[ij][l];
         }
-        if ( fabs(y) > err ) err = fabs(y);
+        if ( fabs(y) > err ) {
+          err = fabs(y);
+          errspot[ij].l = l;
+          errspot[ij].err = err;
+        }
         if ( fabs(cr[ij][l]) > max ) max = fabs(cr[ij][l]);
       }
       /* the c(r) between two ions can be extremely large
@@ -393,13 +399,14 @@ static double step_picard(model_t *model,
     double *res, double **der,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
-    double **tr, double **tk, int *prmask,
-    int update, double damp)
+    double **tr, double **tk,
+    int *prmask, int update, double damp)
 {
   sphr_r2k(cr, ck, model->ns, NULL);
   oz(model, ck, vklr, tk, wk, NULL);
   sphr_k2r(tk, tr, model->ns, NULL);
-  return closure(model, res, der, vrsr, cr, tr, prmask, update, damp);
+  return closure(model, res, der, vrsr, cr, tr,
+                 prmask, update, damp);
 }
 
 
@@ -417,7 +424,8 @@ const double errinf = 1e20;
 static double iter_picard(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
-    double **tr, double **tk, int *niter)
+    double **tr, double **tk,
+    int *niter)
 {
   int it;
   double err = 0, errp = errinf;
@@ -470,8 +478,8 @@ static int output(model_t *m,
         double vrt = m->beta * ur[ij][l], vrq = vrqq[ij][l];
         /* note that cr[ij][l] and tr[ij][l] exclude
          * the long-range component vrl */
-        double crt = cr[ij][l] -vrl, trt = tr[ij][l] + vrl;
-        double ckt = ck[ij][l] -vkl, tkt = tk[ij][l] + vkl;
+        double crt = cr[ij][l] - vrl, trt = tr[ij][l] + vrl;
+        double ckt = ck[ij][l] - vkl, tkt = tk[ij][l] + vkl;
         /* pmfs = beta dW: the short-range correction to
          * the continuum primitive model, in which
          *
@@ -515,8 +523,8 @@ static void dorism(model_t *model)
   int it, ns, npt, ilam, nlam;
   double err = 0, dia, lam;
   double **ur, **nrdur, **fr, **wk;
-  double **cr, **cp, **ck, **tr, **tk;
-  double **der, **ntk, **vrlr, **vrqq, **vrsr, **vklr;
+  double **cr, **cp, **ck, **tr, **tk, **ntk;
+  double **der, **vrlr, **vrqq, **vrsr, **vklr;
   double *um, *mum;
 
   /* equivalent diameter of the solvent molecule */
@@ -537,8 +545,8 @@ static void dorism(model_t *model)
   newarr2d(cp,    ns * ns, npt);
   newarr2d(tr,    ns * ns, npt);
   newarr2d(tk,    ns * ns, npt);
-  newarr2d(der,   ns * ns, npt);
   newarr2d(ntk,   ns * ns, npt);
+  newarr2d(der,   ns * ns, npt);
   xnew(um, ns);
   xnew(mum, ns);
 
@@ -567,14 +575,13 @@ static void dorism(model_t *model)
       err = iter_picard(model, vrsr, wk, cr, ck, vklr, tr, tk, &it);
     }
 
-
     output(model, cr, vrqq, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
     fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
         lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
 
   calcU(model, ur, cr, tr, fr, um);
-  calcchempot(model, cr, tr, mum);
+  calcchempot(model, cr, tr, vrsr, vrlr, mum);
   calckirk(model, cr, tr, NULL);
   calccrdnum(model, cr, tr, fr, fncrdnum);
   calcdielec(model);
@@ -592,8 +599,8 @@ static void dorism(model_t *model)
   delarr2d(cp,    ns * ns);
   delarr2d(tr,    ns * ns);
   delarr2d(tk,    ns * ns);
-  delarr2d(der,   ns * ns);
   delarr2d(ntk,   ns * ns);
+  delarr2d(der,   ns * ns);
   free(um);
   free(mum);
   donefftw();

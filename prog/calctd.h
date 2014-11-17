@@ -268,13 +268,14 @@ static int calcU(model_t *m, double **ur,
 
 /* compute the chemical potential
  * NOTE: this routine does not work for charged systems */
-static int calcchempot(model_t *m, double **cr, double **tr, double *bmum)
+static int calcchempot(model_t *m, double **cr, double **tr,
+    double **vrsr, double **vrlr, double *bmum)
 {
   int i, j, ij, im, l, ns = m->ns, npt = m->npt;
-  double bmuij, dr, ri;
+  double bmuij, dr, ri, c, t, h, vrl, y, B;
 
-  if ( m->ietype != IE_HNC )
-    fprintf(stderr, "Warning: chemical potential only works for the HNC closure\n");
+  if ( m->ietype != IE_HNC && m->ietype != IE_KH )
+    fprintf(stderr, "Warning: chemical potential only exact for the HNC or KH closure\n");
 
   getmols(m);
   dr = m->rmax / m->npt;
@@ -289,15 +290,34 @@ static int calcchempot(model_t *m, double **cr, double **tr, double *bmum)
       bmuij = 0;
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
-        bmuij += (0.5*(cr[ij][l] + tr[ij][l])*tr[ij][l] - cr[ij][l]) * ri * ri;
+        vrl = vrlr[ij][l];
+        c = cr[ij][l] - vrl;
+        t = tr[ij][l] + vrl;
+        h = c + t;
+        y = -c;
+        if ( m->ietype == IE_KH ) {
+          if ( -vrsr[ij][l] + tr[ij][l] > 0 )
+            y -= 0.5 * c * h;
+          else
+            y += 0.5 * t * h;
+        } else if ( m->ietype == IE_HNC ) {
+          y += 0.5 * t * h;
+        } else if ( m->ietype == IE_PY ) {
+          y += 0.5 * t * h;
+          if ( tr[ij][l] > -1 ) {
+            B = log( 1 + tr[ij][l] ) - tr[ij][l]; /* bridge function */
+            y += 2./3 * B * h + B;
+          }
+        }
+        bmuij += y * ri * ri;
       }
       bmuij *= 4 * PI * m->rho[j] * dr;
-      //printf("i %d, j %d, bmuij %g\n", i, j, bmuij);
+      printf("i %d, j %d, bmuij %g\n", i, j, bmuij);
       bmum[im] += bmuij;
     }
   }
   for ( i = 0; i < m->nmol; i++ )
-    printf("mol %d: chem. pot. %g, X beta %g\n",
+    printf("mol %d: chem. pot. %+12g, X beta %+12g\n",
         i, bmum[i] * m->kBU / m->beta, bmum[i]);
   return m->nmol;
 }

@@ -72,7 +72,10 @@ static int mdiis_solve(mdiis_t *m)
   for ( i = 0; i < nb1; i++ )
     m->mat2[i*nb1 + nb] = m->mat2[nb*nb1 + i] = -1;
   m->mat2[nb*nb1 + nb] = 0;
-  i = lusolve(m->mat2, m->coef, nb1, 1e-20);
+  if ( lusolve(m->mat2, m->coef, nb1, 1e-20) != 0 ) {
+    fprintf(stderr, "MDIIS lusolve failed\n");
+    exit(1);
+  }
   return 0;
 }
 
@@ -206,7 +209,8 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
 static double iter_mdiis(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
-    double **tr, double **tk, int *niter)
+    double **tr, double **tk,
+    int *niter)
 {
   mdiis_t *mdiis;
   int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
@@ -237,6 +241,8 @@ static double iter_mdiis(model_t *model,
       fprintf(stderr, "it %d, err %g -> %g, ib %d -> %d\n",
           it, errp, err, ibp, ib);
     if ( err < model->tol ) {
+      int update;
+
       if ( uv_switch(uv) != 0 ) break;
       /* if all solutes are of zero density, break the loop */
       if ( uv->stage == SOLUTE_SOLUTE
@@ -246,8 +252,9 @@ static double iter_mdiis(model_t *model,
         break;
       }
       /* reset the bases */
-      step_picard(model, res, NULL, vrsr, wk,
-          cr, ck, vklr, tr, tk, uv->prmask, 0, 0.);
+      update = 0; /* compute ck, tk, tr, and res without updating */
+      err = step_picard(model, res, NULL, vrsr, wk,
+          cr, ck, vklr, tr, tk, uv->prmask, update, 0.);
       mdiis_build(mdiis, cr, res, uv);
       it = -1;
       err = errinf;

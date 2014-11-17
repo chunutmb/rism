@@ -40,7 +40,8 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
 
 /* compute the Jacobian matrix for the Newton-Raphson method */
 static void getjacob(double *mat, double *b, int M, int npr, int ns,
-    int *prmask, double **ntk, double **tk, double **Cjk, double **invwc1w)
+    int *prmask, double **ntk, double **tk, double **Cjk,
+    double **invrhowc1w)
 {
   int i1, j1, ipr1, m1, id1, i2, j2, ipr2, m2, id2, Mp;
   double y;
@@ -63,9 +64,21 @@ static void getjacob(double *mat, double *b, int M, int npr, int ns,
               //  fprintf(stderr, "id1 %d, id2 %d, m2 %d, ipr2 %d/%d\n", id1, id2, m2, ipr2, npr);
               //  exit(1);
               //}
+              /*
+               * h = w c (1 - rho w c)^-1 w
+               * thus
+               * dh = (1 - w c rho)^(-1) w dc (1 - rho w c)^(-1) w
+               * let z = (1 - rho w c)^(-1) w
+               * then
+               * z^T = w (1 - c w rho)^(-1)
+               *     = w (1 - c rho w)^(-1)   (since w rho = rho w)
+               *     = w + w c rho w + w c rho w c rho w + ...
+               *     = (1 - w c rho)^-1 w
+               * and
+               * dh = z^T dc z */
               y = (ipr1 == ipr2 ? (m1 == m2) + Cjk[i1*ns+j1][m1*M+m2] : 0)
-                - invwc1w[i1*ns+i2][m1] * Cjk[i2*ns+j2][m1*M+m2]
-                * invwc1w[j2*ns+j1][m2];
+                - invrhowc1w[i2*ns+i1][m1] * Cjk[i2*ns+j2][m1*M+m2]
+                * invrhowc1w[j2*ns+j1][m2];
               mat[id1*Mp + id2] = y;
             }
           }

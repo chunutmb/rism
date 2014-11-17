@@ -19,18 +19,19 @@
 /* Print routines */
 
 
+#define printmat(m, n, name) fprintmat(stderr, m, n, name)
 
-__inline static void printmat(double *m, int n, const char *name)
+__inline static void fprintmat(FILE *fp, double *m, int n, const char *name)
 {
   int i, j;
 
-  if ( name != NULL ) printf("%s:\n", name);
+  if ( name != NULL ) fprintf(fp, "%s:\n", name);
   for ( i = 0; i < n; i++ ) {
     for ( j = 0; j < n; j++ )
-      printf("%9g ", m[i*n+j]);
-    printf("\n");
+      fprintf(fp, "%+10.3e ", m[i*n+j]);
+    fprintf(fp, "\n");
   }
-  printf("\n");
+  fprintf(fp, "\n");
 }
 
 
