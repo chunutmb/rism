@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
 
-import os, sys, re, getopt
+
+import os, sys, re, getopt, glob
+
 
 
 rmin = 4
 rmax = 16
-rdel = 0.1
-fncfg = "NaCl.cfg"
-progdir = "../../prog"
+rdel = 0.5
+fncfg = "my_ions.cfg"
+progdir = None
 prog0 = "rism0"
 prog = None
+
 
 
 def help():
@@ -18,21 +21,20 @@ def help():
   prog = sys.argv[0]
   print "%s [Options] template.cfg\n" % prog
   print " Options:"
-  print "   --rmin:     followed by the minimal radius"
-  print "   --rmax:     followed by the maximal radius"
-  print "   --rdel:     followed by the radius increment"
-  print "   --progdir:  followed by the directory that contains", prog0
+  print "   --rmin=:          followed by the minimal radius"
+  print "   --rmax=:          followed by the maximal radius"
+  print "   --dr=, --rdel=:   followed by the radius increment"
+  print "   --progdir=:       followed by the directory that contains", prog0
   exit(1)
 
 
 
 def doargs():
-  global rmin, rmax, rdel, fncfg
-  global progdir, prog
+  global rmin, rmax, rdel, fncfg, progdir, prog
 
   try:
     opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
-        [ "rmin=", "rmax=", "rdel=", "progdir=",
+        [ "rmin=", "rmax=", "rdel=", "dr=", "progdir=",
           "help" ] )
   except getopt.GetoptError, err:
     help()
@@ -42,7 +44,7 @@ def doargs():
       rmin = float(a)
     elif o in ("--rmax",):
       rmax = float(a)
-    elif o in ("--rdel",):
+    elif o in ("--rdel", "--dr"):
       rdel = float(a)
     elif o in ("--progdir",):
       progdir = a
@@ -51,6 +53,21 @@ def doargs():
 
   if len(args) > 0:
     fncfg = args[0]
+  else:
+    ls = glob.glob("*.cfg")
+    if len(ls) == 0:
+      print "please specify a .cfg file!"
+      exit(1)
+    else:
+      fncfg = ls[0]
+
+  if progdir == None:
+    # search the path that contains the program
+    progdir = os.path.join("rism", "prog")
+    for i in range(10):
+      if os.path.exists(progdir): break
+      progdir = os.path.join("..", progdir)
+    print "program directory: " + progdir
 
   prog = os.path.join(progdir, prog0)
 
@@ -60,7 +77,7 @@ def loadcfg(fn):
   ''' load the configuration template '''
   s = open(fn).readlines()
   n = len(s)
-  # search for the last line that specifies the distance
+  # search for the last line that specifies the distance constraint
   for i in range(n-1, -1, -1):
     ln = s[i].strip()
     if ln.startswith("dis("): break
@@ -89,10 +106,10 @@ def runscript(cfg0, cfgln, r, name = None):
     cfg[cfgln] = "=".join(arr)
     opts = "-!" # this option disables the solute-solute interaction
   fncfg = "test_r%s.cfg" % r
-  fnout = "out_r%s.dat" % r
+  fndump = "dump_r%s.dat" % r
   open(fncfg, "w").writelines(cfg)
 
-  cmd = "%s %s %s > %s" % (prog, opts, fncfg, fnout)
+  cmd = "%s %s %s > %s" % (prog, opts, fncfg, fndump)
 
   # run the command
   ret = os.system(cmd)
@@ -103,7 +120,7 @@ def runscript(cfg0, cfgln, r, name = None):
   # analyze the output
   bmu = 0
   if r != None:
-    s = open(fnout).readlines()
+    s = open(fndump).readlines()
     n = len(s)
     for i in range(n - 1, -1, -1):
       ln = s[i]
@@ -114,14 +131,16 @@ def runscript(cfg0, cfgln, r, name = None):
 
   if r == None:
     os.rename("out.dat", name + "_out.dat")
-  os.remove(fnout)
+  # remove unused files
+  os.remove(fndump)
   os.remove(fncfg)
   os.remove("crdnum.dat")
   return bmu
 
 
 
-def doit():
+def chempot():
+  ''' compute the chemical potential '''
   # build the program
   os.system("make -C " + progdir)
 
@@ -132,28 +151,59 @@ def doit():
   i = int( rmin / rdel );
   r = i * rdel
   ls = []
+  # scan over the distance r
   while r < rmax + .5 * rdel:
     # change the distance to r and run the script
+    # retrieve the chemical potential
     bmu = runscript(cfgtemplate, cfgln, r)
     ls += [(r, bmu), ]
     i += 1
     r = i * rdel
 
   # run the script with infinite separation
+  # this determines the base-line value of the chemical potential
   bmu0 = runscript(cfgtemplate, cfgln, 1e30)
   sout = "#    r    beta*mu\n"
   for i in range(len(ls)):
-    ls[i] = (ls[i][0], ls[i][1] - bmu0)
-    sout += "%9s %s\n" % (ls[i][0], ls[i][1])
+    sout += "%9s %s\n" % (ls[i][0], ls[i][1] - bmu0)
 
   # run the script without the distance constraint
+  # this computes the chemical potential from t(r)
   runscript(cfgtemplate, cfgln, None, name)
 
+  # save the PMF from the chemical potential route
   fnbmu = fncfg.split(".")[0] + "_bmu.dat"
   open(fnbmu, "w").write(sout)
+
+  # prepare a gnuplot script
+  fngp = name + "_pmf.gp"
+  open(fngp, "w").write('''#!/usr/bin/env gnuplot
+set encoding iso_8859_1
+set terminal push
+set terminal postscript eps enhanced size 5, 3.5 font "Times, 20"
+set output "%s.eps"
+
+set xlabel "{/Times-Italic r} ({\305})"
+set ylabel "{/Symbol-Oblique b} {/Times-Italic W}^{ex}" offset 1, 0
+
+set xrange [%s:%s]
+set yrange [:]
+
+set key spacing 1.5
+
+plot [:][:] \
+  "%s_out.dat"  u 1:(($7 == 3 && $8 == 4)?-$3:1/0)  w l  lt 1       t "{/Symbol-Oblique b }{/Times-Italic W}^{ex}", \
+  "%s_bmu.dat"  u 1:($2)                            w lp lt 4 pt 2  t "{/Symbol-Oblique b D m}^{ex}", \
+  0 lt 1 lw 0.5 notitle
+
+unset output
+set terminal pop
+''' % (name, rmin, rmax, name, name) )
+  os.system("chmod 755 " + fngp)
+  os.system("gnuplot " + fngp)
 
 
 
 if __name__ == "__main__":
   doargs()
-  doit()
+  chempot()

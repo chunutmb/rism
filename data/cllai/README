@@ -1,0 +1,24 @@
+This directory contains a script chempot.py
+that computes the excess chemical potential of two ions from two routes.
+
+To use the script, first prepare a template configuration file,
+e.g., `my_ions.cfg' under this directory.
+
+In this file, make sure that last covalent bond specified by `dis(..., ...)'
+is between the two special ions.
+The program will try to change this distance.
+
+Then run the script
+
+  ./chempot.py my_ions.cfg
+
+If you do not specify the configuration file,
+the script will grab the first .cfg file under the directory.
+
+In the end, you should see a plot `my_ions.eps',
+which compare the PMF from the two routes.
+
+For more options, type
+
+  ./chempot.py -h
+
