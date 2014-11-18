@@ -1,5 +1,6 @@
 This directory contains a script chempot.py
-that computes the excess chemical potential of two ions from two routes.
+that computes the excess chemical potential of two ions from the two routes:
+the indirect-correlation function route and the chemical potential route.
 
 To use the script, first prepare a template configuration file,
 e.g., `my_ions.cfg' under this directory.
@@ -16,7 +17,7 @@ If you do not specify the configuration file,
 the script will grab the first .cfg file under the directory.
 
 In the end, you should see a plot `my_ions.eps',
-which compare the PMF from the two routes.
+which compares the PMF from the two routes.
 
 For more options, type
 

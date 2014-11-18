@@ -1,6 +1,9 @@
 function grab(id)
 {
-  return document.getElementById(id);
+  var x = document.getElementById(id);
+  if ( x == null )
+    console.log("cannot grab element ", id);
+  return x;
 }
 
 
@@ -43,4 +46,19 @@ function is_float(n)
 }
 
 
+
+function roundto(x, decimals)
+{
+  var t = Math.pow(10, decimals);
+  return (Math.round(x*t)/t).toFixed(decimals);
+}
+
+
+
+function newnumarr(n)
+{
+  var i, a = new Array(n);
+  for ( i = 0; i < n; i++ ) a[i] = 0;
+  return a;
+}
 

@@ -177,7 +177,7 @@ def chempot():
 
   # prepare a gnuplot script
   fngp = name + "_pmf.gp"
-  open(fngp, "w").write('''#!/usr/bin/env gnuplot
+  open(fngp, "w").write(r'''#!/usr/bin/env gnuplot
 set encoding iso_8859_1
 set terminal push
 set terminal postscript eps enhanced size 5, 3.5 font "Times, 20"

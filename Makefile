@@ -2,8 +2,9 @@ default:
 	$(MAKE) -C prog
 
 clean:
-	rm -rf $(bins) $(bins_d) *~ a.out *.dat* gmon.out \
-	  .*.un~ .*~ */.*.un~ */*~ r[0-9]*hs
+	rm -rf $(bins) $(bins_d) a.out *.dat* gmon.out \
+	  .*.un~ *~ */.*.un~ */*~ */*/.*.un~ */*/*~ \
+	  r[0-9]*hs
 	$(MAKE) -C web clean
 	$(MAKE) -C prog clean
 	rstrip.py -Rlv

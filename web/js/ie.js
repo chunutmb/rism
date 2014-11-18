@@ -177,11 +177,9 @@ function mkplot()
     yRangePad: 1,
     width: 350,
   };
-  var dat = "r,gr\n";
-  for ( i = 0; i < npt; i++ ) {
-    var gr = 1 + tr[i] + cr[i];
-    dat += "" + ri[i] + "," + gr + "\n";
-  }
+  var dat = [];
+  for ( i = 0; i < npt; i++ )
+    dat.push( [ ri[i], Math.max(1 + tr[i] + cr[i], 0) ] );
   var grplot = new Dygraph(document.getElementById("gr_plot"), dat, options);
 
   var options = {
@@ -191,9 +189,8 @@ function mkplot()
     yRangePad: 1,
     width: 350,
   };
-  var dat = "r,cr\n";
-  for ( i = 0; i < npt; i++ ) {
-    dat += "" + ri[i] + "," + cr[i] + "\n";
-  }
+  var dat = [];
+  for ( i = 0; i < npt; i++ )
+    dat.push( [ ri[i], cr[i] ] );
   var crplot = new Dygraph(grab("cr_plot"), dat, options);
 }
