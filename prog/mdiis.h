@@ -210,7 +210,7 @@ static double iter_mdiis(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
     double **tr, double **tk,
-    int *niter)
+    int skipuu, int *niter)
 {
   mdiis_t *mdiis;
   int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
@@ -245,11 +245,14 @@ static double iter_mdiis(model_t *model,
 
       if ( uv_switch(uv) != 0 ) break;
       /* if all solutes are of zero density, break the loop */
-      if ( uv->stage == SOLUTE_SOLUTE
-        && uv->infdil && uv->atomicsolvent ) {
-        step_picard(model, res, NULL, vrsr, wk,
-            cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
-        break;
+      if ( uv->stage == SOLUTE_SOLUTE ) {
+        if ( skipuu ) {
+          break;
+        } else if ( uv->infdil && uv->atomicsolvent ) {
+          step_picard(model, res, NULL, vrsr, wk,
+              cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
+          break;
+        }
       }
       /* reset the bases */
       update = 0; /* compute ck, tk, tr, and res without updating */

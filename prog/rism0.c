@@ -19,6 +19,7 @@
 
 
 int model_id = 16;
+int skip_uu = 0;
 int verbose = 0;
 const char *fncrtr = "out.dat";
 int sepout = 0;
@@ -38,12 +39,13 @@ static void help(const char *prog)
       "Options:\n"
       "  -o:    followed by the output file, default: %s\n"
       "  -k:    print k-space correlation functions, default %d\n"
+      "  -!:    skip the solute-solute stage calculation, default: %d\n"
       "  -$:    separately output file for each lambda, default %d\n"
       "  -#:    followed by the coordination number file, default: %s\n"
       "  -v:    be verbose\n"
       "  -vv:   be more verbose\n"
       "  -h:    display this message\n",
-      prog, fncrtr, printk, sepout, fncrdnum);
+      prog, fncrtr, printk, skip_uu, sepout, fncrdnum);
   exit(1);
 }
 
@@ -95,6 +97,8 @@ static model_t *doargs(int argc, char **argv)
           fncrdnum = q;
         }
         break; /* skip the rest of the characters in the option */
+      } else if ( ch == '!' ) {
+        skip_uu = 1;
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
@@ -518,7 +522,7 @@ static int output(model_t *m,
 
 
 
-static void dorism(model_t *model)
+static int dorism(model_t *model)
 {
   int it, ns, npt, ilam, nlam;
   double err = 0, dia, lam;
@@ -568,11 +572,14 @@ static void dorism(model_t *model)
       cparr2d(cr, fr, ns * ns, npt);
 
     if ( model->solver == SOLVER_LMV ) {
-      err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr, tr, tk, ntk, cp, &it);
+      err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr,
+          tr, tk, ntk, cp, skip_uu, &it);
     } else if ( model->solver == SOLVER_MDIIS ) {
-      err = iter_mdiis(model, vrsr, wk, cr, ck, vklr, tr, tk, &it);
+      err = iter_mdiis(model, vrsr, wk, cr, ck, vklr,
+          tr, tk, skip_uu, &it);
     } else {
-      err = iter_picard(model, vrsr, wk, cr, ck, vklr, tr, tk, &it);
+      err = iter_picard(model, vrsr, wk, cr, ck, vklr,
+          tr, tk, &it);
     }
 
     output(model, cr, vrqq, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
@@ -604,6 +611,7 @@ static void dorism(model_t *model)
   free(um);
   free(mum);
   donefftw();
+  return 0;
 }
 
 
@@ -611,7 +619,6 @@ static void dorism(model_t *model)
 int main(int argc, char **argv)
 {
   model_t *m = doargs(argc, argv);
-  dorism(m);
-  return 0;
+  return dorism(m);
 }
 

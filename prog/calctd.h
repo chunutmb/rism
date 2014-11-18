@@ -317,7 +317,7 @@ static int calcchempot(model_t *m, double **cr, double **tr,
     }
   }
   for ( i = 0; i < m->nmol; i++ )
-    printf("mol %d: chem. pot. %+12g, X beta %+12g\n",
+    printf("mol %d: chemical potential %+12g, X beta %+12g\n",
         i, bmum[i] * m->kBU / m->beta, bmum[i]);
   return m->nmol;
 }

@@ -98,7 +98,7 @@ static double iter_lmv(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **der, double **ck, double **vklr,
     double **tr, double **tk, double **ntk,
-    double **invwc1w, int *niter)
+    double **invwc1w, int skipuu, int *niter)
 {
   int i, j, l, ij, it, M, npr, ipr, Mp;
   int ns = model->ns, npt = model->npt;
@@ -193,11 +193,14 @@ static double iter_lmv(model_t *model,
       //fprintf(stderr, "switching stage %d, it %d, err %g, tol %g\n", uv->stage, it, err, model->tol); getchar();
       /* switch between stages */
       if ( uv_switch(uv) != 0 ) break;
-      if ( uv->stage == SOLUTE_SOLUTE
-        && uv->infdil && uv->atomicsolvent ) {
-        step_picard(model, NULL, NULL, vrsr, wk,
-            cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
-        break; /* no need to iterate further */
+      if ( uv->stage == SOLUTE_SOLUTE ) {
+        if ( skipuu ) {
+          break;
+        } else if ( uv->infdil && uv->atomicsolvent ) {
+          step_picard(model, NULL, NULL, vrsr, wk,
+              cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
+          break; /* no need to iterate further */
+        }
       }
       it = -1;
       err = errinf;
