@@ -287,6 +287,13 @@ static int model_load(model_t *m, const char *fn, int verbose)
       m->dis[ipr] = atof(val);
       if ( verbose >= 2 )
         fprintf(stderr, "dis(%d, %d)    = %g (pair %d)\n", i, j, m->dis[ipr], ipr);
+    } else if ( strncmp(key, "c(", 2) == 0 ) {
+      CHECK_NS(key);
+      i = model_getidx2(key, &j, ns);
+      ipr = ns*i - i*(i+1)/2 + j;
+      m->C6_12[ipr][0] = m->C6_12[ipr][1] = atof(val);
+      if ( verbose >= 2 )
+        fprintf(stderr, "c6/12(%d, %d)  = %g (pair %d)\n", i, j, m->C6_12[ipr][0], ipr);
     } else if ( strncmp(key, "c6", 2) == 0 ) {
       CHECK_NS(key);
       i = model_getidx2(key, &j, ns);
