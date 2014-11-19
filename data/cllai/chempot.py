@@ -13,7 +13,7 @@ fncfg = "my_ions.cfg"
 progdir = None
 prog0 = "rism0"
 prog = None
-
+epsv = 78
 
 
 def help():
@@ -24,6 +24,7 @@ def help():
   print "   --rmin=:          followed by the minimal radius"
   print "   --rmax=:          followed by the maximal radius"
   print "   --dr=, --rdel=:   followed by the radius increment"
+  print "   --eps=:           followed by the solvent dielectric contant, default", epsv
   print "   --progdir=:       followed by the directory that contains", prog0
   exit(1)
 
@@ -34,7 +35,7 @@ def doargs():
 
   try:
     opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
-        [ "rmin=", "rmax=", "rdel=", "dr=", "progdir=",
+        [ "rmin=", "rmax=", "rdel=", "dr=", "eps=", "progdir=",
           "help" ] )
   except getopt.GetoptError, err:
     help()
@@ -46,6 +47,8 @@ def doargs():
       rmax = float(a)
     elif o in ("--rdel", "--dr"):
       rdel = float(a)
+    elif o in ("--eps",):
+      epsv = float(a)
     elif o in ("--progdir",):
       progdir = a
     elif o in ("-h", "--help"):
@@ -180,25 +183,49 @@ def chempot():
   open(fngp, "w").write(r'''#!/usr/bin/env gnuplot
 set encoding iso_8859_1
 set terminal push
-set terminal postscript eps enhanced size 5, 3.5 font "Times, 20"
-set output "%s.eps"
+set terminal postscript eps enhanced size 5, 7 font "Times, 20"
+set output "$NAME.eps"
+set multiplot
 
-set xlabel "{/Times-Italic r} ({\305})"
+# empirical dielectric constant
+eps = $EPSV
+
+unset xlabel
 set ylabel "{/Symbol-Oblique b} {/Times-Italic W}^{ex}" offset 1, 0
 
-set xrange [%s:%s]
+set xrange [$RMIN:$RMAX]
 set yrange [:]
 
 set key spacing 1.5
 
+ht = 0.5
+hb = 1 - ht
+
+set size 1, ht
+set origin 0, hb
+
 plot [:][:] \
-  "%s_out.dat"  u 1:(($7 == 3 && $8 == 4)?-$3:1/0)  w l  lt 1       t "{/Symbol-Oblique b }{/Times-Italic W}^{ex}", \
-  "%s_bmu.dat"  u 1:($2)                            w lp lt 4 pt 2  t "{/Symbol-Oblique b D m}^{ex}", \
+  "$NAME_out.dat"  u 1:(($7 == 3 && $8 == 4)?-$3:1/0)  w l  lt 1       t "{/Symbol-Oblique b }{/Times-Italic W}^{ex}", \
+  "$NAME_bmu.dat"  u 1:($2)                            w lp lt 4 pt 2  t "{/Symbol-Oblique b D m}^{ex}", \
   0 lt 1 lw 0.5 notitle
 
+set size 1, hb
+set origin 0, 0
+
+set xlabel "{/Times-Italic r} ({\305})"
+set ylabel "{/Symbol-Oblique b D} {/Times-Italic W}" offset 1, 0
+
+plot [:][:] "$NAME_out.dat"  u 1:(($7 == 3 && $8 == 4)?$10+$9/eps:1/0) \
+                             w l  lt 2       t "{/Symbol-Oblique b D}{/Times-Italic W}", \
+  0 lt 1 lw 0.5 notitle
+
+unset multiplot
 unset output
 set terminal pop
-''' % (name, rmin, rmax, name, name) )
+'''.replace("$NAME", str(name)
+  ).replace("$RMIN", str(rmin)
+  ).replace("$RMAX", str(rmax)
+  ).replace("$EPSV", str(epsv)) )
   os.system("chmod 755 " + fngp)
   os.system("gnuplot " + fngp)
 
