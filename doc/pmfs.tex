@@ -1,0 +1,302 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[text={7in,10in},centering]{geometry}
+\usepackage{array}
+\usepackage{calc}
+\begin{document}
+
+\renewcommand{\theequation}{\Alph{equation}}
+
+\newcommand{\refs}{\textbf{Equation references:}}
+
+\newcommand{\rismprog}{\textbf{Output of \texttt{rism0}:}}
+
+% suppress page number
+\pagenumbering{gobble}
+
+\begin{center}\footnotesize
+\begin{tabular}{ >{\arraybackslash}m{2.3in}  >{\arraybackslash}m{2.2in}  >{\arraybackslash}m{2.2in} }
+
+Formula
+&
+Meaning
+&
+Notes
+\\
+\hline
+
+{
+\begin{align}
+  \beta u
+&= \beta u_\mathrm{LJ} + \beta u_\mathrm{c}
+\notag \\
+&= -\phi^* - \phi.
+\label{eq:udecomp}
+\end{align}
+}
+&
+Pair potential
+
+\refs
+
+Eq. \eqref{eq:udecomp}: (23) in HPR1982.
+&
+The Coulombic potential $\phi = -\beta u_\mathrm{c}$
+is written as $\phi''$ in PK1985.
+
+The Lennard-Jones potential $u_\mathrm{LJ}$
+is commonly written as $u^*$.
+
+\rismprog
+
+$\beta u$: Column 6 (denoted as \texttt{\$6} below).
+
+$\beta u_\mathrm{c}$: \texttt{\$9}.
+
+$\beta u_\mathrm{LJ}$: \texttt{\$6 -\$9}.
+\\
+%\hline
+
+
+
+{
+\begin{align}
+\beta W
+&= -\ln g
+   \label{eq:Wlng} \\
+&= \beta u - t. \; \mbox{(for HNC)}
+   \label{eq:Wut}
+\end{align}
+}
+&
+Full potential of mean force (PMF).
+
+\refs
+
+Eq. \eqref{eq:Wlng}:
+(45) in HRP1983,
+(7) in PR1986,
+(17) in PK1985.
+
+Eq. \eqref{eq:Wut}:
+(46) in HRP1983,
+(8) in PR1986.
+&
+This notation sometimes means
+the uncorrected PMF directly from
+solving integral equations in RISM,
+or the empirically corrected version.
+
+The indirect correlation function $t = \tau + Q$
+in XRISM.
+
+\rismprog
+
+Eq. \eqref{eq:Wut}: \texttt{\$6 - \$3}.
+\\
+%\hline
+
+
+
+{
+\begin{align}
+\beta W^\mathrm{ex}
+&= \beta W - \beta u
+  \notag \\
+&= - t \; \mbox{(for HNC)}
+  \label{eq:Wexnt} \\
+&= \beta \mu_{ab} - \beta \mu_a - \beta \mu_b.
+  \label{eq:Wexmu}
+\end{align}
+}
+&
+Excess potential of mean force.
+
+\refs
+
+Eq. \eqref{eq:Wexmu}: (1) of HK2000.
+&
+
+\rismprog
+
+$-t(r)$: \texttt{$-$\$3}.
+
+Eq. \eqref{eq:Wexmu}: Use \texttt{chempot.py}.
+
+\\
+%\hline
+
+
+
+{
+\begin{align}
+\beta W_s
+&= \beta W - \dfrac{\beta u_\mathrm{c}} {\epsilon_\mathrm{RISM}}
+\notag \\
+&= \beta W + \dfrac{\phi} {\epsilon_\mathrm{RISM}}.
+\label{eq:Wsphi}
+\end{align}
+}
+&
+The short-range part of the PMF.
+
+\refs
+
+Eq. \eqref{eq:Wsphi}: (47) in HRP1983.
+&
+Here, $\beta W$ means the PMF directly from solving RISM.
+The long-range part $\beta u_\mathrm{C}/\epsilon_\mathrm{RISM}$
+is subtracted.
+
+\rismprog
+
+$\beta W_s$: $\mathtt{\$10 + (\$6 - \$9)}$,
+see Eq. \eqref{eq:deltaW}.
+\\
+%\hline
+
+
+
+{
+\begin{align}
+\beta W^\mathrm{corr}
+&= \beta W_s + \dfrac{\beta u_\mathrm{c}} {\epsilon}
+    \notag \\
+&= \beta W
+- \dfrac{\beta u_\mathrm{c}} {\epsilon_\mathrm{RISM}}
++ \dfrac{\beta u_\mathrm{c}} {\epsilon}.
+  \label{eq:Wcorrmp}
+\end{align}
+}
+&
+The empirically corrected PMF for RISM.
+
+\refs
+
+Eq. \eqref{eq:Wcorrmp}:
+(20) in PK1985,
+(11) in PR1986.
+&
+Here, $\beta W$ means the PMF directly from solving RISM;
+$\epsilon$ is the experimental dielectric constant;
+$\epsilon_\mathrm{RISM}$ is the dielectric constant from RISM.
+
+\rismprog
+
+$\beta W^\mathrm{corr}$:
+$\mathtt{\$10} + (\mathtt{\$6} - \mathtt{\$9}) + \mathtt{\$9}/\epsilon$.
+\\
+%\hline
+
+
+{
+\begin{align}
+\beta W_c
+&= \beta u_\mathrm{LJ} + \dfrac{\beta u_\mathrm{c}} {\epsilon}
+\notag \\
+&= -\phi^* - \phi/\epsilon.
+\label{eq:Wcphi}
+\end{align}
+}
+&
+The continuum part of the PMF.
+
+\refs
+
+Eq. \eqref{eq:Wcphi}: (49) in HRP1983.
+&
+\rismprog
+
+$\beta W_c$:
+$\mathtt{\$6} - \mathtt{\$9} + \mathtt{\$9}/\epsilon$.
+\\
+%\hline
+
+
+
+{
+\begin{align}
+\beta \delta W
+&= \beta W^\mathrm{corr} - \beta W_c
+\notag \\
+&= \beta W_s - \beta u_\mathrm{LJ}
+\label{eq:deltaW} \\
+&= \beta W^\mathrm{ex}
++ \beta u_\mathrm{c}
+\left( 1 - \frac{ 1 } { \epsilon_\mathrm{RISM} } \right).
+\label{eq:deltaWWex}
+\end{align}
+}
+&
+The difference from the corrected PMF, $\beta W^\mathrm{corr}$
+and the continuum part, $\beta W_c$.
+
+\refs
+
+Eq. \eqref{eq:deltaW}: (50) in HRP1983.
+&
+Here, $\epsilon$ means the experimental dielectric constant,
+which is around 80 for water at room temperature.
+
+\rismprog
+
+$\beta \delta W$:
+$\mathtt{\$10}$.
+\\
+
+
+{
+\begin{align}
+\beta \Delta W
+&= \beta W - \beta u_\mathrm{LJ}
+\notag \\
+&= \beta u_\mathrm{c} + \beta W^\mathrm{ex}
+\notag \\
+&= \beta u_\mathrm{c} - t. \; \mbox{(for HNC)}
+\label{eq:DeltaW}
+\end{align}
+}
+&
+\refs
+
+Eq. \eqref{eq:DeltaW}: (9) in PR1986.
+&
+\rismprog
+
+$\beta \Delta W$:
+$\mathtt{\$9} - \mathtt{\$3}$.
+\\
+
+
+{
+\begin{align}
+\beta \Delta W'
+&= \beta \Delta W - \dfrac{ \beta u_\mathrm{c} } { \epsilon_\mathrm{RISM} }
+                  + \dfrac{ \beta u_\mathrm{c} } { \epsilon }
+\label{eq:DeltaWp} \\
+&= \beta W^\mathrm{ex} + \beta u_\mathrm{c}
+                  - \dfrac{ \beta u_\mathrm{c} } { \epsilon_\mathrm{RISM} }
+                  + \dfrac{ \beta u_\mathrm{c} } { \epsilon }
+\notag \\
+&= \beta \delta W + \dfrac{ \beta u_\mathrm{c} } { \epsilon }.
+\label{eq:DeltaWpdeltaW}
+\end{align}
+}
+&
+\refs
+
+Eq. \eqref{eq:DeltaWp}: (10) in PR1986.
+&
+The last step follows from Eq. \eqref{eq:deltaWWex}.
+
+\rismprog
+
+$\beta \Delta W'$:
+$\mathtt{\$10} + \mathtt{\$9}/\epsilon$,
+see Eq. \eqref{eq:DeltaWpdeltaW}.
+
+\\
+\end{tabular}
+\end{center}
+
+\end{document}

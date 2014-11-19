@@ -14,6 +14,7 @@ progdir = None
 prog0 = "rism0"
 prog = None
 epsv = 78
+verbose = 0
 
 
 def help():
@@ -26,15 +27,16 @@ def help():
   print "   --dr=, --rdel=:   followed by the radius increment"
   print "   --eps=:           followed by the solvent dielectric contant, default", epsv
   print "   --progdir=:       followed by the directory that contains", prog0
+  print "   -v:               be verbose"
   exit(1)
 
 
 
 def doargs():
-  global rmin, rmax, rdel, fncfg, progdir, prog
+  global rmin, rmax, rdel, fncfg, progdir, prog, verbose
 
   try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "hv",
         [ "rmin=", "rmax=", "rdel=", "dr=", "eps=", "progdir=",
           "help" ] )
   except getopt.GetoptError, err:
@@ -51,6 +53,8 @@ def doargs():
       epsv = float(a)
     elif o in ("--progdir",):
       progdir = a
+    elif o in ("-v",):
+      verbose += 1
     elif o in ("-h", "--help"):
       help()
 
@@ -205,8 +209,8 @@ set size 1, ht
 set origin 0, hb
 
 plot [:][:] \
-  "$NAME_out.dat"  u 1:(($7 == 3 && $8 == 4)?-$3:1/0)  w l  lt 1       t "{/Symbol-Oblique b }{/Times-Italic W}^{ex}", \
-  "$NAME_bmu.dat"  u 1:($2)                            w lp lt 4 pt 2  t "{/Symbol-Oblique b D m}^{ex}", \
+  "$NAME_out.dat" u 1:(($7 == 3 && $8 == 4)?-$3:1/0)  w l  lt 1       t "{/Symbol-Oblique b }{/Times-Italic W}^{ex}", \
+  "$NAME_bmu.dat" u 1:($2)                            w lp lt 4 pt 2  t "{/Symbol-Oblique b D m}^{ex}", \
   0 lt 1 lw 0.5 notitle
 
 set size 1, hb
@@ -215,8 +219,17 @@ set origin 0, 0
 set xlabel "{/Times-Italic r} ({\305})"
 set ylabel "{/Symbol-Oblique b D} {/Times-Italic W}" offset 1, 0
 
-plot [:][:] "$NAME_out.dat"  u 1:(($7 == 3 && $8 == 4)?$10+$9/eps:1/0) \
-                             w l  lt 2       t "{/Symbol-Oblique b D}{/Times-Italic W}", \
+# $6 is the total potential
+# $9 is the electrostatic potential
+# ($6 - $9) is the Lennard-Jones potential
+# $10 is the short-range correction beta delta W, see Eq. (50) of HRP1983.
+# $10 + $9/eps is beta Delta W', see Eq. (10) of PR1986.
+# $10 + $6 - $9 + $9/eps is corrected PMF, beta W^{corr}, see Eq. (20) of PK1985, and Eq. (11) of PR1986.
+
+plot [:][:] \
+  "$NAME_out.dat" u 1:(($7 == 3 && $8 == 4)?$10:1/0)              w l   lt 1  t "{/Symbol-Oblique b d}{/Times-Italic W}", \
+  "$NAME_out.dat" u 1:(($7 == 3 && $8 == 4)?$10+$9/eps:1/0)       w l   lt 2  t "{/Symbol-Oblique b D}{/Times-Italic W}", \
+  "$NAME_out.dat" u 1:(($7 == 3 && $8 == 4)?$10+$6-$9+$9/eps:1/0) w l   lt 4  t "{/Symbol-Oblique b}{/Times-Italic W}^{corr}", \
   0 lt 1 lw 0.5 notitle
 
 unset multiplot
