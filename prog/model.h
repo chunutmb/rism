@@ -29,13 +29,24 @@ typedef struct {
   double damp;
 } mdiis_params_t;
 
-
+typedef struct {
+  double C6;    /* C6/r^6 */
+  double C12;   /* C12/r^12 */
+  double B;     /* B exp(-r/rho) */
+  double rho;   /* B exp(-r/rho) */
+  double sigma; /* eps6 (sigma/r)^6 + eps12 (sigma/r)^12 */
+  double eps6;  /* eps6 (sigma/r)^6 */
+  double eps12; /* eps12 (sigma/r)^12 */
+} pairpot_t;
 
 typedef struct {
   int ns;
   double sigma[MAXATOM];
   double eps6_12[MAXATOM][2];
-  double C6_12[MAXATOM*(MAXATOM+1)/2][2]; /* alternative to sigma/epsilon */
+
+  pairpot_t pairpot[MAXATOM*(MAXATOM+1)/2];
+  /* altenative to sigma/epsilon, pairwise entries */
+
   double rho[MAXATOM];
   double dis[MAXATOM*(MAXATOM-1)/2];
   double beta; /* sometimes it is given as 1/T without kB */
@@ -112,9 +123,13 @@ static int model_getidx(char *s, int n)
   char *p = strchr(s, '(');
   int i;
 
+  if ( n <= 0 ) {
+    fprintf(stderr, "Errot: getidx: array size %d of %s, have you set `ns'?\n", n, s);
+    exit(1);
+  }
   if ( p == NULL ) p = strchr(s, '[');
   if ( p == NULL ) {
-    fprintf(stderr, "Error: cannot find the index of %s\n", s);
+    fprintf(stderr, "Error: getidx cannot find the index of [%s]\n", s);
     exit(1);
   }
   i = atoi(p + 1) - 1;
@@ -127,33 +142,42 @@ static int model_getidx(char *s, int n)
 
 
 
-/* return the index of an array index */
-static int model_getidx2(char *s, int *j, int n)
+/* return the index of a pair
+ * `hasii' is 1 if the two indices can be the same */
+static int model_getidx2(char *s, int *i, int *j, int n, int hasii)
 {
   char *p = strchr(s, '('), *q;
-  int i, k;
+  int k;
 
+  if ( n <= 0 ) {
+    fprintf(stderr, "Error: getidx2: array size %d of %s, have you set `ns'?\n", n, s);
+    exit(1);
+  }
   if ( p == NULL ) p = strchr(s, '[');
   if ( p == NULL ) {
-    fprintf(stderr, "Error: cannot find the index of %s\n", s);
+    fprintf(stderr, "Error: getidx2 cannot find the index of [%s]\n", s);
     exit(1);
   }
   p++;
   q = strchr(p, ',');
   if ( q == NULL ) {
-    fprintf(stderr, "Error: cannot find the second index of %s\n", s);
+    fprintf(stderr, "Error: getidx2 cannot find the second index of %s\n", s);
     exit(1);
   }
   *q++ = '\0';
-  i = atoi(strstrip(p)) - 1;
+  *i = atoi(strstrip(p)) - 1;
   *j = atoi(strstrip(q)) - 1;
-  if ( i > *j ) k = i, i = *j, *j = k;
-  if ( i >= n || *j >= n ) {
+  if ( *i > *j ) k = *i, *i = *j, *j = k;
+  if ( *i >= n || *j >= n ) {
     fprintf(stderr, "Error: bad index for %s, i %d or j %d >= %d\n",
-        s, i, *j, n);
+        s, *i, *j, n);
     exit(1);
   }
-  return i;
+  if ( hasii ) { /* i == j is allowed */
+    return n*(*i) - *i*(*i+1)/2 + *j;
+  } else { /* i != j */
+    return n*(*i) - (*i+1)*(*i+2)/2 + *j;
+  }
 }
 
 
@@ -238,88 +262,106 @@ static int model_load(model_t *m, const char *fn, int verbose)
 
     //printf("key: %-40s val: %s\n", key, val);
 
-#define CHECK_NS(key) if ( ns <= 0 ) { \
-      fprintf(stderr, "must set `ns' before `%s'\n", key); \
-      exit(1); }
+#define ECHO_(name, val, fmt) if ( verbose >= 2 ) { \
+      fprintf(stderr, "%-16s= " fmt "\n", name, val); }
+
+/* print a real number */
+#define ECHO(name, val) ECHO_(name, val, "%g")
+
+/* print an integer */
+#define ECHO_INT(name, val) ECHO_(name, val, "%d")
+
+/* print a string */
+#define ECHO_STR(name, val) ECHO_(name, val, "%s")
+
+/* print an element of a 1D array */
+#define ECHO_ARR1(name, val) { char key_[32]; \
+      sprintf(key_, "%s(%d)", name, i); \
+      ECHO(key_, val); }
+
+/* print an element of a 2D array */
+#define ECHO_ARR2(name, val) { char key_[32], val_[32]; \
+      sprintf(key_, "%s(%d, %d)", name, i, j); \
+      sprintf(val_, "%-12g (pair %d)", val, ipr); \
+      ECHO_STR(key_, val_); }
 
     if ( strcmp(key, "ns") == 0 ) {
       m->ns = ns = atoi(val);
-    } else if ( strncmp(key, "sigma", 5) == 0 ) {
-      CHECK_NS(key);
+      ECHO_INT("ns", m->ns);
+    } else if ( strstartswith(key, "sigma(") ) {
       i = model_getidx(key, ns);
       m->sigma[i] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "sigma(%d)     = %g\n", i, m->sigma[i]);
-    } else if ( strncmp(key, "eps(", 4) == 0 ) {
-      CHECK_NS(key);
+      ECHO_ARR1("sigma", m->sigma[i]);
+    } else if ( strstartswith(key, "eps(") ) {
       i = model_getidx(key, ns);
       m->eps6_12[i][0] = m->eps6_12[i][1] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "eps6/12(%d)   = %g\n", i, m->eps6_12[i][0]);
-    } else if ( strncmp(key, "eps6", 4) == 0 ) {
-      CHECK_NS(key);
+      ECHO_ARR1("eps6/12", m->eps6_12[i][0]);
+    } else if ( strstartswith(key, "eps6(") ) {
       i = model_getidx(key, ns);
       m->eps6_12[i][0] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "eps6(%d)      = %g\n", i, m->eps6_12[i][0]);
-    } else if ( strncmp(key, "eps12", 5) == 0 ) {
-      CHECK_NS(key);
+      ECHO_ARR1("eps6", m->eps6_12[i][0]);
+    } else if ( strstartswith(key, "eps12(") ) {
       i = model_getidx(key, ns);
       m->eps6_12[i][1] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "eps12(%d)     = %g\n", i, m->eps6_12[i][1]);
-    } else if ( strncmp(key, "rho", 3) == 0 ) {
-      CHECK_NS(key);
+      ECHO_ARR1("eps12", m->eps6_12[i][0]);
+    } else if ( strstartswith(key, "rho(") ) {
       i = model_getidx(key, ns);
       m->rho[i] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "rho(%d)       = %g\n", i, m->rho[i]);
-    } else if ( strncmp(key, "charge", 6) == 0 ) {
-      CHECK_NS(key);
+      ECHO_ARR1("rho", m->rho[i]);
+    } else if ( strstartswith(key, "charge") ) {
       i = model_getidx(key, ns);
       m->charge[i] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "charge(%d)    = %g\n", i, m->charge[i]);
-    } else if ( strncmp(key, "dis", 3) == 0 ) {
-      CHECK_NS(key);
-      i = model_getidx2(key, &j, ns);
-      ipr = ns*i - (i+1)*(i+2)/2 + j;
+      ECHO_ARR1("charge", m->charge[i]);
+    } else if ( strstartswith(key, "dis(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 0);
       m->dis[ipr] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "dis(%d, %d)    = %g (pair %d)\n", i, j, m->dis[ipr], ipr);
-    } else if ( strncmp(key, "c(", 2) == 0 ) {
-      CHECK_NS(key);
-      i = model_getidx2(key, &j, ns);
-      ipr = ns*i - i*(i+1)/2 + j;
-      m->C6_12[ipr][0] = m->C6_12[ipr][1] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "c6/12(%d, %d)  = %g (pair %d)\n", i, j, m->C6_12[ipr][0], ipr);
-    } else if ( strncmp(key, "c6", 2) == 0 ) {
-      CHECK_NS(key);
-      i = model_getidx2(key, &j, ns);
-      ipr = ns*i - i*(i+1)/2 + j;
-      m->C6_12[ipr][0] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "c6(%d, %d)     = %g (pair %d)\n", i, j, m->C6_12[ipr][0], ipr);
-    } else if ( strncmp(key, "c12", 3) == 0 ) {
-      CHECK_NS(key);
-      i = model_getidx2(key, &j, ns);
-      ipr = ns*i - i*(i+1)/2 + j;
-      m->C6_12[ipr][1] = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "c12(%d, %d)    = %g (pair %d)\n", i, j, m->C6_12[ipr][1], ipr);
+      ECHO_ARR2("dis", m->dis[ipr]);
+    } else if ( strstartswith(key, "cij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].C6 = m->pairpot[ipr].C12 = atof(val);
+      ECHO_ARR2("C6/12", m->pairpot[ipr].C6);
+    } else if ( strstartswith(key, "c6ij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].C6 = atof(val);
+      ECHO_ARR2("C6", m->pairpot[ipr].C6);
+    } else if ( strstartswith(key, "c12ij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].C12 = atof(val);
+      ECHO_ARR2("C12", m->pairpot[ipr].C12);
+    } else if ( strstartswith(key, "sigmaij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].sigma = atof(val);
+      ECHO_ARR2("sigma", m->pairpot[ipr].sigma);
+    } else if ( strstartswith(key, "epsij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].eps6 = m->pairpot[ipr].eps12 = atof(val);
+      ECHO_ARR2("eps6/12", m->pairpot[ipr].eps6);
+    } else if ( strstartswith(key, "eps6ij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].eps6 = atof(val);
+      ECHO_ARR2("eps6", m->pairpot[ipr].eps6);
+    } else if ( strstartswith(key, "eps12ij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].eps12 = atof(val);
+      ECHO_ARR2("eps12", m->pairpot[ipr].eps12);
+    } else if ( strstartswith(key, "bij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].B = atof(val);
+      ECHO_ARR2("B", m->pairpot[ipr].B);
+    } else if ( strstartswith(key, "rhoij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].rho = atof(val);
+      ECHO_ARR2("rho", m->pairpot[ipr].rho);
     } else if ( strcmp(key, "t") == 0 || strcmp(key, "temp") == 0 ) {
       temp = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "T            = %g\n", temp);
+      ECHO("T", temp);
     } else if ( strcmp(key, "kbt") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->kBT = model_map(val, constants);
       } else {
         m->kBT = atof(val);
       }
-      if ( verbose >= 2 )
-        fprintf(stderr, "kBT          = %g\n", m->kBT);
+      ECHO("kBT", m->kBT);
     } else if ( strcmp(key, "kb") == 0 ||
                 strcmp(key, "kbu") == 0 ||
                 strcmp(key, "kbe") == 0 ) {
@@ -328,28 +370,24 @@ static int model_load(model_t *m, const char *fn, int verbose)
       } else {
         m->kBU = atof(val);
       }
-      if ( verbose >= 2 )
-        fprintf(stderr, "kBU          = %g\n", m->kBU);
+      ECHO("kBU", m->kBU);
     } else if ( strcmp(key, "ljtype") == 0 ) {
       const char *ljtypes[3];
       ljtypes[HARD_SPHERE] = "hard-sphere";
       ljtypes[LJ_FULL] = "lj-full";
       ljtypes[LJ_REPULSIVE] = "lj-repulsive";
       m->ljtype = model_select(val, 3, ljtypes);
-      if ( verbose >= 2 )
-        fprintf(stderr, "LJ type      = %s\n", ljtypes[m->ljtype]);
+      ECHO_STR("LJ type", ljtypes[m->ljtype]);
     } else if ( strcmp(key, "ampch") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->ampch = model_map(val, constants);
       } else {
         m->ampch = atof(val);
       }
-      if ( verbose >= 2 )
-        fprintf(stderr, "unit of e^2  = %g\n", m->ampch);
+      ECHO("unit of e^2", m->ampch);
     } else if ( strcmp(key, "rscreen") == 0 ) {
       m->rscreen = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "rscreen      = %g\n", m->rscreen);
+      ECHO("rscreen", m->rscreen);
     } else if ( strcmp(key, "closure") == 0
              || strcmp(key, "ietype") == 0 ) {
       const char *ietypes[3];
@@ -357,57 +395,45 @@ static int model_load(model_t *m, const char *fn, int verbose)
       ietypes[IE_HNC] = "hnc";
       ietypes[IE_KH] = "kh";
       m->ietype = model_select(val, 3, ietypes);
-      if ( verbose >= 2 )
-        fprintf(stderr, "closure      = %s\n", ietypes[m->ietype]);
+      ECHO_STR("closure", ietypes[m->ietype]);
     } else if ( strcmp(key, "rmax") == 0 ) {
       m->rmax = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "rmax         = %g\n", m->rmax);
+      ECHO("rmax", m->rmax);
     } else if ( strcmp(key, "npt") == 0
              || strcmp(key, "n-pts") == 0 ) {
       m->npt = atoi(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "npt          = %d\n", m->npt);
-    } else if ( strncmp(key, "nlambda", 6) == 0 ) {
+      ECHO_INT("npt", m->npt);
+    } else if ( strstartswith(key, "nlambda") ) {
       m->nlambdas = atoi(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "nlambdas     = %d\n", m->nlambdas);
+      ECHO_INT("nlambdas", m->nlambdas);
     } else if ( strcmp(key, "itmax") == 0 ) {
       m->itmax = atoi(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "itmax        = %d\n", m->itmax);
+      ECHO_INT("itmax", m->itmax);
     } else if ( strcmp(key, "tol") == 0 ) {
       m->tol = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "tol          = %g\n", m->tol);
+      ECHO("tol", m->tol);
     } else if ( strcmp(key, "solver") == 0 ) {
       const char *solvers[3];
       solvers[SOLVER_PICARD] = "picard";
       solvers[SOLVER_LMV] = "lmv";
       solvers[SOLVER_MDIIS] = "mdiis";
       m->solver = model_select(val, 3, solvers);
-      if ( verbose >= 2 )
-        fprintf(stderr, "solver       = %s\n", solvers[m->solver]);
+      ECHO_STR("solver", solvers[m->solver]);
     } else if ( strcmp(key, "picard_damp") == 0 ) {
       m->picard.damp = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "Picard_damp  = %g\n", m->picard.damp);
+      ECHO("Picard_damp", m->picard.damp);
     } else if ( strcmp(key, "lmv_m") == 0 ) {
       m->lmv.M = atoi(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "LMV_M        = %d\n", m->lmv.M);
+      ECHO_INT("LMV_M", m->lmv.M);
     } else if ( strcmp(key, "lmv_damp") == 0 ) {
       m->lmv.damp = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "LMV_damp     = %g\n", m->lmv.damp);
+      ECHO("LMV_damp", m->lmv.damp);
     } else if ( strcmp(key, "mdiis_nbases") == 0 ) {
       m->mdiis.nbases = atoi(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "MDIIS_nbases = %d\n", m->mdiis.nbases);
+      ECHO_INT("MDIIS_nbases", m->mdiis.nbases);
     } else if ( strcmp(key, "mdiis_damp") == 0 ) {
       m->mdiis.damp = atof(val);
-      if ( verbose >= 2 )
-        fprintf(stderr, "MDIIS_damp   = %g\n", m->mdiis.damp);
+      ECHO("MDIIS_damp", m->mdiis.damp);
     } else {
       fprintf(stderr, "Warning: unknown option %s = %s\n", key, val);
       getchar();

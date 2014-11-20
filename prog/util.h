@@ -360,6 +360,14 @@ __inline static char *strstrip(char *s)
 
 
 
+/* check if `s' starts with `t' */
+__inline static int strstartswith(const char *s, const char *t)
+{
+  return strncmp(s, t, strlen(t)) == 0;
+}
+
+
+
 /* check if a string is a nonnegative integer */
 __inline static int striscnum(const char *s)
 {

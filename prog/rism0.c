@@ -190,14 +190,25 @@ static double ljrpot(double r, double sig, double eps6, double eps12,
 
 
 
+/* exponential potential: B * exp(-r/rho) */
+static double exppot(double r, double B, double rho, double *nrdu)
+{
+  r /= rho;
+  B *= exp(-r);
+  *nrdu = B*r;
+  return B;
+}
+
+
+
 /* initialize f(r) */
 static void initfr(model_t *m, double **ur, double **nrdur,
     double **fr, double **vrqq, double **vrlr, double **vrsr,
     double lam)
 {
-  int i, j, ij, ji, ipr, l, ns = m->ns, use_c6_12;
-  double beta = m->beta, z, u, uelec, nrdu, ulr;
-  double sig, eps6, eps12, c6, c12;
+  int i, j, ij, ji, ipr, l, ns = m->ns, use_pairpot;
+  double beta = m->beta, r, z, u, uelec, nrdu, nrdu2, ulr;
+  double sig, eps6, eps12, c6, c12, Bij, rhoij;
 
   for ( ipr = 0, i = 0; i < ns; i++ ) { /* the first site */
     for ( j = i; j < ns; j++, ipr++ ) { /* the second site */
@@ -207,13 +218,21 @@ static void initfr(model_t *m, double **ur, double **nrdur,
       eps6 = sqrt(m->eps6_12[i][0] * m->eps6_12[j][0]);
       eps12 = sqrt(m->eps6_12[i][1] * m->eps6_12[j][1]);
 
-      c6 = m->C6_12[ipr][0];
-      c12 = m->C6_12[ipr][1];
-      use_c6_12 = (fabs(eps6) < DBL_MIN && fabs(eps12) < DBL_MIN);
+      c6 = m->pairpot[ipr].C6;
+      c12 = m->pairpot[ipr].C12;
+      Bij = m->pairpot[ipr].B;
+      rhoij = m->pairpot[ipr].rho;
+      use_pairpot = (fabs(eps6) < DBL_MIN && fabs(eps12) < DBL_MIN);
+      if ( use_pairpot ) {
+        sig = m->pairpot[ipr].sigma;
+        eps6 = m->pairpot[ipr].eps6;
+        eps12 = m->pairpot[ipr].eps12;
+      }
 
       for ( l = 0; l < m->npt; l++ ) { /* the radius */
+        r = fft_ri[l];
         if ( m->ljtype  == HARD_SPHERE) {
-          if (fft_ri[l] < sig) {
+          if (r < sig) {
             vrsr[ij][l] = 2*INFTY;
             z = -1;
           } else {
@@ -223,17 +242,23 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           nrdur[ij][l] = ur[ij][l] = 0;
           vrlr[ij][l] = vrqq[ij][l] = 0;
         } else { /* Lennard-Jones */
-          if ( use_c6_12 ) {
-            u = ljpot6_12(fft_ri[l], c6, c12, lam, &nrdu);
+          if ( use_pairpot ) {
+            if ( fabs(c6) > DBL_MIN || fabs(c12) > DBL_MIN ) {
+              u = ljpot6_12(r, c6, c12, lam, &nrdu);
+            } else {
+              u = ljpot(r, sig, eps6, eps12, lam, &nrdu);
+            }
+            u += exppot(r, Bij, rhoij, &nrdu2);
+            nrdu += nrdu2;
           } else if ( m->ljtype == LJ_REPULSIVE ) {
-            u = ljrpot(fft_ri[l], sig, eps6, eps12, &nrdu);
+            u = ljrpot(r, sig, eps6, eps12, &nrdu);
           } else {
-            u = ljpot(fft_ri[l], sig, eps6, eps12, lam, &nrdu);
+            u = ljpot(r, sig, eps6, eps12, lam, &nrdu);
           }
-          uelec = lam * m->ampch * m->charge[i] * m->charge[j] / fft_ri[l];
+          uelec = lam * m->ampch * m->charge[i] * m->charge[j] / r;
           ur[ij][l] = u + uelec;
           nrdur[ij][l] = nrdu + uelec;
-          ulr = uelec * erf( fft_ri[l]/sqrt(2)/m->rscreen );
+          ulr = uelec * erf( r/sqrt(2)/m->rscreen );
           vrqq[ij][l] = beta * uelec;
           vrlr[ij][l] = beta * ulr;
           vrsr[ij][l] = beta * (u + uelec - ulr);
