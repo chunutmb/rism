@@ -11,19 +11,25 @@
 
 
 
+#define IDBASE 0  /* starting index, 0 or 1 */
+
+
+
 #include "debug.h"
 #include "util.h"
 #include "model.h"
 #include "calctd.h"
 
 
+enum { DOUU_NEVER = 0, DOUU_ALWAYS = 1, DOUU_ATOMIC = 2};
+
 
 int model_id = 16;
-int skip_uu = 0;
+int douu = DOUU_ATOMIC;
 int verbose = 0;
 const char *fncrtr = "out.dat";
 int sepout = 0;
-const char *fncrdnum = "crdnum.dat";
+const char *fncrdnum = NULL;
 int printk = 0;
 
 
@@ -31,21 +37,18 @@ int printk = 0;
 /* print help message and die */
 static void help(const char *prog)
 {
-  fprintf(stderr,
-      "Reference site interaction model (RISM)\n"
-      "Usage:\n"
-      "  %s [Options] [input.cfg|model_id]\n"
-      "\n"
-      "Options:\n"
-      "  -o:    followed by the output file, default: %s\n"
-      "  -k:    print k-space correlation functions, default %d\n"
-      "  -!:    skip the solute-solute stage calculation, default: %d\n"
-      "  -$:    separately output file for each lambda, default %d\n"
-      "  -#:    followed by the coordination number file, default: %s\n"
-      "  -v:    be verbose\n"
-      "  -vv:   be more verbose\n"
-      "  -h:    display this message\n",
-      prog, fncrtr, printk, skip_uu, sepout, fncrdnum);
+  fprintf(stderr, "Reference site interaction model (RISM)\n");
+  fprintf(stderr, "Usage:\n");
+  fprintf(stderr, "  %s [Options] [input.cfg|model_id]\n\n", prog);
+  fprintf(stderr, "Options:\n");
+  fprintf(stderr, "  -o:    followed by the output file, default: %s\n", fncrtr);
+  fprintf(stderr, "  -k:    print k-space correlation functions, default %d\n", printk);
+  fprintf(stderr, "  -$:    separately output file for each lambda, default %d\n", sepout);
+  fprintf(stderr, "  -#:    followed by the output coordination number file, default: %s\n", fncrdnum);
+  fprintf(stderr, "  -!:    skip the solute-solute stage calculation, default: false\n");
+  fprintf(stderr, "  -u:    always do the solute-solute stage calculation, default: false\n");
+  fprintf(stderr, "  -v:    be verbose, -vv to be more verbose, etc.\n");
+  fprintf(stderr, "  -h:    display this message\n");
   exit(1);
 }
 
@@ -98,7 +101,9 @@ static model_t *doargs(int argc, char **argv)
         }
         break; /* skip the rest of the characters in the option */
       } else if ( ch == '!' ) {
-        skip_uu = 1;
+        douu = DOUU_NEVER;
+      } else if ( ch == 'u' ) {
+        douu = DOUU_ALWAYS;
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
@@ -565,7 +570,7 @@ static int output(model_t *m,
         double pmfs = vrq - trt - vrq/eps_rism;
         fprintf(fp, "%g %g %g %g %g %g %d %d %g %g ",
             fft_ri[l], crt, trt, fr[ij][l],
-            vrl, vrt, i, j, vrq, pmfs);
+            vrl, vrt, i + IDBASE, j + IDBASE, vrq, pmfs);
         if ( printk )
           fprintf(fp, "%g %g %g %g %g",
               fft_ki[l], ckt, tkt, wk[ij][l], vkl);
@@ -632,10 +637,10 @@ static int dorism(model_t *model)
 
     if ( model->solver == SOLVER_LMV ) {
       err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr,
-          tr, tk, ntk, cp, skip_uu, &it);
+          tr, tk, ntk, cp, douu, &it);
     } else if ( model->solver == SOLVER_MDIIS ) {
       err = iter_mdiis(model, vrsr, wk, cr, ck, vklr,
-          tr, tk, skip_uu, &it);
+          tr, tk, douu, &it);
     } else {
       err = iter_picard(model, vrsr, wk, cr, ck, vklr,
           tr, tk, &it);
@@ -646,10 +651,10 @@ static int dorism(model_t *model)
         lam, it, err, dia, model->rho[0]*dia*dia*dia);
   }
 
-  calcU(model, ur, cr, tr, fr, um);
+  calcU(model, ur, cr, tr, vrsr, um);
   calcchempot(model, cr, tr, vrsr, vrlr, mum);
   calckirk(model, cr, tr, NULL);
-  calccrdnum(model, cr, tr, fr, fncrdnum);
+  calccrdnum(model, cr, tr, vrsr, fncrdnum);
   calcdielec(model);
 
   delarr2d(ur,    ns * ns);

@@ -58,7 +58,7 @@ static int getmols(model_t *m)
   /* print out the molecular partition at the first time of calling */
   if ( !once ) {
     for ( i = 0; i < ns; i++ )
-      fprintf(stderr, "site %d: molecule %d\n", i, mol[i]);
+      fprintf(stderr, "site %d: molecule %d\n", i + IDBASE, mol[i] + IDBASE);
     once = 1;
   }
   return m->nmol = im + 1;
@@ -176,7 +176,7 @@ static int calckirk(model_t *m, double **cr, double **tr,
       kij *= 4 * PI * dr;
       if (kirk != NULL)
         kirk[j*ns + i] = kirk[i*ns + j] = kij;
-      printf("i %d, j %d, Gij %g\n", i, j, kij);
+      printf("i %d, j %d, Gij %g\n", i + IDBASE, j + IDBASE, kij);
     }
   }
   return 0;
@@ -185,12 +185,12 @@ static int calckirk(model_t *m, double **cr, double **tr,
 
 
 /* return the radial distribution function */
-static double getgr(model_t *m, double cr, double tr, double fr)
+static double getgr(model_t *m, double cr, double tr, double vrsr)
 {
   double gr_tiny = m->tol * 100, gr;
   gr = cr + tr + 1;
   if ( gr < gr_tiny || m->ietype == IE_HNC ) /* only for HNC */
-    gr = (fr + 1) * exp( tr );
+    gr = exp( -vrsr + tr );
   return gr;
 }
 
@@ -198,34 +198,62 @@ static double getgr(model_t *m, double cr, double tr, double fr)
 
 /* compute the running coordination numbers */
 static int calccrdnum(model_t *m,
-    double **cr, double **tr, double **fr,
+    double **cr, double **tr, double **vrsr,
     const char *fn)
 {
-  int i, j, ij, l, ns = m->ns, npt = m->npt;
-  double nij, dr, ri, gr;
-  FILE *fp;
+  int i, j, ij, l, ns = m->ns, npt = m->npt, lmax, lmin;
+  double *nij, y, dy, dr, ri, gr, gr1;
+  double rimax, grmax, rimin, grmin;
+  FILE *fp = NULL;
 
-  if ( (fp = fopen(fn, "w")) == NULL ) {
+  if ( fn != NULL && (fp = fopen(fn, "w")) == NULL ) {
     fprintf(stderr, "cannot open %s\n", fn);
     return -1;
   }
 
+  newarr(nij, npt + 1);
   dr = m->rmax / m->npt;
   for ( i = 0; i < ns; i++ ) {
     for ( j = 0; j < ns; j++ ) {
+      if ( m->rho[j] <= 0 ) continue;
       ij = i * ns + j;
-      nij = 0;
-      /* integrating over other radius */
+      nij[0] = y = dy = 0;
+      lmax = 0, rimax = grmax = 0;
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
-        gr = getgr(m, cr[ij][l], tr[ij][l], fr[ij][l]);
-        nij += m->rho[j] * 4 * PI * gr * ri * ri * dr;
-        fprintf(fp, "%g %g %d %d\n", ri, nij, i, j);
+        gr = getgr(m, cr[ij][l], tr[ij][l], vrsr[ij][l]);
+        if ( gr > grmax ) {
+          lmax = l;
+          rimax = ri;
+          grmax = gr;
+        }
+        dy = m->rho[j] * 4 * PI * gr * ri * ri * dr;
+        nij[l] = y + .5*dy;
+        y += dy;
+        if ( fp != NULL ) fprintf(fp, "%g %g %d %d\n", ri, nij[l], i, j);
       }
-      fprintf(fp, "\n");
+      if ( fp != NULL ) fprintf(fp, "\n");
+
+      /* find the first minimum after the principle peak */
+      rimin = grmin = 0, lmin = 0;
+      for ( l = 0; l < npt; l++ ) {
+        ri = (l + .5) * dr;
+        gr = getgr(m, cr[ij][l], tr[ij][l], vrsr[ij][l]);
+        gr1 = getgr(m, cr[ij][l+1], tr[ij][l+1], vrsr[ij][l+1]);
+        if ( l >= lmax && gr1 > gr ) {
+          rimin = ri;
+          grmin = gr;
+          lmin = l;
+          break;
+        }
+      }
+      printf("i %d, j %d, princ. peak r %8.3f, g(r) %12g, "
+          "first min. %8.3f, g(r) %12f, coord. no. %g\n",
+          i + IDBASE, j + IDBASE, rimax, grmax, rimin, grmin, nij[lmin]);
     }
   }
-  fclose(fp);
+  delarr(nij);
+  if ( fp != NULL ) fclose(fp);
   return 0;
 }
 
@@ -234,7 +262,7 @@ static int calccrdnum(model_t *m,
 /* compute the internal energy
  * NOTE: this routine does not work for charged systems */
 static int calcU(model_t *m, double **ur,
-    double **cr, double **tr, double **fr,
+    double **cr, double **tr, double **vrsr,
     double *um)
 {
   int i, j, ij, im, l, ns = m->ns, npt = m->npt;
@@ -252,7 +280,7 @@ static int calcU(model_t *m, double **ur,
       uij = 0;
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
-        gr = getgr(m, cr[ij][l], tr[ij][l], fr[ij][l]);
+        gr = getgr(m, cr[ij][l], tr[ij][l], vrsr[ij][l]);
         uij += ur[ij][l] * gr * ri * ri;
       }
       uij *= m->kBU * .5 * 4 * PI * m->rho[j] * dr;
@@ -260,7 +288,7 @@ static int calcU(model_t *m, double **ur,
     }
   }
   for ( i = 0; i < m->nmol; i++ )
-    printf("mol %d: U %g\n", i, um[i]);
+    printf("mol %d: U %g\n", i + IDBASE, um[i]);
   return m->nmol;
 }
 
@@ -312,13 +340,13 @@ static int calcchempot(model_t *m, double **cr, double **tr,
         bmuij += y * ri * ri;
       }
       bmuij *= 4 * PI * m->rho[j] * dr;
-      printf("i %d, j %d, bmuij %g\n", i, j, bmuij);
+      printf("i %d, j %d, bmuij %g\n", i + IDBASE, j + IDBASE, bmuij);
       bmum[im] += bmuij;
     }
   }
   for ( i = 0; i < m->nmol; i++ )
-    printf("mol %d: chemical potential %+12g, X beta %+12g\n",
-        i, bmum[i] * m->kBU / m->beta, bmum[i]);
+    printf("mol %d: chemical potential %+12g, X beta %+g\n",
+        i + IDBASE, bmum[i] * m->kBU / m->beta, bmum[i]);
   return m->nmol;
 }
 
