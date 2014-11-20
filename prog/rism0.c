@@ -158,16 +158,17 @@ static double ljpot6_12(double r, double c6, double c12,
 {
   double sig, eps, ir, ir6;
 
-  if ( c6 < 0 ) { /* attractive */
+  if ( c6 < 0 && c12 > 0 ) { /* attractive */
     sig = pow(-c12/c6, 1./6);
     eps = c6*c6/4/c12;
     return ljpot(r, sig, eps, eps, lam, nrdu);
   }
+  if ( c6 > 0 ) lam = 1;
   ir = 1/r;
   ir6 = ir * ir * ir;
   ir6 *= ir6;
-  *nrdu = ir6 * (12 * c12 * ir6 + 6 * c6);
-  return ir6 * (c12 * ir6 + c6);
+  *nrdu = ir6 * (12 * c12 * ir6 + 6 * c6 * lam);
+  return ir6 * (c12 * ir6 + c6 * lam);
 }
 
 
@@ -190,13 +191,40 @@ static double ljrpot(double r, double sig, double eps6, double eps12,
 
 
 
-/* exponential potential: B * exp(-r/rho) */
-static double exppot(double r, double B, double rho, double *nrdu)
+/* Huggins-Mayer potential: B * exp(-r/rho) - C/r^6 */
+static double HMpot(double r, double B, double C, double rho,
+    double lam, double *nrdu)
 {
-  r /= rho;
-  B *= exp(-r);
-  *nrdu = B*r;
-  return B;
+  double ir, ir6, r1;
+
+  ir = 1/r;
+  ir6 = ir * ir * ir;
+  ir6 *= ir6;
+
+  r1 = r/rho;
+  B *= exp(-r1);
+
+  *nrdu = B * r1 - 6 * C * ir6 * lam;
+  return B - C*ir6;
+}
+
+
+
+/* peak radius of the short-range part of the Huggins-Mayer potential:
+ * B exp(-r/rho) - C/r^6 */
+static double solveHMrmin(double B, double C, double rho)
+{
+  double r, rp;
+  int i;
+
+  if ( B <= 0 || C <= 0 ) return 0;
+  rp = rho;
+  for ( i = 0; i < 100; i++ ) {
+    r = pow(6*C*rho/B*exp(rp/rho), 1./7);
+    if (fabs(r - rp) <  1e-10) break;
+    rp = r;
+  }
+  return r;
 }
 
 
@@ -206,9 +234,10 @@ static void initfr(model_t *m, double **ur, double **nrdur,
     double **fr, double **vrqq, double **vrlr, double **vrsr,
     double lam)
 {
+  const double vrmin = -30;
   int i, j, ij, ji, ipr, l, ns = m->ns, use_pairpot;
-  double beta = m->beta, r, z, u, uelec, nrdu, nrdu2, ulr;
-  double sig, eps6, eps12, c6, c12, Bij, rhoij;
+  double beta = m->beta, r, z, u, uelec, nrdu, ulr;
+  double sig, eps6, eps12, c6, c12, Bij, rhoij, rminij;
 
   for ( ipr = 0, i = 0; i < ns; i++ ) { /* the first site */
     for ( j = i; j < ns; j++, ipr++ ) { /* the second site */
@@ -222,12 +251,15 @@ static void initfr(model_t *m, double **ur, double **nrdur,
       c12 = m->pairpot[ipr].C12;
       Bij = m->pairpot[ipr].B;
       rhoij = m->pairpot[ipr].rho;
+      rminij = solveHMrmin(Bij, -c6, rhoij);
       use_pairpot = (fabs(eps6) < DBL_MIN && fabs(eps12) < DBL_MIN);
       if ( use_pairpot ) {
         sig = m->pairpot[ipr].sigma;
         eps6 = m->pairpot[ipr].eps6;
         eps12 = m->pairpot[ipr].eps12;
       }
+      //printf("i %d, j %d, sig %g, eps6 %g, eps12 %g, c6 %g c12 %g, B %g, rho %g, rmin %g\n",
+      //    i + 1, j + 1, sig, eps6, eps12, c6, c12, Bij, rhoij, rminij);
 
       for ( l = 0; l < m->npt; l++ ) { /* the radius */
         r = fft_ri[l];
@@ -243,13 +275,14 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           vrlr[ij][l] = vrqq[ij][l] = 0;
         } else { /* Lennard-Jones */
           if ( use_pairpot ) {
-            if ( fabs(c6) > DBL_MIN || fabs(c12) > DBL_MIN ) {
+            if ( Bij > 0 ) {
+              /* to avoid blow-up, the minimal r is rminij */
+              u = HMpot((r < rminij ? rminij : r), Bij, -c6, rhoij, lam, &nrdu);
+            } else if ( fabs(c6) > DBL_MIN || fabs(c12) > DBL_MIN ) {
               u = ljpot6_12(r, c6, c12, lam, &nrdu);
             } else {
               u = ljpot(r, sig, eps6, eps12, lam, &nrdu);
             }
-            u += exppot(r, Bij, rhoij, &nrdu2);
-            nrdu += nrdu2;
           } else if ( m->ljtype == LJ_REPULSIVE ) {
             u = ljrpot(r, sig, eps6, eps12, &nrdu);
           } else {
@@ -262,6 +295,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           vrqq[ij][l] = beta * uelec;
           vrlr[ij][l] = beta * ulr;
           vrsr[ij][l] = beta * (u + uelec - ulr);
+          if ( vrsr[ij][l] < vrmin ) vrsr[ij][l] = vrmin;
 
           z = exp(-vrsr[ij][l]) - 1;
         }

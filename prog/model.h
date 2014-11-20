@@ -124,7 +124,7 @@ static int model_getidx(char *s, int n)
   int i;
 
   if ( n <= 0 ) {
-    fprintf(stderr, "Errot: getidx: array size %d of %s, have you set `ns'?\n", n, s);
+    fprintf(stderr, "Errot: getidx has array size %d of %s, have you set `ns'?\n", n, s);
     exit(1);
   }
   if ( p == NULL ) p = strchr(s, '[');
@@ -134,7 +134,7 @@ static int model_getidx(char *s, int n)
   }
   i = atoi(p + 1) - 1;
   if ( i >= n ) {
-    fprintf(stderr, "Error: bad index for %s, i %d >= %d\n", s, i, n);
+    fprintf(stderr, "Error: getidx has bad index for %s, i %d > %d\n", s, i + 1, n);
     exit(1);
   }
   return i;
@@ -150,7 +150,7 @@ static int model_getidx2(char *s, int *i, int *j, int n, int hasii)
   int k;
 
   if ( n <= 0 ) {
-    fprintf(stderr, "Error: getidx2: array size %d of %s, have you set `ns'?\n", n, s);
+    fprintf(stderr, "Error: getidx2 has array size %d for %s, have you set `ns'?\n", n, s);
     exit(1);
   }
   if ( p == NULL ) p = strchr(s, '[');
@@ -169,8 +169,8 @@ static int model_getidx2(char *s, int *i, int *j, int n, int hasii)
   *j = atoi(strstrip(q)) - 1;
   if ( *i > *j ) k = *i, *i = *j, *j = k;
   if ( *i >= n || *j >= n ) {
-    fprintf(stderr, "Error: bad index for %s, i %d or j %d >= %d\n",
-        s, *i, *j, n);
+    fprintf(stderr, "Warning: getidx2 bad index for %s, i %d or j %d > %d\n",
+        s, *i + 1, *j + 1, n);
     exit(1);
   }
   if ( hasii ) { /* i == j is allowed */
