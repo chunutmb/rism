@@ -23,8 +23,8 @@ ht = 0.48
 hb = 1 - ht
 
 set linestyle 1 lt 1 lw 5.0
-set linestyle 2 lt 1 lw 2.0
-set linestyle 3 lt 2 lw 1.0
+set linestyle 2 lt 1 lw 2.0 lc rgb "#202020"
+set linestyle 3 lt 2 lw 1.0 lc rgb "#404040"
 
 set xrange [2:8]
 set yrange [0:30]
@@ -32,7 +32,7 @@ set yrange [0:30]
 thexlabel = "{/Times-Italic r}({\305})"
 theylabel = "{/Times-Italic N}({/Times-Italic r})"
 
-set key left Left reverse invert spacing 1.5
+set key left Left reverse spacing 1.5
 
 set size wl, ht
 set origin 0, hb
@@ -71,7 +71,7 @@ plot [:][:] \
 set size wl, hb
 set origin 0, 0
 
-set xlabel thexlabel offset 0, 0.5 
+set xlabel thexlabel offset 0, 0.5
 set xtics ("2.0" 2, "4.0" 4, "6.0" 6)
 set ylabel theylabel offset 1, 0
 set ytics ("8." 8, "16." 16, "24." 24)
@@ -99,7 +99,6 @@ set rmargin 1
 plot [:][:] \
   "crdnumq1r.dat"   u 1:(($3 == 2 && $4 == 0)?$2:1/0) w l ls 1 t "{/Times-Italic q} = 1.0{/Times-Italic e}, {/Symbol-Oblique s} = 2.0{\305},  + +", \
   ""                u 1:(($3 == 2 && $4 == 1)?$2:1/0) w l ls 2 t "{/Times-Italic q} = 1.0{/Times-Italic e}, {/Symbol-Oblique s} = 2.0{\305},  + -", \
-  "crdnumq0.dat"    u 1:(($3 == 2 && $4 == 0)?$2:1/0) w l ls 3 t "{/Times-Italic q} = 0", \
   0 lt 1 lw 0.5 notitle
 
 
