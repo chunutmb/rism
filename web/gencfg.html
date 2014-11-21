@@ -4,14 +4,10 @@
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
   <title>.cfg generator</title>
   <link rel="stylesheet" type="text/css" href="css/default.css">
-  <script src="js/jquery-1.11.1.min.js"></script>
-  <!--
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-  -->
   <script src="js/util.js"></script>
   <script src="js/gencfg.js"></script>
 </head>
-<body>
+<body onload="init()">
 
 <h2 class="center">
   Configuration file generator for the XRISM program <span class="code">rism0</span>
@@ -113,7 +109,7 @@
 
   <hr>
   Number of special interactions:
-  <input type="text" size="8" value="0" id="nbonds"
+  <input type="text" size="8" value="0" id="npairs"
     onChange="change_nprs()">
   <br>
   <table id="pairTable">
@@ -125,11 +121,31 @@
         Site <span class="math"><i>j</i></span>
       </th>
       <th>
+        <span class="math" title="C&#8326; / r&#8310;"><i>C</i><sub>&#8326;</sub></span>
+        (<select id="pairunit_C6" disabled>
+          <option value="reduced">reduced</option>
+          <option value="K" selected>K&sdot;&#197;&#8310;</option>
+          <option value="erg">erg&sdot;&#197;&#8310;</option>
+          <option value="kJpermol">kJ&sdot;&#197;&#8310;/mol</option>
+          <option value="kcalpermol">kcal&sdot;&#197;&#8310;/mol</option>
+        </select>)<br>
+      </th>
+      <th>
+        <span class="math" title="C&#8321;&#8322; / r&#185;&#178;"><i>C</i><sub>&#8321;&#8322;</sub></span>
+        (<select id="pairunit_C12" disabled>
+          <option value="reduced">reduced</option>
+          <option value="K" selected>K&sdot;&#197;&#185;&#178;</option>
+          <option value="erg">erg&sdot;&#197;&#185;&#178;</option>
+          <option value="kJpermol">kJ&sdot;&#197;&#185;&#178;/mol</option>
+          <option value="kcalpermol">kcal&sdot;&#197;&#185;&#178;/mol</option>
+        </select>)<br>
+      </th>
+      <th>
         <span class="math"><i>&sigma;</i></span>
         (&#197;)
       </th>
       <th>
-        <span class="math"><i>&epsilon;<sub>&#8326;</sub></i></span>
+        <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
         (<select id="pairunit_eps6" disabled>
           <option value="reduced">reduced</option>
           <option value="K" selected>K</option>
@@ -141,6 +157,20 @@
       <th>
         <span class="math"><i>&epsilon;</i><sub>&#8321;&#8322;</sub></span>
         (<select id="pairunit_eps12" disabled>
+          <option value="reduced">reduced</option>
+          <option value="K" selected>K</option>
+          <option value="erg">erg</option>
+          <option value="kJpermol">kJ/mol</option>
+          <option value="kcalpermol">kcal/mol</option>
+        </select>)<br>
+      </th>
+      <th>
+        <span class="math" title="for the Huggins-Mayer interionic potential"><i>&rho;</i></span>
+        (&#197;)
+      </th>
+      <th>
+        <span class="math" title="for the Huggins-Mayer interionic potential"><i>B</i></span>
+        (<select id="pairunit_B" disabled>
           <option value="reduced">reduced</option>
           <option value="K" selected>K</option>
           <option value="erg">erg</option>
