@@ -15,6 +15,9 @@ prog0 = "rism0"
 prog = None
 epsv = 78
 verbose = 0
+ymin = ""
+ymax = ""
+
 
 
 def help():
@@ -27,6 +30,8 @@ def help():
   print "   --dr=, --rdel=:   followed by the radius increment"
   print "   --eps=:           followed by the solvent dielectric contant, default", epsv
   print "   --progdir=:       followed by the directory that contains", prog0
+  print "   --ymin=           followed by the minimal y in the output figure"
+  print "   --ymax=           followed by the maximal y in the output figure"
   print "   -v:               be verbose"
   exit(1)
 
@@ -34,10 +39,12 @@ def help():
 
 def doargs():
   global rmin, rmax, rdel, fncfg, progdir, prog, verbose
+  global ymin, ymax
 
   try:
     opts, args = getopt.gnu_getopt(sys.argv[1:], "hv",
         [ "rmin=", "rmax=", "rdel=", "dr=", "eps=", "progdir=",
+          "ymin=", "ymax=",
           "help" ] )
   except getopt.GetoptError, err:
     help()
@@ -53,6 +60,10 @@ def doargs():
       epsv = float(a)
     elif o in ("--progdir",):
       progdir = a
+    elif o in ("--ymin",):
+      ymin = a
+    elif o in ("--ymax",):
+      ymax = a
     elif o in ("-v",):
       verbose += 1
     elif o in ("-h", "--help"):
@@ -141,7 +152,6 @@ def runscript(cfg0, cfgln, r, name = None):
   # remove unused files
   os.remove(fndump)
   os.remove(fncfg)
-  os.remove("crdnum.dat")
   return bmu
 
 
@@ -184,7 +194,7 @@ def chempot():
 
   # prepare a gnuplot script
   fngp = name + "_pmf.gp"
-  open(fngp, "w").write(r'''#!/usr/bin/env gnuplot
+  open(fngp, "w").write( r'''#!/usr/bin/env gnuplot
 set encoding iso_8859_1
 set terminal push
 set terminal postscript eps enhanced size 5, 7 font "Times, 20"
@@ -195,7 +205,7 @@ set multiplot
 eps = $EPSV
 
 unset xlabel
-set ylabel "{/Symbol-Oblique b} {/Times-Italic W}^{ex}" offset 1, 0
+set ylabel "{/Symbol-Oblique b} {/Times-Italic W}^{ex}" offset 0.5, 0
 
 set xrange [$RMIN:$RMAX]
 set yrange [:]
@@ -205,6 +215,7 @@ set key spacing 1.5
 ht = 0.5
 hb = 1 - ht
 
+set lmargin 8
 set size 1, ht
 set origin 0, hb
 
@@ -217,7 +228,7 @@ set size 1, hb
 set origin 0, 0
 
 set xlabel "{/Times-Italic r} ({\305})"
-set ylabel "{/Symbol-Oblique b D} {/Times-Italic W}" offset 1, 0
+set ylabel "{/Symbol-Oblique b} {/Times-Italic W}" offset 0.5, 0
 
 # $6 is the total potential
 # $9 is the electrostatic potential
@@ -226,7 +237,7 @@ set ylabel "{/Symbol-Oblique b D} {/Times-Italic W}" offset 1, 0
 # $10 + $9/eps is beta Delta W', see Eq. (10) of PR1986.
 # $10 + $6 - $9 + $9/eps is corrected PMF, beta W^{corr}, see Eq. (20) of PK1985, and Eq. (11) of PR1986.
 
-plot [:][:] \
+plot [:][$YMIN:$YMAX] \
   "$NAME_out.dat" u 1:(($7 == 3 && $8 == 4)?$10:1/0)              w l   lt 1  t "{/Symbol-Oblique b d}{/Times-Italic W}", \
   "$NAME_out.dat" u 1:(($7 == 3 && $8 == 4)?$10+$9/eps:1/0)       w l   lt 2  t "{/Symbol-Oblique b D}{/Times-Italic W}", \
   "$NAME_out.dat" u 1:(($7 == 3 && $8 == 4)?$10+$6-$9+$9/eps:1/0) w l   lt 4  t "{/Symbol-Oblique b}{/Times-Italic W}^{corr}", \
@@ -235,10 +246,12 @@ plot [:][:] \
 unset multiplot
 unset output
 set terminal pop
-'''.replace("$NAME", str(name)
-  ).replace("$RMIN", str(rmin)
-  ).replace("$RMAX", str(rmax)
-  ).replace("$EPSV", str(epsv)) )
+'''.replace("$NAME", str(name))
+   .replace("$RMIN", str(rmin))
+   .replace("$RMAX", str(rmax))
+   .replace("$EPSV", str(epsv))
+   .replace("$YMIN", str(ymin))
+   .replace("$YMAX", str(ymax)) )
   os.system("chmod 755 " + fngp)
   os.system("gnuplot " + fngp)
 

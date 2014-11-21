@@ -11,7 +11,7 @@
 
 
 
-#define IDBASE 0  /* starting index, 0 or 1 */
+#define IDBASE 0  /* starting index of site or molecules, 0 or 1 */
 
 
 
@@ -25,7 +25,7 @@ enum { DOUU_NEVER = 0, DOUU_ALWAYS = 1, DOUU_ATOMIC = 2};
 
 
 int model_id = 16;
-int douu = DOUU_ATOMIC;
+int douu = DOUU_ATOMIC; /* by default, do solute-solute interaction only for atomic solute */
 int verbose = 0;
 const char *fncrtr = "out.dat";
 int sepout = 0;
@@ -196,7 +196,12 @@ static double ljrpot(double r, double sig, double eps6, double eps12,
 
 
 
-/* Huggins-Mayer potential: B * exp(-r/rho) - C/r^6 */
+/* Huggins-Mayer potential: B * exp(-r/rho) - C/r^6
+ * which is used in
+ * Alkali halides in water: Ion-solvent correlations and ion-ion potentials of
+ * mean force at infinite dilution
+ * B. Montgomery Pettitt and Peter J. Rossky
+ * J. Chem. Phys. 84(10) 5836-5844 (1986) */
 static double HMpot(double r, double B, double C, double rho,
     double lam, double *nrdu)
 {
@@ -215,16 +220,17 @@ static double HMpot(double r, double B, double C, double rho,
 
 
 
-/* peak radius of the short-range part of the Huggins-Mayer potential:
- * B exp(-r/rho) - C/r^6 */
+/* find the peak radius of the short-range part of the Huggins-Mayer potential:
+ *  B exp(-r/rho) - C/r^6 */
 static double solveHMrmin(double B, double C, double rho)
 {
   double r, rp;
   int i;
+  const int itmax = 1000;
 
   if ( B <= 0 || C <= 0 ) return 0;
   rp = rho;
-  for ( i = 0; i < 100; i++ ) {
+  for ( i = 0; i < itmax; i++ ) {
     r = pow(6*C*rho/B*exp(rp/rho), 1./7);
     if (fabs(r - rp) <  1e-10) break;
     rp = r;
@@ -248,20 +254,22 @@ static void initfr(model_t *m, double **ur, double **nrdur,
     for ( j = i; j < ns; j++, ipr++ ) { /* the second site */
       ij = i*ns + j;
       ji = j*ns + i;
-      sig = .5 * (m->sigma[i] + m->sigma[j]);
-      eps6 = sqrt(m->eps6_12[i][0] * m->eps6_12[j][0]);
-      eps12 = sqrt(m->eps6_12[i][1] * m->eps6_12[j][1]);
 
+      sig = m->pairpot[ipr].sigma;
+      eps6 = m->pairpot[ipr].eps6;
+      eps12 = m->pairpot[ipr].eps12;
       c6 = m->pairpot[ipr].C6;
       c12 = m->pairpot[ipr].C12;
       Bij = m->pairpot[ipr].B;
       rhoij = m->pairpot[ipr].rho;
       rminij = solveHMrmin(Bij, -c6, rhoij);
-      use_pairpot = (fabs(eps6) < DBL_MIN && fabs(eps12) < DBL_MIN);
-      if ( use_pairpot ) {
-        sig = m->pairpot[ipr].sigma;
-        eps6 = m->pairpot[ipr].eps6;
-        eps12 = m->pairpot[ipr].eps12;
+      /* if any of the pair energy is set, we use the pair potential */
+      use_pairpot = ( fabs(eps6) > DBL_MIN || fabs(eps12) > DBL_MIN
+          || fabs(c6) > DBL_MIN || fabs(c12) > DBL_MIN || fabs(Bij) > DBL_MIN );
+      if ( !use_pairpot ) { /* otherwise, we use the starndard LJ form */
+        sig = .5 * (m->sigma[i] + m->sigma[j]);
+        eps6 = sqrt(m->eps6_12[i][0] * m->eps6_12[j][0]);
+        eps12 = sqrt(m->eps6_12[i][1] * m->eps6_12[j][1]);
       }
       //printf("i %d, j %d, sig %g, eps6 %g, eps12 %g, c6 %g c12 %g, B %g, rho %g, rmin %g\n",
       //    i + 1, j + 1, sig, eps6, eps12, c6, c12, Bij, rhoij, rminij);
@@ -514,7 +522,7 @@ static double iter_picard(model_t *model,
 
 
 /* save correlation functions to file `fn' */
-static int output(model_t *m,
+static char *output(model_t *m,
     double **cr, double **vrqq, double **vrlr,
     double **ur, double **tr, double **fr,
     double **ck, double **vklr, double **tk, double **wk,
@@ -522,7 +530,7 @@ static int output(model_t *m,
 {
   int i, j, ij, l, ns = m->ns, npt = m->npt;
   FILE *fp;
-  char fnl[80];
+  static char fnl[FILENAME_MAX];
   double eps_rism;
 
   if ( sepout ) {
@@ -532,7 +540,7 @@ static int output(model_t *m,
   }
   if ((fp = fopen(fnl, "w")) == NULL) {
     fprintf(stderr, "cannot open %s\n", fnl);
-    return -1;
+    return NULL;
   }
   eps_rism = calcdielec(m);
   /* print some basic information on the first line */
@@ -580,8 +588,7 @@ static int output(model_t *m,
     }
   }
   fclose(fp);
-  fprintf(stderr, "saved result to %s\n", fnl);
-  return 0;
+  return fnl;
 }
 
 
@@ -589,11 +596,13 @@ static int output(model_t *m,
 static int dorism(model_t *model)
 {
   int it, ns, npt, ilam, nlam;
-  double err = 0, dia, lam;
+  double err = 0, dia, eps, lam;
   double **ur, **nrdur, **fr, **wk;
   double **cr, **cp, **ck, **tr, **tk, **ntk;
   double **der, **vrlr, **vrqq, **vrsr, **vklr;
   double *um, *mum;
+  const char *fnout;
+  uv_t *uv;
 
   /* equivalent diameter of the solvent molecule */
   dia = getdiameters(model);
@@ -635,27 +644,35 @@ static int dorism(model_t *model)
     if ( ilam == 1 )
       cparr2d(cr, fr, ns * ns, npt);
 
+    /* initialize the manager for solute-solvent iteraction */
+    uv = uv_open(model, douu);
+
     if ( model->solver == SOLVER_LMV ) {
       err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr,
-          tr, tk, ntk, cp, douu, &it);
+          tr, tk, ntk, cp, uv, &it);
     } else if ( model->solver == SOLVER_MDIIS ) {
       err = iter_mdiis(model, vrsr, wk, cr, ck, vklr,
-          tr, tk, douu, &it);
+          tr, tk, uv, &it);
     } else {
       err = iter_picard(model, vrsr, wk, cr, ck, vklr,
           tr, tk, &it);
     }
 
-    output(model, cr, vrqq, vrlr, ur, tr, fr, ck, vklr, tk, wk, fncrtr, ilam);
-    fprintf(stderr, "lambda %g, %d iterations, err %g, d %g, rho*d^3 %g\n",
-        lam, it, err, dia, model->rho[0]*dia*dia*dia);
+    uv_close(uv);
+
+    fnout = output(model, cr, vrqq, vrlr, ur, tr, fr, ck, vklr, tk, wk,
+        fncrtr, ilam);
+    fprintf(stderr, "lambda %4.2f, %4d iterations, err %10.4e, output %s\n",
+        lam, it, err, fnout);
   }
 
   calcU(model, ur, cr, tr, vrsr, um);
-  calcchempot(model, cr, tr, vrsr, vrlr, mum);
+  calcchempot(model, cr, tr, vrsr, vrlr, mum, verbose);
   calckirk(model, cr, tr, NULL);
   calccrdnum(model, cr, tr, vrsr, fncrdnum);
-  calcdielec(model);
+  eps = calcdielec(model);
+  printf("dielectric constant %g, d %g, rho*d^3 %g\n",
+      eps, dia, model->rho[0]*dia*dia*dia);
 
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);

@@ -210,15 +210,11 @@ static double iter_mdiis(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
     double **tr, double **tk,
-    int uutype, int *niter)
+    uv_t *uv, int *niter)
 {
   mdiis_t *mdiis;
   int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
   double err, errp = errinf, damp = model->mdiis.damp, *res;
-  uv_t *uv;
-
-  /* initialize the manager for solvent-solvent iteraction */
-  uv = uv_open(model);
 
   /* open the mdiis object if needed */
   mdiis = mdiis_open(ns, npt, model->mdiis.nbases);
@@ -245,12 +241,9 @@ static double iter_mdiis(model_t *model,
 
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uutype == DOUU_NEVER ) {
-          break;
-        } else if ( uutype == DOUU_ATOMIC ) {
-          if ( uv->infdil && uv->atomicsolvent )
-            step_picard(model, res, NULL, vrsr, wk,
-                cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
+        if ( uv->atomicsolvent && uv->infdil ) {
+          step_picard(model, res, NULL, vrsr, wk,
+              cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
           break;
         }
       }
@@ -267,8 +260,6 @@ static double iter_mdiis(model_t *model,
   }
   *niter = it;
   mdiis_close(mdiis);
-
-  uv_close(uv);
   return err;
 }
 

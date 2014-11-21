@@ -149,7 +149,6 @@ static double calcdielec(model_t *m)
     //printf("imol %d, %d sites, dipole moment %g, y %g\n", imol, ic, mu, y);
   }
   eps = 1 + 3 * eps;
-  printf("dielectric constant %g\n", eps);
   return eps;
 }
 
@@ -247,8 +246,8 @@ static int calccrdnum(model_t *m,
           break;
         }
       }
-      printf("i %d, j %d, princ. peak r %8.3f, g(r) %12g, "
-          "first min. %8.3f, g(r) %12f, coord. no. %g\n",
+      printf("i %d, j %d, princ. peak r%8.3f, g(r)%8.3f, "
+          "first min.%8.3f, g(r)%8.3f, coord. no.%8.3f\n",
           i + IDBASE, j + IDBASE, rimax, grmax, rimin, grmin, nij[lmin]);
     }
   }
@@ -297,7 +296,7 @@ static int calcU(model_t *m, double **ur,
 /* compute the chemical potential
  * NOTE: this routine does not work for charged systems */
 static int calcchempot(model_t *m, double **cr, double **tr,
-    double **vrsr, double **vrlr, double *bmum)
+    double **vrsr, double **vrlr, double *bmum, int verbose)
 {
   int i, j, ij, im, l, ns = m->ns, npt = m->npt;
   double bmuij, dr, ri, c, t, h, vrl, y, B;
@@ -340,7 +339,7 @@ static int calcchempot(model_t *m, double **cr, double **tr,
         bmuij += y * ri * ri;
       }
       bmuij *= 4 * PI * m->rho[j] * dr;
-      printf("i %d, j %d, bmuij %g\n", i + IDBASE, j + IDBASE, bmuij);
+      if ( verbose ) printf("i %d, j %d, bmuij %g\n", i + IDBASE, j + IDBASE, bmuij);
       bmum[im] += bmuij;
     }
   }

@@ -37,7 +37,7 @@ typedef struct {
   double C6;    /* C6/r^6 */
   double C12;   /* C12/r^12 */
   double B;     /* B exp(-r/rho) */
-  double rho;   /* B exp(-r/rho) */
+  double rho;   /* B exp(-r/rho), this is not the density */
   double sigma; /* eps6 (sigma/r)^6 + eps12 (sigma/r)^12 */
   double eps6;  /* eps6 (sigma/r)^6 */
   double eps12; /* eps12 (sigma/r)^12 */
@@ -378,7 +378,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
       ipr = model_getidx2(key, &i, &j, ns, 1);
       m->pairpot[ipr].B = atof(val);
       ECHO_ARR2("B", m->pairpot[ipr].B);
-    } else if ( strstartswith(key, "rhoij(") ) {
+    } else if ( strstartswith(key, "rhoij(") ) { /* radius, not the density */
       ipr = model_getidx2(key, &i, &j, ns, 1);
       m->pairpot[ipr].rho = atof(val);
       ECHO_ARR2("rho", m->pairpot[ipr].rho);

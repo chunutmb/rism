@@ -98,13 +98,12 @@ static double iter_lmv(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **der, double **ck, double **vklr,
     double **tr, double **tk, double **ntk,
-    double **invwc1w, int uutype, int *niter)
+    double **invwc1w, uv_t *uv, int *niter)
 {
   int i, j, l, ij, it, M, npr, ipr, Mp;
   int ns = model->ns, npt = model->npt;
   double **Cjk = NULL, *mat = NULL, *b = NULL, **costab = NULL, *dp = NULL;
   double y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
-  uv_t *uv;
 
   /* initialize t(k) and t(r) */
   sphr_r2k(cr, ck, ns, NULL);
@@ -134,9 +133,6 @@ static double iter_lmv(model_t *model,
       for ( i = 0; i < npt; i++ )
         costab[j][i] = cos(PI*(i+.5)*(j-M)/npt);
   }
-
-  /* initialize the manager for solvent-solvent iteraction */
-  uv = uv_open(model);
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
@@ -194,11 +190,8 @@ static double iter_lmv(model_t *model,
       /* switch between stages */
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uutype == DOUU_NEVER ) {
-          break;
-        } else if ( uutype == DOUU_ATOMIC ) {
-          if ( uv->infdil && uv->atomicsolvent )
-            step_picard(model, NULL, NULL, vrsr, wk,
+        if ( uv->infdil && uv->atomicsolvent ) {
+          step_picard(model, NULL, NULL, vrsr, wk,
                 cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
           break;
         }
@@ -224,7 +217,6 @@ static double iter_lmv(model_t *model,
     delarr(dp);
     delarr2d(costab, 3*M);
   }
-  uv_close(uv);
   return err;
 }
 

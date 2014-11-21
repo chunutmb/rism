@@ -6,7 +6,7 @@ function change_ns()
   var tab = grab("siteTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
-  
+
   // determine the number of existing rows
   for ( var i = 0; ; i++ ) {
     rowid = "site_row_" + (i+1);
@@ -35,30 +35,30 @@ function change_ns()
     td = document.createElement("td");
     td.innerHTML = "" + (i+1);
     row.appendChild(td);
-    
+
     // sigma
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="sigma_' + (i+1) + '">';
     row.appendChild(td);
-    
+
     // eps6
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="eps6_' + (i+1)
       + '" onChange="change_eps6(' + (i+1) + ')">';
     row.appendChild(td);
-    
+
     // eps12
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="eps12_' + (i+1) + '">'
       + '<input type="checkbox" id="sameeps_' + (i+1) + '"> Same as '
       + '<span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>';
     row.appendChild(td);
-    
+
     // density, rho
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="14" value="0" id="rho_' + (i+1) + '">';
     row.appendChild(td);
-    
+
     // charge
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="charge_' + (i+1) + '">';
@@ -86,7 +86,7 @@ function change_nbonds()
   var tab = grab("bondTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
-  
+
   // determine the number of existing rows
   for ( var i = 0; ; i++ ) {
     rowid = "bond_row_" + (i+1);
@@ -115,7 +115,7 @@ function change_nbonds()
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="bondi_' + (i+1) + '">';
     row.appendChild(td);
-    
+
     // site j
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="bondj_' + (i+1) + '">';

@@ -1,5 +1,5 @@
 form {
-  width: 840px;
+  width: 880px;
   padding: 10px 10px;
   border: double;
   margin: auto;
@@ -55,4 +55,14 @@ textarea {
 
 .plot {
   margin: 20px 10px;
+}
+
+.fig {
+  border: 3px outset #808080;
+  margin: 5px;
+}
+
+.figwrap {
+  text-align: center;
+  padding: 20px 0px;
 }

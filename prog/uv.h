@@ -15,6 +15,7 @@ typedef struct {
   int npr; /* number of active pairs */
   int infdil; /* infinite dilution */
   int atomicsolvent; /* solvent molecules are atomic, not molecular */
+  int uutype; /* how to do solute-solute interaction */
 } uv_t;
 
 
@@ -33,7 +34,7 @@ static int getnsv(model_t *m)
 
 
 
-static uv_t *uv_open(model_t *m)
+static uv_t *uv_open(model_t *m, int uutype)
 {
   uv_t *uv;
   int i, j, ipr, ns = m->ns;
@@ -59,6 +60,7 @@ static uv_t *uv_open(model_t *m)
         uv->atomicsolvent = 0;
         break;
       }
+  uv->uutype = uutype;
   return uv;
 }
 
@@ -89,6 +91,8 @@ static int uv_switch(uv_t *uv)
     fprintf(stderr, "turning on solute-solvent interaction\n");
     uv->stage = SOLUTE_SOLVENT;
   } else if ( uv->stage == SOLUTE_SOLVENT ) { /* turn on solute-solute interaction */
+    if ( uv->uutype == DOUU_NEVER ) return 1;
+    if ( uv->uutype == DOUU_ATOMIC && !uv->atomicsolvent ) return 1;
     for ( i = 0; i < ns; i++ )
       for ( j = 0; j < ns; j++ )
         if ( uv->infdil ) {
