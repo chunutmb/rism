@@ -17,3 +17,6 @@ You can also test a few stock models. For example
 tests model 14.
 There are 16 models by default.
 
+The default output is out.dat.
+The output can be used in Gnuplot.
+For various definitions of the PMF, please consult the note under doc/pmfs.dat.

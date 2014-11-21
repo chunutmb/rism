@@ -313,13 +313,13 @@
   <input type="text" size="6" value="5" id="mdiis_nbases">
   <br>
 
-  <center>
+  <div class="center">
   <input type="button" value="Generate configuration file"
     id="gencfgbtn" onClick="gencfg()" class="largebtn">
 
   <input type="reset" value="Reset"
     id="resetbtn" class="largebtn">
-  </center>
+  </div>
   <br>
 
   <div>
@@ -328,8 +328,43 @@
   </div>
 </form>
 
+<h2>The XRISM program <span class="code">rism0</span></h2>
+
 <p>
-The C program was used to reproduce several classic papers:
+The program <span class="code">rism0</span>
+solves the integral equation for a molecular fluid.
+
+It is written in C.
+
+The latest version of <span class="code">rism0</span>
+can be found in
+<ul>
+  <li>
+    <a href="https://github.com/3ki5tj/rism">
+      Github
+    </a> (source code only)
+  </li>
+  <li>
+    <a href="https://www.dropbox.com/sh/85y8gnm40hfspo1/AADyeYAYAYnmfvGTo6hVhksga?dl=0">
+      Dropbox link </a>
+    (including references, data files, etc.)
+  </li>
+</ul>
+
+<p>
+XRISM is an advanced integral equation.
+For an introduction of integral equation,
+see <a href="ie.html">this demonstration</a>.
+
+<p>
+Normally, the program produces an output file
+<span class="code">out.dat</span>.
+<a href="../doc/pmfs.pdf">This note</a> contains information on how to use the output
+to compute various potentials of mean force.
+
+<p>
+The program <span class="code">rism0</span>
+was used to reproduce several classic papers:
 <ul>
 <li><a href="./mkpapers/hrp1983.html">HRP1983</a>
 <li><a href="./mkpapers/pr1986.html">PR1986</a>
