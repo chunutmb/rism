@@ -5,28 +5,28 @@ function change_ns()
   ns = parseInt(ns);
   var tab = grab("siteTable");
   var tbody = tab.lastChild;
+  var rowid, row, td;
   
   // determine the number of existing rows
   for ( var i = 0; ; i++ ) {
-    var rowid = "row_" + (i+1);
-    var row = document.getElementById(rowid);
+    rowid = "site_row_" + (i+1);
+    row = document.getElementById(rowid);
     if ( row == null ) break;
   }
   var nrows = i; // number of existing rows
 
   // remove redundant elements, if any
   for ( var i = ns; i < nrows; i++ ) {
-    var rowid = "row_" + (i+1);
-    var row = document.getElementById(rowid);
+    rowid = "site_row_" + (i+1);
+    row = document.getElementById(rowid);
     if ( row.parentNode == tbody )
       tbody.removeChild(row);
   }
 
   // create nonexisting elements
   for ( var i = nrows; i < ns; i++ ) {
-    var rowid = "row_" + (i+1);
-    var row = document.createElement("tr");
-    var td, inp;
+    rowid = "site_row_" + (i+1);
+    row = document.createElement("tr");
 
     row.setAttribute("id", rowid);
     tbody.appendChild(row);
@@ -78,8 +78,59 @@ function change_eps6(id)
   }
 }
 
+function change_nbonds()
+{
+  var nbonds = grab("nbonds").value;
+  if ( !is_int(nbonds) || nbonds < 0 ) return;
+  nbonds = parseInt(nbonds);
+  var tab = grab("bondTable");
+  var tbody = tab.lastChild;
+  var rowid, row, td;
+  
+  // determine the number of existing rows
+  for ( var i = 0; ; i++ ) {
+    rowid = "bond_row_" + (i+1);
+    row = document.getElementById(rowid);
+    if ( row == null ) break;
+  }
+  var nrows = i; // number of existing rows
+
+  // remove redundant elements, if any
+  for ( var i = nbonds; i < nrows; i++ ) {
+    rowid = "bond_row_" + (i+1);
+    row = document.getElementById(rowid);
+    if ( row.parentNode == tbody )
+      tbody.removeChild(row);
+  }
+
+  // create nonexisting elements
+  for ( var i = nrows; i < nbonds; i++ ) {
+    rowid = "bond_row_" + (i+1);
+    row = document.createElement("tr");
+
+    row.setAttribute("id", rowid);
+    tbody.appendChild(row);
+
+    // site i
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="10" value="0" id="bondi_' + (i+1) + '">';
+    row.appendChild(td);
+    
+    // site j
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="10" value="0" id="bondj_' + (i+1) + '">';
+    row.appendChild(td);
+
+    // bond length
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="14" value="0" id="bondlen_' + (i+1) + '">';
+    row.appendChild(td);
+  }
+}
+
 $(document).ready(function() {
   change_ns();
+  change_nbonds();
 });
 
 function gencfg()
@@ -112,17 +163,13 @@ function gencfg()
   }
   s += "\n";
 
-  /* parse chemical bonds */
-  cb = $("#chembonds").val().split("\n");
-  for ( var i = 0; i < cb.length; i++ ) {
-    var ln = cb[i].trim();
-    if ( ln.charAt(0) == "#" || ln.length == 0 ) continue;
-    var arr = ln.split(" ");
-    if ( arr.length < 3 ) {
-      console.log("invalid line " + ln);
-      continue;
-    }
-    s += "dis(" + arr[0] + ", " + arr[1] + ")     = " + arr[2] + "\n";
+  var nbonds = get_int("nbonds");
+  for ( var i = 0; i < nbonds; i++ ) {
+    var i1 = i + 1;
+    var bondi = get_int("bondi_" + i1);
+    var bondj = get_int("bondj_" + i1);
+    var bondlen = get_float("bondlen_" + i1);
+    s += "dis(" + bondi + ", " + bondj + ")     = " + bondlen + "\n";
   }
   s += "\n";
 

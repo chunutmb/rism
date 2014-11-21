@@ -72,19 +72,19 @@
       </th>
     </tr>
 
-    <tr id="row_1">
+    <tr id="site_row_1">
       <td> 1 </td>
       <td> <input type="text" size="10" value="3.15" id="sigma_1"> </td>
       <td> <input type="text" size="10" value="76.5364" id="eps6_1" onChange="change_eps6(1)"> </td>
       <td> <input type="text" size="10" value="76.5364" id="eps12_1">
-        <input type="checkbox" id="sameeps_1">
+        <input type="checkbox" id="sameeps_1" checked>
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_1"> </td>
       <td> <input type="text" size="10" value="-0.834" id="charge_1"> </td>
     </tr>
 
-    <tr id="row_2">
+    <tr id="site_row_2">
       <td> 2 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_2"> </td>
       <td> <input type="text" size="10" value="0" id="eps6_2" onChange="change_eps6(2)"> </td>
@@ -96,7 +96,7 @@
       <td> <input type="text" size="10" value="0.417" id="charge_2"> </td>
     </tr>
 
-    <tr id="row_3">
+    <tr id="site_row_3">
       <td> 3 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_3"> </td>
       <td> <input type="text" size="10" value="0" id="eps6_3" onChange="change_eps6(3)"> </td>
@@ -111,18 +111,51 @@
   </table>
   <br>
 
-  <div>
-    Chemical bonds, the format of each line is<br>
-    <span class="code"> &nbsp; site1 site2 distance-in-angstroms</span><br>
-    e.g.,<br>
-    <span class="code"> &nbsp; 1 2 3.34</span>:
-    <br>
-  <textarea rows="4" id="chembonds">1 2 1.0
-1 3 1.0
-2 3 1.633
-</textarea>
-  </div>
 
+  <hr>
+  Chemical bonds:
+  <br>
+  Number of bonds:
+  <input type="text" size="8" value="3" id="nbonds"
+    onChange="change_nbonds()">
+  <br>
+  <table id="bondTable">
+    <tr id="bondTableHeader">
+      <th>
+        Site <span class="math"><i>i</i></span>
+      </th>
+      <th>
+        Site <span class="math"><i>j</i></span>
+      </th>
+      <th>
+        Bond length
+        <!-- <span class="math"><i>L<sub>i,j</sub></i></span> -->
+        (&#197;)
+      </th>
+    </tr>
+
+    <tr id="bond_row_1">
+      <td> <input type="text" size="10" value="1" id="bondi_1"> </td>
+      <td> <input type="text" size="10" value="2" id="bondj_1"> </td>
+      <td> <input type="text" size="14" value="1.0" id="bondlen_1"> </td>
+    </tr>
+
+    <tr id="bond_row_2">
+      <td> <input type="text" size="10" value="1" id="bondi_2"> </td>
+      <td> <input type="text" size="10" value="3" id="bondj_2"> </td>
+      <td> <input type="text" size="14" value="1.0" id="bondlen_2"> </td>
+    </tr>
+
+    <tr id="bond_row_3">
+      <td> <input type="text" size="10" value="2" id="bondi_3"> </td>
+      <td> <input type="text" size="10" value="3" id="bondj_3"> </td>
+      <td> <input type="text" size="14" value="1.633" id="bondlen_3"> </td>
+    </tr>
+
+  </table>
+  <br>
+
+  <hr>
   Temperature:
   <input type="text" size="6" value="300" id="temp">
   K
