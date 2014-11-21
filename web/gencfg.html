@@ -29,8 +29,8 @@
     onChange="change_ns()">
   <br>
 
-  <table>
-    <tr>
+  <table id="siteTable">
+    <tr id="siteTableHeader">
       <th>
         Site #
       </th>
@@ -57,8 +57,7 @@
           <option value="kJpermol">kJ/mol</option>
           <option value="kcalpermol">kcal/mol</option>
         </select>)<br>
-        <input type="checkbox" id="sameeps"> Same as
-        <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
+
       </th>
       <th>
         <span class="math"><i>&rho;</i></span>
@@ -75,75 +74,40 @@
 
     <tr id="row_1">
       <td> 1 </td>
-      <td> <input type="text" size="12" value="3.15" id="sigma_1"> </td>
-      <td> <input type="text" size="12" value="76.5364" id="eps6_1" onChange="change_eps6(1)"> </td>
-      <td> <input type="text" size="12" value="76.5364" id="eps12_1"> </td>
-      <td> <input type="text" size="12" value="0.033314" id="rho_1"> </td>
-      <td> <input type="text" size="12" value="-0.834" id="charge_1"> </td>
+      <td> <input type="text" size="10" value="3.15" id="sigma_1"> </td>
+      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onChange="change_eps6(1)"> </td>
+      <td> <input type="text" size="10" value="76.5364" id="eps12_1">
+        <input type="checkbox" id="sameeps_1">
+        Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
+      </td>
+      <td> <input type="text" size="14" value="0.033314" id="rho_1"> </td>
+      <td> <input type="text" size="10" value="-0.834" id="charge_1"> </td>
     </tr>
 
     <tr id="row_2">
       <td> 2 </td>
-      <td> <input type="text" size="12" value="0.4" id="sigma_2"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_2" onChange="change_eps6(2)"> </td>
-      <td> <input type="text" size="12" value="23.1509" id="eps12_2"> </td>
-      <td> <input type="text" size="12" value="0.033314" id="rho_2"> </td>
-      <td> <input type="text" size="12" value="0.417" id="charge_2"> </td>
+      <td> <input type="text" size="10" value="0.4" id="sigma_2"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_2" onChange="change_eps6(2)"> </td>
+      <td> <input type="text" size="10" value="23.1509" id="eps12_2">
+        <input type="checkbox" id="sameeps_2">
+        Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
+      </td>
+      <td> <input type="text" size="14" value="0.033314" id="rho_2"> </td>
+      <td> <input type="text" size="10" value="0.417" id="charge_2"> </td>
     </tr>
 
     <tr id="row_3">
       <td> 3 </td>
-      <td> <input type="text" size="12" value="0.4" id="sigma_3"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_3" onChange="change_eps6(3)"> </td>
-      <td> <input type="text" size="12" value="23.1509" id="eps12_3"> </td>
-      <td> <input type="text" size="12" value="0.033314" id="rho_3"> </td>
-      <td> <input type="text" size="12" value="0.417" id="charge_3"> </td>
+      <td> <input type="text" size="10" value="0.4" id="sigma_3"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_3" onChange="change_eps6(3)"> </td>
+      <td> <input type="text" size="10" value="23.1509" id="eps12_3">
+        <input type="checkbox" id="sameeps_3">
+        Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
+      </td>
+      <td> <input type="text" size="14" value="0.033314" id="rho_3"> </td>
+      <td> <input type="text" size="10" value="0.417" id="charge_3"> </td>
     </tr>
 
-    <tr id="row_4">
-      <td> 4 </td>
-      <td> <input type="text" size="12" value="0" id="sigma_4"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_4" onChange="change_eps6(4)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_4"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_4"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_4"> </td>
-    </tr>
-
-    <tr id="row_5">
-      <td> 5 </td>
-      <td> <input type="text" size="12" value="0" id="sigma_5"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_5" onChange="change_eps6(5)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_5"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_5"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_5"> </td>
-    </tr>
-
-    <tr id="row_6">
-      <td> 6 </td>
-      <td> <input type="text" size="12" value="0" id="sigma_6"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_6" onChange="change_eps6(6)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_6"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_6"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_6"> </td>
-    </tr>
-
-    <tr id="row_7">
-      <td> 7 </td>
-      <td> <input type="text" size="12" value="0" id="sigma_7"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_7" onChange="change_eps6(7)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_7"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_7"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_7"> </td>
-    </tr>
-
-    <tr id="row_8">
-      <td> 8 </th>
-      <td> <input type="text" size="12" value="0" id="sigma_8"> </td>
-      <td> <input type="text" size="12" value="0" id="eps6_8" onChange="change_eps6(8)"> </td>
-      <td> <input type="text" size="12" value="0" id="eps12_8"> </td>
-      <td> <input type="text" size="12" value="0" id="rho_8"> </td>
-      <td> <input type="text" size="12" value="0" id="charge_8"> </td>
-    </tr>
   </table>
   <br>
 

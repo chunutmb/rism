@@ -1,17 +1,14 @@
 form {
-  width: 780px;
+  width: 840px;
   padding: 10px 10px;
   border: double;
   margin: auto;
 }
 
-th {
-  vertical-align: top;
-}
-
 td, th {
   padding: 2px 5px;
   border: 1px solid #cccccc;
+  vertical-align: top;
 }
 
 .math {

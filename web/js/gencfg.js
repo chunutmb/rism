@@ -1,17 +1,68 @@
-var nsmax = 8;
-
 function change_ns()
 {
   var ns = $("#ns").val();
   if ( !is_int(ns) ) return;
-  if ( ns > nsmax ) ns = nsmax;
-  for ( var i = 0; i < nsmax; i++ ) {
-    var disabled = (i >= ns);
-    $(("#sigma_"  + (i+1))).prop('disabled', disabled);
-    $(("#eps6_"   + (i+1))).prop('disabled', disabled);
-    $(("#eps12_"  + (i+1))).prop('disabled', disabled);
-    $(("#rho_"    + (i+1))).prop('disabled', disabled);
-    $(("#charge_" + (i+1))).prop('disabled', disabled);
+  ns = parseInt(ns);
+  var tab = grab("siteTable");
+  var tbody = tab.lastChild;
+  
+  // determine the number of existing rows
+  for ( var i = 0; ; i++ ) {
+    var rowid = "row_" + (i+1);
+    var row = document.getElementById(rowid);
+    if ( row == null ) break;
+  }
+  var nrows = i; // number of existing rows
+
+  // remove redundant elements, if any
+  for ( var i = ns; i < nrows; i++ ) {
+    var rowid = "row_" + (i+1);
+    var row = document.getElementById(rowid);
+    if ( row.parentNode == tbody )
+      tbody.removeChild(row);
+  }
+
+  // create nonexisting elements
+  for ( var i = nrows; i < ns; i++ ) {
+    var rowid = "row_" + (i+1);
+    var row = document.createElement("tr");
+    var td, inp;
+
+    row.setAttribute("id", rowid);
+    tbody.appendChild(row);
+
+    // site id
+    td = document.createElement("td");
+    td.innerHTML = "" + (i+1);
+    row.appendChild(td);
+    
+    // sigma
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="10" value="0" id="sigma_' + (i+1) + '">';
+    row.appendChild(td);
+    
+    // eps6
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="10" value="0" id="eps6_' + (i+1)
+      + '" onChange="change_eps6(' + (i+1) + ')">';
+    row.appendChild(td);
+    
+    // eps12
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="10" value="0" id="eps12_' + (i+1) + '">'
+      + '<input type="checkbox" id="sameeps_' + (i+1) + '"> Same as '
+      + '<span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>';
+    row.appendChild(td);
+    
+    // density, rho
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="14" value="0" id="rho_' + (i+1) + '">';
+    row.appendChild(td);
+    
+    // charge
+    td = document.createElement("td");
+    td.innerHTML = '<input type="text" size="10" value="0" id="charge_' + (i+1) + '">';
+    row.appendChild(td);
   }
 }
 
@@ -22,7 +73,7 @@ function change_unit_eps()
 
 function change_eps6(id)
 {
-  if ( $("#sameeps").is(':checked') ) {
+  if ( $("#sameeps_" + id).is(':checked') ) {
     $(("#eps12_" + id)).val( $(("#eps6_" + id)).val() );
   }
 }
@@ -36,18 +87,18 @@ function gencfg()
   var s = "# configuration file for rism0\n";
 
   var ns = $("#ns").val();
-  if ( !is_int(ns) || ns > nsmax || ns <= 0 ) {
+  if ( !is_int(ns) || ns <= 0 ) {
     alert("# of sites [" + $("#ns").val() + "] is invalid");
     return;
   }
   s += "ns            = " + ns + "\n";
 
   var ljtype = $("#ljtype").val();
-  var sameeps = $("#sameeps").is(':checked');
   for ( var i = 0; i < ns; i++ ) {
     var i1 = i + 1;
     s += "\n";
     s += "sigma(" + i1 + ")      = " + $(("#sigma_"  + i1)).val() + "\n";
+    var sameeps = $("#sameeps_" + i1).is(':checked');
     if ( ljtype != "Hard-sphere" ) {
       if ( sameeps ) {
         s += "eps(" + i1 + ")        = " + $(("#eps6_"   + i1)).val() + "\n";

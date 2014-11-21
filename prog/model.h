@@ -7,7 +7,11 @@
 
 
 
-#define MAXATOM   16 /* maximal number of atoms/sites */
+/* to use more atoms, define MAXATOM when compiling, e.g.,
+ *  icc -DMAXATOM=64 rism0.c -lfftw3 */
+#ifndef MAXATOM
+#define MAXATOM   32 /* maximal number of atoms/sites */
+#endif
 #define NSMAX     (MAXATOM)
 #define NS2MAX    (NSMAX * NSMAX)
 
@@ -308,6 +312,11 @@ static int model_load(model_t *m, const char *fn, int verbose)
 
     if ( strcmp(key, "ns") == 0 ) {
       m->ns = ns = atoi(val);
+      if ( ns > MAXATOM ) {
+        fprintf(stderr, "too many sites %d > %d, recompile the program with increased MAXATOM\n",
+            ns, MAXATOM);
+        exit(1);
+      }
       ECHO_INT("ns", m->ns);
     } else if ( strstartswith(key, "sigma(") ) {
       i = model_getidx(key, ns);
