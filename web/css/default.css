@@ -1,3 +1,8 @@
+body {
+  width: 900px;
+  margin: auto;
+}
+
 form {
   width: 880px;
   padding: 10px 10px;
@@ -11,6 +16,11 @@ td, th {
   vertical-align: top;
 }
 
+th {
+  font-size: 105%;
+  font-weight: normal;
+}
+
 .math {
   font-family: Times, "Times New Roman", serif;
   font-size: larger;
@@ -19,11 +29,6 @@ td, th {
 .code {
   font-family: Courier, "Courier New", Monospace;
   font-weight: bold;
-}
-
-th {
-  font-size: 105%;
-  font-weight: normal;
 }
 
 option {

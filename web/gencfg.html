@@ -57,7 +57,6 @@
           <option value="kJpermol">kJ/mol</option>
           <option value="kcalpermol">kcal/mol</option>
         </select>)<br>
-
       </th>
       <th>
         <span class="math"><i>&rho;</i></span>
@@ -106,6 +105,49 @@
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_3"> </td>
       <td> <input type="text" size="10" value="0.417" id="charge_3"> </td>
+    </tr>
+
+  </table>
+  <br>
+
+
+  <hr>
+  Number of special interactions:
+  <input type="text" size="8" value="0" id="nbonds"
+    onChange="change_nprs()">
+  <br>
+  <table id="pairTable">
+    <tr id="pairTableHeader">
+      <th>
+        Site <span class="math"><i>i</i></span>
+      </th>
+      <th>
+        Site <span class="math"><i>j</i></span>
+      </th>
+      <th>
+        <span class="math"><i>&sigma;</i></span>
+        (&#197;)
+      </th>
+      <th>
+        <span class="math"><i>&epsilon;<sub>&#8326;</sub></i></span>
+        (<select id="pairunit_eps6" disabled>
+          <option value="reduced">reduced</option>
+          <option value="K" selected>K</option>
+          <option value="erg">erg</option>
+          <option value="kJpermol">kJ/mol</option>
+          <option value="kcalpermol">kcal/mol</option>
+        </select>)<br>
+      </th>
+      <th>
+        <span class="math"><i>&epsilon;</i><sub>&#8321;&#8322;</sub></span>
+        (<select id="pairunit_eps12" disabled>
+          <option value="reduced">reduced</option>
+          <option value="K" selected>K</option>
+          <option value="erg">erg</option>
+          <option value="kJpermol">kJ/mol</option>
+          <option value="kcalpermol">kcal/mol</option>
+        </select>)<br>
+      </th>
     </tr>
 
   </table>
@@ -255,6 +297,13 @@
   <textarea rows="10" id="cfgout"></textarea>
   </div>
 </form>
+
+<p>
+The C program was used to reproduce several classic papers:
+<ul>
+<li><a href="./mkpapers/hrp1983.html">HRP1983</a>
+<li><a href="./mkpapers/pr1986.html">PR1986</a>
+</ul>
 
 
 

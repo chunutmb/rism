@@ -1,6 +1,6 @@
 function change_ns()
 {
-  var ns = $("#ns").val();
+  var ns = grab("ns").value;
   if ( !is_int(ns) ) return;
   ns = parseInt(ns);
   var tab = grab("siteTable");
@@ -68,7 +68,10 @@ function change_ns()
 
 function change_unit_eps()
 {
-  $("#unit_eps12").val( $("#unit_eps6").val() );
+  var unit = grab("unit_eps6").value;
+  grab("unit_eps12").value = unit;
+  grab("pairunit_eps6").value = unit;
+  grab("pairunit_eps12").value = unit;
 }
 
 function change_eps6(id)
@@ -131,6 +134,7 @@ function change_nbonds()
 $(document).ready(function() {
   change_ns();
   change_nbonds();
+  change_unit_eps();
 });
 
 function gencfg()
