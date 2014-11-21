@@ -1,0 +1,4 @@
+Formula for the dielectric constant in water from mm1956.pdf
+eps(t)=87.740-0.40008*t+9.398e-4*t*t - 1.410e-6*t*t*t.
+deps(t)=-0.4008+2*9.398e-4*t-3*1.410e-6*t*t
+
