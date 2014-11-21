@@ -190,7 +190,12 @@ static int model_load(model_t *m, const char *fn, int verbose)
   int i, j, ipr, ns = -1, inpar;
   double temp = 300;
   const constmap_t constants[] = {
-    {"calpj",           CALPJ},
+    {"cal_to_j",        CAL_TO_J},
+    {"j_to_cal",        J_TO_CAL},
+    {"cal_to_kj",       CAL_TO_KJ},
+    {"j_to_kcal",       J_TO_KCAL},
+    {"kcal_to_j",       KCAL_TO_J},
+    {"kj_to_cal",       KJ_TO_CAL},
     {"na",              NA},
     {"ec",              EC},
     {"eps0_si",         EPS0_SI},
@@ -227,6 +232,22 @@ static int model_load(model_t *m, const char *fn, int verbose)
     {"ke2pk_si",        KE2PK_SI},
     {"ke2pk_a",         KE2PK_A},
     {"ke2pk",           KE2PK},
+    {"erg_to_j",        ERG_TO_J},
+    {"erg_to_cal",      ERG_TO_CAL},
+    {"erg_to_kj",       ERG_TO_KJ},
+    {"erg_to_kcal",     ERG_TO_KCAL},
+    {"erg_to_jpmol",    ERG_TO_JPMOL},
+    {"erg_to_calpmol",  ERG_TO_CALPMOL},
+    {"erg_to_kjpmol",   ERG_TO_KJPMOL},
+    {"erg_to_kcalpmol", ERG_TO_KCALPMOL},
+    {"j_to_erg",        J_TO_ERG},
+    {"cal_to_erg",      CAL_TO_ERG},
+    {"kj_to_erg",       KJ_TO_ERG},
+    {"kcal_to_erg",     KCAL_TO_ERG},
+    {"jpmol_to_erg",    JPMOL_TO_ERG},
+    {"calpmol_to_erg",  CALPMOL_TO_ERG},
+    {"kjpmol_to_erg",   KJPMOL_TO_ERG},
+    {"kcalpmol_to_erg", KCALPMOL_TO_ERG},
     {NULL,              0},
   };
 

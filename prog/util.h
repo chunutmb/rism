@@ -25,26 +25,30 @@
 #define PI          3.14159265358979323846
 #define INFTY       1e30
 
-#define CALPJ       4.184               /* calories per joule */
+#define CAL_TO_J    4.184               /* from calories to joules */
+#define J_TO_CAL    (1./CAL_TO_J)       /* from joules to calories */
+#define CAL_TO_KJ   (CAL_TO_J*1e-3)     /* from calories to kilo joules */
+#define J_TO_KCAL   (J_TO_CAL*1e-3)     /* from joules to kilo calories */
+#define KCAL_TO_J   (CAL_TO_J*1e3)      /* from kilo calories to joules */
+#define KJ_TO_CAL   (J_TO_CAL*1e3)      /* from kilo joules to calories */
 #define NA          6.02214129e23       /* Avogadro constant in mol^{-1} */
 #define EC          1.602176565e-19     /* elementary charge in A*s */
 #define EPS0_SI     8.854187817620e-12  /* vacuum permittivity in A^2*s^4/kg/m^3 */
-
 
 #define KB_SI       1.3806488e-23       /* Boltzmann constant in m^2*kg/s^2/K = J/K */
 #define KB_KJ       (KB_SI*0.001)       /* Boltzmann constant in kJ/K, 1.3806488e-26 */
 #define KB_J        (KB_SI)             /* Boltzmann constant in J/K, 1.3806488e-23 */
 #define KB_ERG      (KB_SI*1e7)         /* Boltzmann constant in erg/K, 1.3806488e-16 */
-#define KB_KCAL     (KB_KJ/CALPJ)       /* Boltzmann constant in kcal/K, 3.29982982791587e-27 */
-#define KB_CAL      (KB_J/CALPJ)        /* Boltzmann constant in cal/K, 3.29982982791587e-24 */
+#define KB_KCAL     (KB_KJ*J_TO_CAL)    /* Boltzmann constant in kcal/K, 3.29982982791587e-27 */
+#define KB_CAL      (KB_J*J_TO_CAL)     /* Boltzmann constant in cal/K, 3.29982982791587e-24 */
 #define KB          (KB_KJ)             /* Boltzmann constant in the default unit */
 
 #define KBNA_SI     (KB_SI*NA)          /* Boltzmann constant in J/mol/K, 8.31446214547 */
 #define KBNA_KJ     (KB_KJ*NA)          /* Boltzmann constant in kJ/mol/K, 0.00831446214547 */
 #define KBNA_J      (KBNA_SI)           /* Boltzmann constant in J/mol/K, 8.31446214547 */
 #define KBNA_ERG    (KBNA_SI*1e7)       /* Boltzmann constant in erg/mol/K, 8.31446214547e7 */
-#define KBNA_KCAL   (KBNA_KJ/CALPJ)     /* Boltzmann constant in kcal/mol/K, 0.00198720414667 */
-#define KBNA_CAL    (KBNA_J/CALPJ)      /* Boltzmann constant in cal/mol/K, 1.98720414667 */
+#define KBNA_KCAL   (KBNA_KJ*J_TO_CAL)  /* Boltzmann constant in kcal/mol/K, 0.00198720414667 */
+#define KBNA_CAL    (KBNA_J*J_TO_CAL)   /* Boltzmann constant in cal/mol/K, 1.98720414667 */
 #define KBNA        (KBNA_KJ)           /* Boltzmann constant in the default unit */
 #define KBNAC       (KBNA_KCAL)
 
@@ -54,8 +58,8 @@
 #define KE2_AKJ     (KE2_SI*1e7)        /* e^2 / (4 PI EPS0) in angstrom*kJ, 2.3070773523707e-21 */
 #define KE2_AJ      (KE2_SI*1e10)       /* e^2 / (4 PI EPS0) in angstrom*J, 2.3070773523707e-18 */
 #define KE2_AERG    (KE2_SI*1e17)       /* e^2 / (4 PI EPS0) in angstrom*erg, 2.3070773523707e-11 */
-#define KE2_AKCAL   (KE2_AKJ/CALPJ)     /* e^2 / (4 PI EPS0) in angstrom*kcal, 5.514047209298996e-22 */
-#define KE2_ACAL    (KE2_AJ/CALPJ)      /* e^2 / (4 PI EPS0) in angstrom*cal, 5.514047209298996e-19 */
+#define KE2_AKCAL   (KE2_AKJ*J_TO_CAL)  /* e^2 / (4 PI EPS0) in angstrom*kcal, 5.514047209298996e-22 */
+#define KE2_ACAL    (KE2_AJ*J_TO_CAL)   /* e^2 / (4 PI EPS0) in angstrom*cal, 5.514047209298996e-19 */
 #define KE2         (KE2_AKJ)
 
 #define KE2NA_SI    (KE2_SI*NA)         /* e^2 / (4 PI EPS0) * NA in m*J/mol, 1.389354578e-7 */
@@ -70,6 +74,25 @@
 #define KE2PK_SI    (KE2_SI/KB_SI)      /* e^2/(4 Pi EPS0)/kB in m*K, 1.671009566e-5 */
 #define KE2PK_A     (KE2PK_SI*1e10)     /* e^2/(4 Pi EPS0)/kB in angstrom*K, 167100.9566 */
 #define KE2PK       (KE2PK_A)           /* e^2/(4 Pi EPS0)/kB in the default unit */
+
+#define ERG_TO_J          (1e-7)              /* 1e-7 */
+#define ERG_TO_CAL        (1e-7*J_TO_CAL)     /* 2.390057361376673e-8 */
+#define ERG_TO_KJ         (1e-10)             /* 1e-10 */
+#define ERG_TO_KCAL       (1e-10*J_TO_CAL)    /* 2.390057361376673e-11 */
+#define ERG_TO_JPMOL      (NA*1e-7)           /* 6.02214129e16 */
+#define ERG_TO_CALPMOL    (NA*1e-7*J_TO_CAL)  /* 1.43932631214914e16 */
+#define ERG_TO_KJPMOL     (NA*1e-10)          /* 6.02214129e13 */
+#define ERG_TO_KCALPMOL   (NA*1e-10*J_TO_CAL) /* 1.43932631214914e13 */
+
+#define J_TO_ERG          (1/ERG_TO_J)        /* 1e7 */
+#define CAL_TO_ERG        (1/ERG_TO_CAL)      /* 4.184e7 */
+#define KJ_TO_ERG         (1/ERG_TO_KJ)       /* 1e10 */
+#define KCAL_TO_ERG       (1/ERG_TO_KCAL)     /* 4.184e10 */
+#define JPMOL_TO_ERG      (1/ERG_TO_JPMOL)    /* 1.66053892103219e-17 */
+#define CALPMOL_TO_ERG    (1/ERG_TO_CALPMOL)  /* 6.947694845598683e-17 */
+#define KJPMOL_TO_ERG     (1/ERG_TO_KJPMOL)   /* 1.66053892103219e-14 */
+#define KCALPMOL_TO_ERG   (1/ERG_TO_KCALPMOL) /* 6.947694845598683e-14 */
+
 
 
 /* Memory allocation routines */
