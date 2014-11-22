@@ -89,15 +89,15 @@ function prepare()
 
   dr = rmax / npt;
   dk = Math.PI / rmax;
-  ri = new Array(npt);
-  ki = new Array(npt);
-  ur = new Array(npt);
-  fr = new Array(npt);
-  cr = new Array(npt);
-  tr = new Array(npt);
-  fk = new Array(npt);
-  ck = new Array(npt);
-  tk = new Array(npt);
+  ri = newnumarr(npt);
+  ki = newnumarr(npt);
+  ur = newnumarr(npt);
+  fr = newnumarr(npt);
+  cr = newnumarr(npt);
+  tr = newnumarr(npt);
+  fk = newnumarr(npt);
+  ck = newnumarr(npt);
+  tk = newnumarr(npt);
   for ( i = 0; i < npt; i++ ) {
     ri[i] = (i + .5) * dr;
     ki[i] = (i + .5) * dk;

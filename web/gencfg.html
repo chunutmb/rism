@@ -4,8 +4,12 @@
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
   <title>.cfg generator</title>
   <link rel="stylesheet" type="text/css" href="css/default.css">
+  <script src="js/dygraph-combined.js"></script>
   <script src="js/util.js"></script>
   <script src="js/gencfg.js"></script>
+  <script src="js/fft.js"></script>
+  <script src="js/rism_util.js"></script>
+  <script src="js/rism.js"></script>
 </head>
 <body onload="init()">
 
@@ -70,7 +74,7 @@
     <tr id="site_row_1">
       <td> 1 </td>
       <td> <input type="text" size="10" value="3.15" id="sigma_1"> </td>
-      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onChange="change_eps6(1)"> </td>
+      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onChange="change_eps6(1, '')"> </td>
       <td> <input type="text" size="10" value="76.5364" id="eps12_1">
         <input type="checkbox" id="sameeps_1" checked>
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
@@ -82,7 +86,7 @@
     <tr id="site_row_2">
       <td> 2 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_2"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_2" onChange="change_eps6(2)"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_2" onChange="change_eps6(2, '')"> </td>
       <td> <input type="text" size="10" value="23.1509" id="eps12_2">
         <input type="checkbox" id="sameeps_2">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
@@ -94,7 +98,7 @@
     <tr id="site_row_3">
       <td> 3 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_3"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_3" onChange="change_eps6(3)"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_3" onChange="change_eps6(3, '')"> </td>
       <td> <input type="text" size="10" value="23.1509" id="eps12_3">
         <input type="checkbox" id="sameeps_3">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
@@ -326,6 +330,33 @@
     Output configuration file:<br>
   <textarea rows="10" id="cfgout"></textarea>
   </div>
+
+  <hr>
+
+  <div class="center">
+    <input type="button" value="Run"
+    id="comutebtn" class="largebtn" onClick="mkplot()">
+  </div>
+
+
+  <table id="plot_table">
+    <tr>
+      <td>
+        <div id="gr_plot" class="plot"></div>
+      </td>
+      <td>
+        <div id="wr_plot" class="plot"></div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div id="cr_plot" class="plot"></div>
+      </td>
+      <td>
+        <div id="tr_plot" class="plot"></div>
+      </td>
+    </tr>
+  </table>
 </form>
 
 <h2>The XRISM program <span class="code">rism0</span></h2>

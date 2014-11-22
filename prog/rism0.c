@@ -313,15 +313,15 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           z = exp(-vrsr[ij][l]) - 1;
         }
         fr[ij][l] = z;
-        if ( j > i ) {
-          ur[ji][l] = ur[ij][l];
-          nrdur[ji][l] = nrdur[ij][l];
-          vrqq[ji][l] = vrqq[ij][l];
-          vrlr[ji][l] = vrlr[ij][l];
-          vrsr[ji][l] = vrsr[ij][l];
-          fr[ji][l] = fr[ij][l];
-        }
       } /* loop over l, the radius */
+      if ( j > i ) {
+        cparr(ur[ji],     ur[ij],     m->npt);
+        cparr(nrdur[ji],  nrdur[ij],  m->npt);
+        cparr(vrqq[ji],   vrqq[ij],   m->npt);
+        cparr(vrlr[ji],   vrlr[ij],   m->npt);
+        cparr(vrsr[ji],   vrsr[ij],   m->npt);
+        cparr(fr[ji],     fr[ij],     m->npt);
+      }
     } /* loop over j, the second site */
   } /* loop over i, the first site */
 }

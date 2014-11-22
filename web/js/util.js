@@ -55,6 +55,7 @@ function roundto(x, decimals)
 
 
 
+/* create a one-dimensional numeric array */
 function newnumarr(n)
 {
   var i, a = new Array(n);
@@ -63,5 +64,36 @@ function newnumarr(n)
 }
 
 
+
+/* create a two-dimensional numeric array */
+function newnumarr2d(m, n)
+{
+  var i, j, a = new Array(m);
+  for ( i = 0; i < m; i++ )
+    a[i] = newnumarr(n);
+  return a;
+}
+
+
+
+/* copy array */
+function cparr(x, y, n)
+{
+  var i, j;
+
+  for ( i = 0; i < n; i++ )
+    x[i] = y[i];
+}
+
+
+
+/* copy two-dimensional array */
+function cparr2d(x, y, m, n)
+{
+  var i;
+
+  for ( i = 0; i < m; i++ )
+    cparr(x[i], y[i], n);
+}
 
 

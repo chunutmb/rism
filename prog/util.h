@@ -108,6 +108,11 @@
 #define newarr(x, n) x = (double *) fftw_malloc(sizeof(x[0]) * n)
 #define delarr(x) fftw_free(x)
 
+/* copy array */
+#define cparr(x, y, n) { int i_; \
+  for ( i_ = 0; i_ < n; i_++ ) \
+    x[i_] = y[i_]; }
+
 /* allocate a two-dimensional array */
 #define newarr2d(x, m, n) { int i_; \
   x = malloc(sizeof(x[0]) * m); \
