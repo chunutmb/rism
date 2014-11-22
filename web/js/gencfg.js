@@ -68,7 +68,7 @@ function change_ns()
     // eps6
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="eps6_' + (i+1)
-      + '" onChange="change_eps6(' + (i+1) + ', \"\")">';
+      + '" onChange="change_eps6(' + (i+1) + ", ''" + ')">';
     row.appendChild(td);
 
     // eps12
@@ -153,7 +153,7 @@ function change_nprs()
     // eps6
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="paireps6_' + (i+1)
-      + '" onChange="change_eps6(' + (i+1) + ', ' + '"pair"' + ')">';
+      + '" onChange="change_eps6(' + (i+1) + ", 'pair'" + ')">';
     row.appendChild(td);
 
     // eps12
