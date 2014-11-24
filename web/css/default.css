@@ -4,7 +4,7 @@ body {
 }
 
 form {
-  width: 1000px;
+  width: 100%;
   padding: 10px 10px;
   border: double;
   margin: auto;
