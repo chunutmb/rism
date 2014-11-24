@@ -14,9 +14,12 @@ function change_unit_eps()
 
 function change_eps6(id, prefix)
 {
+  var txteps12 = grab(prefix + "eps12_" + id);
   if ( grab(prefix + "sameeps_" + id).checked ) {
-    grab(prefix + "eps12_" + id).value
-      = grab(prefix + "eps6_" + id).value;
+    txteps12.value = grab(prefix + "eps6_" + id).value;
+    txteps12.disabled = true;
+  } else {
+    txteps12.disabled = false;
   }
 }
 
@@ -49,7 +52,9 @@ function change_ns()
 
   // create nonexisting elements
   for ( var i = nrows; i < ns; i++ ) {
-    rowid = "site_row_" + (i+1);
+    var i1 = "" + (i+1);
+
+    rowid = "site_row_" + i1;
     row = document.createElement("tr");
 
     row.setAttribute("id", rowid);
@@ -57,35 +62,39 @@ function change_ns()
 
     // site id
     td = document.createElement("td");
-    td.innerHTML = "" + (i+1);
+    td.innerHTML = i1;
     row.appendChild(td);
 
     // sigma
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="sigma_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="10" value="0" id="sigma_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // eps6
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="eps6_' + (i+1)
-      + '" onChange="change_eps6(' + (i+1) + ", ''" + ')">';
+    td.innerHTML = ('<input type="text" size="10" value="0" id="eps6_ROW" '
+      + 'onchange="change_eps6(ROW, \'\')">').replace(/ROW/g, i1);
     row.appendChild(td);
 
     // eps12
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="eps12_' + (i+1) + '">'
-      + '<input type="checkbox" id="sameeps_' + (i+1) + '"> Same as '
-      + '<span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>';
+    td.innerHTML = ('<input type="text" size="10" value="0" id="eps12_ROW">'
+      + '<input type="checkbox" id="sameeps_ROW" onchange="change_eps6(ROW, \'\')"> '
+      + 'Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>').
+        replace(/ROW/g, i1);
     row.appendChild(td);
 
     // density, rho
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="14" value="0" id="rho_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="14" value="0" id="rho_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // charge
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="charge_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="10" value="0" id="charge_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
   }
 }
@@ -119,6 +128,8 @@ function change_nprs()
 
   // create nonexisting elements
   for ( var i = nrows; i < nprs; i++ ) {
+    var i1 = "" + (i+1);
+
     rowid = "pair_row_" + (i+1);
     row = document.createElement("tr");
 
@@ -127,50 +138,59 @@ function change_nprs()
 
     // site i
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="4" value="0" id="pairi_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="4" value="0" id="pairi_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // site j
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="4" value="0" id="pairj_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="4" value="0" id="pairj_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // C6
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="13" value="0" id="pairC6_' + (i+1) + '" )">';
+    td.innerHTML = '<input type="text" size="13" value="0" id="pairC6_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // C12
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="14" value="0" id="pairC12_' + (i+1) + '" )">';
+    td.innerHTML = '<input type="text" size="14" value="0" id="pairC12_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // sigma
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="4" value="0" id="pairsigma_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="4" value="0" id="pairsigma_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // eps6
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="paireps6_' + (i+1)
-      + '" onChange="change_eps6(' + (i+1) + ", 'pair'" + ')">';
+    td.innerHTML = ('<input type="text" size="10" value="0" id="paireps6_ROW" '
+      + 'onchange="change_eps6(ROW, \'pair\')">').
+        replace(/ROW/g, i1);
     row.appendChild(td);
 
     // eps12
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="paireps12_' + (i+1) + '"> <br>'
-      + '<input type="checkbox" id="pairsameeps_' + (i+1) + '"> Same as '
-      + '<span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>';
+    td.innerHTML = ('<input type="text" size="10" value="0" id="paireps12_ROW"> <br>'
+      + '<input type="checkbox" id="pairsameeps_ROW" onchange="change_eps6(ROW, \'pair\')"> '
+      + 'Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>').
+        replace(/ROW/g, i1);
     row.appendChild(td);
 
     // rho, in B * exp(-r/rho)
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="4" value="0" id="pairrho_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="4" value="0" id="pairrho_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // B, in B * exp(-r/rho)
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="12" value="0" id="pairB_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="12" value="0" id="pairB_ROW">'.
+      replace(/ROW/g, i1);
     row.appendChild(td);
   }
 }
@@ -204,7 +224,9 @@ function change_nbonds()
 
   // create nonexisting elements
   for ( var i = nrows; i < nbonds; i++ ) {
-    rowid = "bond_row_" + (i+1);
+    var i1 = "" + (i+1);
+
+    rowid = "bond_row_" + i1;
     row = document.createElement("tr");
 
     row.setAttribute("id", rowid);
@@ -212,17 +234,20 @@ function change_nbonds()
 
     // site i
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="bondi_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="10" value="0" id="bondi_ROW">'.
+      replace(/ROW/g, i);
     row.appendChild(td);
 
     // site j
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="10" value="0" id="bondj_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="10" value="0" id="bondj_ROW">'.
+      replace(/ROW/g, i);
     row.appendChild(td);
 
     // bond length
     td = document.createElement("td");
-    td.innerHTML = '<input type="text" size="14" value="0" id="bondlen_' + (i+1) + '">';
+    td.innerHTML = '<input type="text" size="14" value="0" id="bondlen_ROW">'.
+      replace(/ROW/g, i);
     row.appendChild(td);
   }
 }

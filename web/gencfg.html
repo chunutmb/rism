@@ -22,7 +22,7 @@
 
   Number of sites (on all solvent and solute molecules):
   <input type="text" size="4" value="3" id="ns"
-    onChange="change_ns()">
+    onchange="change_ns()">
   <br>
 
   <table id="siteTable">
@@ -36,7 +36,7 @@
       </th>
       <th>
         <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
-        (<select id="unit_eps6" onChange="change_unit_eps()">
+        (<select id="unit_eps6" onchange="change_unit_eps()">
           <option value="reduced">reduced</option>
           <option value="K" selected>K</option>
           <option value="erg">erg</option>
@@ -70,9 +70,9 @@
     <tr id="site_row_1">
       <td> 1 </td>
       <td> <input type="text" size="10" value="3.15" id="sigma_1"> </td>
-      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onChange="change_eps6(1, '')"> </td>
+      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onchange="change_eps6(1, '')"> </td>
       <td> <input type="text" size="10" value="76.5364" id="eps12_1">
-        <input type="checkbox" id="sameeps_1" checked>
+        <input type="checkbox" id="sameeps_1" checked onchange="change_eps6(1, '')">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_1"> </td>
@@ -82,9 +82,9 @@
     <tr id="site_row_2">
       <td> 2 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_2"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_2" onChange="change_eps6(2, '')"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_2" onchange="change_eps6(2, '')"> </td>
       <td> <input type="text" size="10" value="23.1509" id="eps12_2">
-        <input type="checkbox" id="sameeps_2">
+        <input type="checkbox" id="sameeps_2" onchange="change_eps6(3, '')">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_2"> </td>
@@ -94,9 +94,9 @@
     <tr id="site_row_3">
       <td> 3 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_3"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_3" onChange="change_eps6(3, '')"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_3" onchange="change_eps6(3, '')"> </td>
       <td> <input type="text" size="10" value="23.1509" id="eps12_3">
-        <input type="checkbox" id="sameeps_3">
+        <input type="checkbox" id="sameeps_3" onchange="change_eps6(3, '')">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_3"> </td>
@@ -110,7 +110,7 @@
   <hr>
   Number of special interactions:
   <input type="text" size="8" value="0" id="npairs"
-    onChange="change_nprs()">
+    onchange="change_nprs()">
   <br>
   <table id="pairTable">
     <tr id="pairTableHeader">
@@ -187,7 +187,7 @@
   <hr>
   Number of chemical bonds:
   <input type="text" size="8" value="3" id="nbonds"
-    onChange="change_nbonds()">
+    onchange="change_nbonds()">
   <br>
   <table id="bondTable">
     <tr id="bondTableHeader">
