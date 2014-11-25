@@ -41,6 +41,7 @@ typedef struct {
   double sigma; /* eps6 (sigma/r)^6 + eps12 (sigma/r)^12 */
   double eps6;  /* eps6 (sigma/r)^6 */
   double eps12; /* eps12 (sigma/r)^12 */
+  double rscreen; /* screening radius */
 } pairpot_t;
 
 typedef struct {
@@ -382,6 +383,10 @@ static int model_load(model_t *m, const char *fn, int verbose)
       ipr = model_getidx2(key, &i, &j, ns, 1);
       m->pairpot[ipr].rho = atof(val);
       ECHO_ARR2("rho", m->pairpot[ipr].rho);
+    } else if ( strstartswith(key, "rscreenij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].rscreen = atof(val);
+      ECHO_ARR2("rscreen", m->pairpot[ipr].rscreen);
     } else if ( strcmp(key, "t") == 0 || strcmp(key, "temp") == 0 ) {
       temp = atof(val);
       ECHO("T", temp);

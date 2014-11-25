@@ -16,9 +16,12 @@ function change_unit_eps()
 
 function change_eps6(id, prefix)
 {
+  var txteps12 = grab(prefix + "eps12_" + id);
   if ( grab(prefix + "sameeps_" + id).checked ) {
-    grab(prefix + "eps12_" + id).value
-      = grab(prefix + "eps6_" + id).value;
+    txteps12.value = grab(prefix + "eps6_" + id).value;
+    txteps12.disabled = true;
+  } else {
+    txteps12.disabled = false;
   }
 }
 
@@ -49,7 +52,7 @@ function change_ns()
       tbody.removeChild(row);
   }
 
-  // create nonexisting elements
+  // create non-existing elements
   for ( var i = nrows; i < ns; i++ ) {
     var i1 = "" + (i+1);
     rowid = "site_row_" + i1;
@@ -124,7 +127,7 @@ function change_nprs()
       tbody.removeChild(row);
   }
 
-  // create nonexisting elements
+  // create non-existing elements
   for ( var i = nrows; i < nprs; i++ ) {
     var i1 = "" + (i+1);
 
@@ -220,9 +223,10 @@ function change_nbonds()
       tbody.removeChild(row);
   }
 
-  // create nonexisting elements
+  // create non-existing elements
   for ( var i = nrows; i < nbonds; i++ ) {
     var i1 = "" + (i+1);
+
     rowid = "bond_row_" + i1;
     row = document.createElement("tr");
 
@@ -287,6 +291,10 @@ function gencfg()
       var i1 = i + 1;
       var pairi = get_int("pairi_" + i1);
       var pairj = get_int("pairj_" + i1);
+      if ( pairi <= 0 || pairj <= 0 ) {
+        console.log("invalid pair between " + pairi + " and " + pairj);
+        continue;
+      }
       var sid = "ij(" + pairi + ", " + pairj + ")";
       var C6val = grab("pairC6_" + i1).value;
       var C12val = grab("pairC12_" + i1).value;

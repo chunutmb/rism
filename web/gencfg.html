@@ -75,7 +75,7 @@
       <td> 1 </td>
       <td> <input type="text" size="10" value="3.15" id="sigma_1"> </td>
       <td> <input type="text" size="10" value="76.5364" id="eps6_1" onchange="change_eps6(1, '')"> </td>
-      <td> <input type="text" size="10" value="76.5364" id="eps12_1">
+      <td> <input type="text" size="10" value="76.5364" id="eps12_1" disabled>
         <input type="checkbox" id="sameeps_1" checked onchange="change_eps6(1, '')">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
@@ -269,7 +269,7 @@
   <input type="text" size="6" value="10" id="nlambdas">
   <br>
 
-  Screening radius for electrostatic interaction,
+  <span title="">Screening radius</span> for electrostatic interaction,
   <span class="math"><i>r</i><sub>screen</sub></span>:
   <input type="text" size="6" value="1.0" id="rscreen">
   &#197;
@@ -345,15 +345,15 @@
         <div id="gr_plot" class="plot"></div>
       </td>
       <td>
-        <div id="wr_plot" class="plot"></div>
+        <div id="cr_plot" class="plot"></div>
       </td>
     </tr>
     <tr>
       <td>
-        <div id="cr_plot" class="plot"></div>
+        <div id="wr_plot" class="plot"></div>
       </td>
       <td>
-        <div id="tr_plot" class="plot"></div>
+        <div id="wr2_plot" class="plot"></div>
       </td>
     </tr>
   </table>

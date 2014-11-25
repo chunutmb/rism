@@ -247,8 +247,9 @@ static void initfr(model_t *m, double **ur, double **nrdur,
 {
   const double vrmin = -30;
   int i, j, ij, ji, ipr, l, ns = m->ns, use_pairpot;
-  double beta = m->beta, r, z, u, uelec, nrdu, ulr;
+  double beta = m->beta, r, z, u, uelec, nrdu, ulr, rscreen;
   double sig, eps6, eps12, c6, c12, Bij, rhoij, rminij;
+  static int once;
 
   for ( ipr = 0, i = 0; i < ns; i++ ) { /* the first site */
     for ( j = i; j < ns; j++, ipr++ ) { /* the second site */
@@ -270,9 +271,15 @@ static void initfr(model_t *m, double **ur, double **nrdur,
         sig = .5 * (m->sigma[i] + m->sigma[j]);
         eps6 = sqrt(m->eps6_12[i][0] * m->eps6_12[j][0]);
         eps12 = sqrt(m->eps6_12[i][1] * m->eps6_12[j][1]);
+      } else {
+        if ( fabs(Bij) > 0 ) sig = rhoij;
       }
-      //printf("i %d, j %d, sig %g, eps6 %g, eps12 %g, c6 %g c12 %g, B %g, rho %g, rmin %g\n",
-      //    i + 1, j + 1, sig, eps6, eps12, c6, c12, Bij, rhoij, rminij);
+      rscreen = m->pairpot[ipr].rscreen;
+      if ( rscreen <= 0 ) rscreen = m->rscreen * sqrt(2);
+      if ( !once )
+        fprintf(stderr, "i %d, j %d, sig %4.2f, eps6 %10.2e, eps12 %10.2e, "
+            "c6 %10.2e c12 %10.2e, B %10.2e, rho %4.2f, rmin %g, rscreen %g\n",
+          i + 1, j + 1, sig, eps6, eps12, c6, c12, Bij, rhoij, rminij, rscreen);
 
       for ( l = 0; l < m->npt; l++ ) { /* the radius */
         r = fft_ri[l];
@@ -304,11 +311,15 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           uelec = lam * m->ampch * m->charge[i] * m->charge[j] / r;
           ur[ij][l] = u + uelec;
           nrdur[ij][l] = nrdu + uelec;
-          ulr = uelec * erf( r/sqrt(2)/m->rscreen );
+          ulr = uelec * erf( r/rscreen );
           vrqq[ij][l] = beta * uelec;
           vrlr[ij][l] = beta * ulr;
           vrsr[ij][l] = beta * (u + uelec - ulr);
-          if ( vrsr[ij][l] < vrmin ) vrsr[ij][l] = vrmin;
+          if ( vrsr[ij][l] < vrmin ) {
+            fprintf(stderr, "vrsr(%d-%d, %g) = %g, too negative, may decrease rscreen\n",
+                i, j, r, vrsr[ij][l]);
+            vrsr[ij][l] = vrmin;
+          }
 
           z = exp(-vrsr[ij][l]) - 1;
         }
@@ -324,6 +335,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
       }
     } /* loop over j, the second site */
   } /* loop over i, the first site */
+  once = 1;
 }
 
 
