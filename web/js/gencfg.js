@@ -50,7 +50,7 @@ function change_ns()
       tbody.removeChild(row);
   }
 
-  // create nonexisting elements
+  // create non-existing elements
   for ( var i = nrows; i < ns; i++ ) {
     var i1 = "" + (i+1);
 
@@ -126,7 +126,7 @@ function change_nprs()
       tbody.removeChild(row);
   }
 
-  // create nonexisting elements
+  // create non-existing elements
   for ( var i = nrows; i < nprs; i++ ) {
     var i1 = "" + (i+1);
 
@@ -222,7 +222,7 @@ function change_nbonds()
       tbody.removeChild(row);
   }
 
-  // create nonexisting elements
+  // create non-existing elements
   for ( var i = nrows; i < nbonds; i++ ) {
     var i1 = "" + (i+1);
 
@@ -235,19 +235,19 @@ function change_nbonds()
     // site i
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="bondi_ROW">'.
-      replace(/ROW/g, i);
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // site j
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="bondj_ROW">'.
-      replace(/ROW/g, i);
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // bond length
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="14" value="0" id="bondlen_ROW">'.
-      replace(/ROW/g, i);
+      replace(/ROW/g, i1);
     row.appendChild(td);
   }
 }

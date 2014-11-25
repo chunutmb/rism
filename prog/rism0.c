@@ -328,7 +328,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
 
 
 
-/* initialize the w matrix for intra-molecular covalence bonds */
+/* initialize the w matrix for intra-molecular covalent bonds */
 static void initwk(model_t *m, double **wk)
 {
   int i, j, u, ipr, ns = m->ns;
@@ -368,7 +368,7 @@ static void oz(model_t *m, double **ck, double **vklr,
         ij = i*ns + j;
         tm1[ij] = m->rho[i] * wc[ij]; /* tm1 = rho w c */
         tm2[ij] = (i == j) - tm1[ij]; /* tm2 = 1 - rho w c */
-        dw[ij] = wk[ij][l] - (i == j);
+        dw[ij] = w[ij] - (i == j);
       }
 
     invmat(tm2, invwc1, ns); /* invwc1 = (1 - wc)^(-1) */

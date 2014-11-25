@@ -128,7 +128,7 @@ static int model_getidx(char *s, int n)
   int i;
 
   if ( n <= 0 ) {
-    fprintf(stderr, "Errot: getidx has array size %d of %s, have you set `ns'?\n", n, s);
+    fprintf(stderr, "Error: getidx has array size %d of %s, have you set `ns'?\n", n, s);
     exit(1);
   }
   if ( p == NULL ) p = strchr(s, '[');
@@ -346,10 +346,6 @@ static int model_load(model_t *m, const char *fn, int verbose)
       ipr = model_getidx2(key, &i, &j, ns, 0);
       m->dis[ipr] = atof(val);
       ECHO_ARR2("dis", m->dis[ipr]);
-    } else if ( strstartswith(key, "cij(") ) {
-      ipr = model_getidx2(key, &i, &j, ns, 1);
-      m->pairpot[ipr].C6 = m->pairpot[ipr].C12 = atof(val);
-      ECHO_ARR2("C6/12", m->pairpot[ipr].C6);
     } else if ( strstartswith(key, "c6ij(") ) {
       ipr = model_getidx2(key, &i, &j, ns, 1);
       m->pairpot[ipr].C6 = atof(val);
