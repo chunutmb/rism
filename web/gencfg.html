@@ -6,6 +6,7 @@
   <link rel="stylesheet" type="text/css" href="css/default.css">
   <script src="js/dygraph-combined.js"></script>
   <script src="js/util.js"></script>
+  <script src="js/debug.js"></script>
   <script src="js/gencfg.js"></script>
   <script src="js/fft.js"></script>
   <script src="js/rism_util.js"></script>
@@ -332,6 +333,10 @@
   </div>
 
   <hr>
+
+  <input type="checkbox" id="verbose" onchange="change_verbose()">
+  Logging in the JavaScript console.
+  <br>
 
   <div class="center">
     <input type="button" value="Run"

@@ -20,9 +20,18 @@ var dis; // chemical bonds
 
 var nlambdas = 1;
 
+var verbose = true;
+
 var ur, nrdur, fr, cr, tr, cp;
 var vrqq, vrlr, vrsr, vklr;
 var ck, tk, wk, ntk, der;
+
+
+
+function change_verbose()
+{
+  verbose = grab("verbose").checked;
+}
 
 
 
@@ -39,6 +48,7 @@ function read_params()
   itmax = get_int("itmax", 100000);
   tol = get_float("tol", 1e-6);
   picard_damp = get_float("picard_damp", 1.0);
+  change_verbose();
 
   temp = get_float("temp", 1.0);
   var unit_eps = grab("unit_eps6").value;
@@ -93,9 +103,9 @@ function read_params()
   var npr = get_int("npairs", 0), ipr;
   for ( ipr = 0; ipr < npr; ipr++ ) {
     i1 = ipr + 1;
-    var pairi = get_int("pairi_" + i1, 0);
-    var pairj = get_int("pairj_" + i1, 0);
-    if ( pairi <= 0 || pairj <= 0 ) {
+    var pairi = get_int("pairi_" + i1, 0) - 1;
+    var pairj = get_int("pairj_" + i1, 0) - 1;
+    if ( pairi < 0 || pairj < 0 ) {
       console.log("invalid pair between " + pairi + " and " + pairj);
       continue;
     }
@@ -119,16 +129,17 @@ function read_params()
 
   // distance matrix
   dis = newarr(ns*ns);
-  for ( ipr = 0; ipr < npr; ipr++ ) {
-    i1 = ipr + 1;
-    var bondi = get_int("bondi_" + i1, 0);
-    var bondj = get_int("bondj_" + i1, 0);
-    if ( bondi <= 0 || bondj <= 0 || bondi == bondj ) {
+  var nbonds = get_int("nbonds", 0), ibond;
+  for ( ibond = 0; ibond < nbonds; ibond++ ) {
+    i1 = ibond + 1;
+    var bondi = get_int("bondi_" + i1, 0) - 1;
+    var bondj = get_int("bondj_" + i1, 0) - 1;
+    if ( bondi < 0 || bondj < 0 || bondi == bondj ) {
       console.log("invalid pair between " + bondi + " and " + bondj);
       continue;
     }
-    var dij = get_int("bondlen_" + i1, 0);
-    dis[bondi*ns + bondj] = dis[bondj*ns + bondi] = dij; 
+    var dij = get_float("bondlen_" + i1, 0);
+    dis[bondi*ns + bondj] = dis[bondj*ns + bondi] = dij;
   }
 }
 
@@ -326,19 +337,23 @@ function initfr(lam)
 
 
 
-/* initialize the w matrix for intra-molecular covalence bonds */
+/* initialize the w matrix for intra-molecular covalent bonds */
 function initwk(wk)
 {
-  var i, j, u, ipr, k, l;
+  var i, j, ij, u, l;
 
-  for ( u = 0; u < npt; u++ ) {
-    k = fft_ki[u];
-    for ( ipr = 0, i = 0; i < ns; i++ ) {
-      wk[i*ns + i][u] = 1; // for j == i
-      for ( j = i + 1; j < ns; j++, ipr++ ) { // for j > i
-        l = dis[i][j];
-        wk[j*ns + i][u] = wk[i*ns + j][u] = (l > 0) ? sin(k*l)/(k*l) : 0;
+  for ( i = 0; i < ns; i++ ) {
+    for ( u = 0; u < npt; u++ ) // diagonal
+      wk[i*ns + i][u] = 1.0;
+    for ( j = i + 1; j < ns; j++ ) {
+      ij = i*ns + j;
+      l = dis[ij];
+      if ( l <= 0 ) continue;
+      for ( u = 0; u < npt; u++ ) {
+        var k = fft_ki[u];
+        wk[ij][u] = Math.sin(k*l)/(k*l);
       }
+      cparr(wk[j*ns + i], wk[ij], npt);
     }
   }
 }
@@ -397,7 +412,7 @@ function oz(ck, vklr, tk, wk, invwc1w)
         ij = i*ns + j;
         tm1[ij] = rho[i] * wc[ij]; /* tm1 = rho w c */
         tm2[ij] = (i == j) - tm1[ij]; /* tm2 = 1 - rho w c */
-        dw[ij] = wk[ij][l] - (i == j);
+        dw[ij] = w[ij] - (i == j);
       }
 
     invmat(tm2, invwc1, ns); /* invwc1 = (1 - wc)^(-1) */
@@ -507,7 +522,7 @@ function iter_picard(vrsr, wk, cr, ck, vklr, tr, tk)
   for ( it = 0; it < itmax; it++ ) {
     err = step_picard(null, null, vrsr, wk, cr, ck, vklr,
         tr, tk, null, 1, picard_damp);
-    console.log("it", it, "err", errp, "->", err); //alert("aaa");
+    if ( verbose ) console.log("it", it, "err", errp, "->", err);
     if ( err < tol ) break;
     if ( err > errp ) break;
     errp = err;
@@ -542,7 +557,7 @@ function solve()
     }
     err = ret[0];
     it = ret[1];
-    console.log("lambda", lam, "error", err, "it", it);
+    if ( verbose ) console.log("lambda", lam, "error", err, "it", it);
   }
 }
 

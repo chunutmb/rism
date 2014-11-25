@@ -340,21 +340,26 @@ static void initfr(model_t *m, double **ur, double **nrdur,
 
 
 
-/* initialize the w matrix for intra-molecular covalence bonds */
+/* initialize the w matrix for intra-molecular covalent bonds */
 static void initwk(model_t *m, double **wk)
 {
-  int i, j, u, ipr, ns = m->ns;
+  int i, j, ipr, u, ns = m->ns, npt = m->npt;
 
-  for ( u = 0; u < m->npt; u++ ) {
-    double k = fft_ki[u];
-    for ( ipr = 0, i = 0; i < ns; i++ ) {
-      wk[i*ns + i][u] = 1; /* for j == i */
-      for ( j = i + 1; j < ns; j++, ipr++ ) { /* for j > i */
-        double l = m->dis[ipr];
-        wk[j*ns + i][u] = wk[i*ns + j][u] = (l > 0) ? sin(k*l)/(k*l) : 0;
+  for ( ipr = 0, i = 0; i < ns; i++ ) {
+    for ( u = 0; u < npt; u++ ) // diagonal
+      wk[i*ns + i][u] = 1;
+    for ( j = i + 1; j < ns; j++, ipr++ ) {
+      int ij = i*ns + j;
+      double l = m->dis[ipr];
+      if ( l <= 0 ) continue;
+      for ( u = 0; u < npt; u++ ) {
+        double kl = fft_ki[u] * l;
+        wk[ij][u] = sin(kl)/kl;
       }
+      cparr(wk[j*ns + i], wk[ij], npt);
     }
   }
+  printvec(fft_ki, npt, "fft_ki");
 }
 
 

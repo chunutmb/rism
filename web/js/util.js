@@ -79,7 +79,7 @@ function newarr2d(m, n)
 /* copy array */
 function cparr(x, y, n)
 {
-  var i, j;
+  var i;
 
   for ( i = 0; i < n; i++ )
     x[i] = y[i];
@@ -90,10 +90,10 @@ function cparr(x, y, n)
 /* copy two-dimensional array */
 function cparr2d(x, y, m, n)
 {
-  var i;
+  var j;
 
-  for ( i = 0; i < m; i++ )
-    cparr(x[i], y[i], n);
+  for ( j = 0; j < m; j++ )
+    cparr(x[j], y[j], n);
 }
 
 

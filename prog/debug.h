@@ -19,6 +19,21 @@
 /* Print routines */
 
 
+
+#define printvec(v, n, name) fprintvec(stderr, v, n, name)
+
+__inline static void fprintvec(FILE *fp, double *v, int n, const char *name)
+{
+  int i;
+
+  if ( name != NULL ) fprintf(fp, "%s: ", name);
+  for ( i = 0; i < n; i++ )
+    fprintf(fp, "%+10.3e ", v[i]);
+  fprintf(fp, "\n");
+}
+
+
+
 #define printmat(m, n, name) fprintmat(stderr, m, n, name)
 
 __inline static void fprintmat(FILE *fp, double *m, int n, const char *name)
