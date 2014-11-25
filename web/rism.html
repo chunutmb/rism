@@ -9,15 +9,71 @@
   <script src="js/debug.js"></script>
   <script src="js/fft.js"></script>
   <script src="js/rism_util.js"></script>
-  <script src="js/gencfg.js"></script>
+  <script src="js/rism_cfg.js"></script>
   <script src="js/rism_model.js"></script>
   <script src="js/rism.js"></script>
 </head>
 <body onload="init()">
 
 <h2 class="center">
-  Configuration file generator for the XRISM program <span class="code">rism0</span>
+  The XRISM program <span class="code">rism0</span>
 </h2>
+
+<div class="panel">
+<h2 class="panel-title">What is it?</h2>
+
+<p>
+For a simple or atomic fluid (e.g., a box of hard-sphere or Lennard-Jones particles),
+the integral equation method is a powerful tool of
+solving the pair correlation function
+<span class="math"><i>g</i>(<i>r</i>)</span>.
+
+For an introduction of integral equation,
+see <a href="ie.html">this demonstration</a>.
+</p>
+
+<p>
+The <b>R</b>eference <b>S</b>ite <b>I</b>nteraction <b>M</b>odel (RISM)
+is an integral equation for a <em>molecular</em> fluid.
+
+However, the original RISM does not handle charged or polar systems (like a box of water)
+very well.
+
+The e<b>x</b>tended <b>R</b>eference <b>S</b>ite <b>I</b>nteraction <b>M</b>odel (XRISM)
+is an extension that helps solving the charged systems.
+</p>
+</div>
+
+
+
+<div class="panel">
+<h2 class="panel-title">The program: <span class="code">rism0</span></h2>
+<p>
+The program <span class="code">rism0</span> implements XRISM.
+
+It is written in C.
+
+The latest version of <span class="code">rism0</span>
+can be found in
+<ul>
+  <li>
+    <a href="https://github.com/3ki5tj/rism">
+      Github
+    </a> (source code only)
+  </li>
+  <li>
+    <a href="https://www.dropbox.com/sh/85y8gnm40hfspo1/AADyeYAYAYnmfvGTo6hVhksga?dl=0">
+      Dropbox link </a>
+    (including references, data files, etc.)
+  </li>
+</ul>
+
+<p>
+The tool helps generate input configuration files of
+<span class="code">rism0</span>.
+For simple and small systems, you can even run it directly.
+</div>
+
 
 <form>
   <div style="font-size:120%; text-align:center">
@@ -337,7 +393,7 @@
     Output configuration file <br>
     (you can also copy and paste an existing configuration file
      to the text-box below,
-     and click the &ldquo;<b>Load</b>&rdquo; button):
+     and click the &ldquo;<b>Load</b>&rdquo; button above):
   <br>
   <textarea rows="10" id="cfgout"></textarea>
   </div>
@@ -353,6 +409,9 @@
     id="comutebtn" class="largebtn" onClick="mkplot()">
   </div>
 
+  Note, you should only hit &ldquo;<b>Run</b>&rdquo; for simple systems,
+  because this functionally is implemented in JavaScript, which is slow compared to C.
+  Also, the result is likely to be less reliable.
 
   <table id="plot_table">
     <tr>
@@ -374,36 +433,13 @@
   </table>
 </form>
 
-<h2>The XRISM program <span class="code">rism0</span></h2>
+
+
+<div class="panel">
+<h2 class="panel-title">Output of <span class="code">rism0</span></h2>
 
 <p>
-The program <span class="code">rism0</span>
-solves the integral equation for a molecular fluid.
-
-It is written in C.
-
-The latest version of <span class="code">rism0</span>
-can be found in
-<ul>
-  <li>
-    <a href="https://github.com/3ki5tj/rism">
-      Github
-    </a> (source code only)
-  </li>
-  <li>
-    <a href="https://www.dropbox.com/sh/85y8gnm40hfspo1/AADyeYAYAYnmfvGTo6hVhksga?dl=0">
-      Dropbox link </a>
-    (including references, data files, etc.)
-  </li>
-</ul>
-
-<p>
-XRISM is an advanced integral equation.
-For an introduction of integral equation,
-see <a href="ie.html">this demonstration</a>.
-
-<p>
-Normally, the program produces an output file
+Normally, the program <span class="code">rism0</span> produces an output file
 <span class="code">out.dat</span>.
 <a href="../doc/pmfs.pdf">This note</a> contains information on how to use the output
 to compute various potentials of mean force.
@@ -416,6 +452,7 @@ was used to reproduce several classic papers:
 <li><a href="./mkpapers/pr1986.html">PR1986</a>
 </ul>
 
+</div>
 
 
 </body>
