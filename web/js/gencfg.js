@@ -102,11 +102,16 @@ function change_ns()
 
 
 
-function change_nprs()
+function change_npairs(npairs)
 {
-  var nprs = grab("npairs").value;
-  if ( !is_int(nprs) ) return;
-  nprs = parseInt(nprs);
+  if ( npairs == null || npairs == undefined ) {
+    npairs = grab("npairs").value;
+  } else {
+    grab("npairs").value = npairs;
+  }
+
+  if ( !is_int(npairs) ) return;
+  npairs = parseInt(npairs);
   var tab = grab("pairTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
@@ -120,7 +125,7 @@ function change_nprs()
   var nrows = i; // number of existing rows
 
   // remove redundant elements, if any
-  for ( var i = nprs; i < nrows; i++ ) {
+  for ( var i = npairs; i < nrows; i++ ) {
     rowid = "pair_row_" + (i+1);
     row = document.getElementById(rowid);
     if ( row.parentNode == tbody )
@@ -128,7 +133,7 @@ function change_nprs()
   }
 
   // create non-existing elements
-  for ( var i = nrows; i < nprs; i++ ) {
+  for ( var i = nrows; i < npairs; i++ ) {
     var i1 = "" + (i+1);
 
     rowid = "pair_row_" + i1;
@@ -198,9 +203,14 @@ function change_nprs()
 
 
 
-function change_nbonds()
+function change_nbonds(nbonds)
 {
-  var nbonds = grab("nbonds").value;
+  if ( nbonds == null || nbonds == undefined ) {
+    nbonds = grab("nbonds").value;
+  } else {
+    grab("nbonds").value = nbonds;
+  }
+
   if ( !is_int(nbonds) || nbonds < 0 ) return;
   nbonds = parseInt(nbonds);
   var tab = grab("bondTable");
@@ -236,19 +246,19 @@ function change_nbonds()
     // site i
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="bondi_ROW">'.
-      replace(/ROW/g, i);
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // site j
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="10" value="0" id="bondj_ROW">'.
-      replace(/ROW/g, i);
+      replace(/ROW/g, i1);
     row.appendChild(td);
 
     // bond length
     td = document.createElement("td");
     td.innerHTML = '<input type="text" size="14" value="0" id="bondlen_ROW">'.
-      replace(/ROW/g, i);
+      replace(/ROW/g, i1);
     row.appendChild(td);
   }
 }
@@ -384,7 +394,7 @@ function gencfg()
 function init()
 {
   change_ns();
-  change_nprs();
+  change_npairs();
   change_nbonds();
   change_unit_eps();
 }

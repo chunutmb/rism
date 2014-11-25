@@ -10,7 +10,12 @@ var PI          = Math.PI;
 var INFTY       = 1e30;
 var errinf      = 1e20;
 
-var CAL_TO_J    = 4.184;              // calories per joule
+var CAL_TO_J    = 4.184;              // calories to joules
+var J_TO_CAL    = 1/CAL_TO_J;         // joules to calories
+var CAL_TO_KJ   = CAL_TO_J*1e-3;      // calories to kilo joules
+var J_TO_KCAL   = J_TO_CAL*1e-3;      // joules to kilo calories
+var KCAL_TO_J   = CAL_TO_J*1e3;       // kilo calories to joules
+var KJ_TO_CAL   = J_TO_CAL*1e3;       // kilo joules to calories
 var NA          = 6.02214129e23;      // Avogadro constant in mol^{-1}
 var EC          = 1.602176565e-19;    // elementary charge in A*s
 var EPS0_SI     = 8.854187817620e-12; // vacuum permittivity in A^2*s^4/kg/m^3
@@ -54,6 +59,24 @@ var KE2NAC      = KE2NA_AKCAL;
 var KE2PK_SI    = KE2_SI/KB_SI;      // e^2/(4 Pi EPS0)/kB in m*K, 1.671009566e-5
 var KE2PK_A     = KE2PK_SI*1e10;     // e^2/(4 Pi EPS0)/kB in angstrom*K, 167100.9566
 var KE2PK       = KE2PK_A;           // e^2/(4 Pi EPS0)/kB in the default unit
+
+var ERG_TO_J           = (1e-7);                // 1e-7
+var ERG_TO_CAL         = (1e-7*J_TO_CAL);       // 2.390057361376673e-8
+var ERG_TO_KJ          = (1e-10);               // 1e-10
+var ERG_TO_KCAL        = (1e-10*J_TO_CAL);      // 2.390057361376673e-11
+var ERG_TO_JPMOL       = (NA*1e-7);             // 6.02214129e16
+var ERG_TO_CALPMOL     = (NA*1e-7*J_TO_CAL);    // 1.43932631214914e16
+var ERG_TO_KJPMOL      = (NA*1e-10);            // 6.02214129e13
+var ERG_TO_KCALPMOL    = (NA*1e-10*J_TO_CAL);   // 1.43932631214914e13
+
+var J_TO_ERG           = (1/ERG_TO_J);          // 1e7
+var CAL_TO_ERG         = (1/ERG_TO_CAL);        // 4.184e7
+var KJ_TO_ERG          = (1/ERG_TO_KJ);         // 1e10
+var KCAL_TO_ERG        = (1/ERG_TO_KCAL);       // 4.184e10
+var JPMOL_TO_ERG       = (1/ERG_TO_JPMOL);      // 1.66053892103219e-17
+var CALPMOL_TO_ERG     = (1/ERG_TO_CALPMOL);    // 6.947694845598683e-17
+var KJPMOL_TO_ERG      = (1/ERG_TO_KJPMOL);     // 1.66053892103219e-14
+var KCALPMOL_TO_ERG    = (1/ERG_TO_KCALPMOL);   // 6.947694845598683e-14
 
 
 /* Memory allocation routines */
@@ -279,10 +302,41 @@ function lusolve(a, b, n, tiny)
 
 
 
-/* check if a string is a nonnegative integer */
+/* check if a string is a number */
 function striscnum(s)
 {
   return !isNaN(s);
+}
+
+
+
+/* check if string `s' starts with a substring `t' */
+function strstartswith(s, t)
+{
+  return s.substr(0, t.length) == t;
+}
+
+
+
+/* compare two strings, insensitive to the cases */
+function stricmp(s, t)
+{
+  return s.toLowerCase() != t.toLowerCase();
+}
+
+
+
+/* convert to lower cases, ignore punctuations */
+function striiconv(s)
+{
+  return s.replace(/[^a-z0-9]+/ig, "");
+}
+
+
+/* compare two strings, insensitive to the cases, ignore punctuations */
+function striicmp(s, t)
+{
+  return striiconv(s) != striiconv(t);
 }
 
 

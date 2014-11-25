@@ -7,9 +7,10 @@
   <script src="js/dygraph-combined.js"></script>
   <script src="js/util.js"></script>
   <script src="js/debug.js"></script>
-  <script src="js/gencfg.js"></script>
   <script src="js/fft.js"></script>
   <script src="js/rism_util.js"></script>
+  <script src="js/gencfg.js"></script>
+  <script src="js/rism_model.js"></script>
   <script src="js/rism.js"></script>
 </head>
 <body onload="init()">
@@ -115,7 +116,7 @@
   <hr>
   Number of special interactions:
   <input type="text" size="8" value="0" id="npairs"
-    onchange="change_nprs()">
+    onchange="change_npairs()">
   <br>
   <table id="pairTable">
     <tr id="pairTableHeader">
@@ -320,15 +321,24 @@
 
   <div class="center">
   <input type="button" value="Generate configuration file"
-    id="gencfgbtn" onClick="gencfg()" class="largebtn">
+    id="gencfgbtn" onclick="gencfg()" class="largebtn">
 
   <input type="reset" value="Reset"
     id="resetbtn" class="largebtn">
+
+  <input type="button" value="Load"
+    title="Copy and paste an existing configuration file
+    to the text-box below.  Then click me.".
+    id="loadbtn" onclick="loadcfg()" class="largebtn">
   </div>
   <br>
 
   <div>
-    Output configuration file:<br>
+    Output configuration file <br>
+    (you can also copy and paste an existing configuration file
+     to the text-box below,
+     and click the &ldquo;<b>Load</b>&rdquo; button):
+  <br>
   <textarea rows="10" id="cfgout"></textarea>
   </div>
 
