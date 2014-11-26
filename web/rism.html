@@ -84,13 +84,13 @@ in the browser!
 
 
 <form>
-  <div style="font-size:120%; text-align:center">
+  <div style="font-size:130%; text-align:center">
     E<b>x</b>tended <b>R</b>eference <b>I</b>nteraction <b>S</b>ite <b>M</b>odel (XRISM)
     parameters
   </div>
   <br>
 
-  Stock models:
+  Models:
   <select id="stockmodel">
     <option value="model_empty_reduced">Empty system in the reduced units</option>
     <option value="model_empty_K">Empty system with the energy unit being Kelvin</option>
@@ -100,14 +100,24 @@ in the browser!
     <option value="model_lc1973_hs">Hard-sphere potential (LC1973), also Model I of CHS1977</option>
     <option value="model_chs1977_modelII">Model II of CHS1977</option>
     <option value="model_chs1977_modelIII">Model III of CHS1977</option>
-    <option value="model_lc1973_n2ljrep">N<sub>&#8322;</sub>, LJ-repulsive potential (LC1973)</option>
+    <option value="model_lc1973_n2ljrep">N<sub>&#8322;</sub>, repulsive part of the LJ potential (LC1973)</option>
+    <option value="model_ka1978_n2lj">N<sub>&#8322;</sub>, full LJ potential, PY (KA1978)</option>
+    <option value="model_hr1981_n2z">N<sub>&#8322;</sub>, full LJ potential, uncharged (HR1981)</option>
+    <option value="model_hr1981_n2">N<sub>&#8322;</sub>, full LJ potential, charged (HR1981), also model I of HPR1982</option>
+    <option value="model_hpr1982_modelII">HCl, model II of HPR1982</option>
+    <option value="model_hpr1982_modelIII">HCl, model III of HPR1982</option>
+    <option value="model_pr1982_model1">H<sub>&#8322;</sub>O, model 1 of PR1982</option>
+    <option value="model_pr1982_model2">H<sub>&#8322;</sub>O, model 2 of PR1982, modified SPC</option>
+    <option value="model_pr1982_model3">H<sub>&#8322;</sub>O, model 3 of PR1982, modified TIPS</option>
+    <option value="model_spce">H<sub>&#8322;</sub>O, SPC/E</option>
+    <option value="model_tip3p">H<sub>&#8322;</sub>O, TIP3P</option>
   </select>
-  <input type="button" value="Load stock model" class="largebtn"
+  <input type="button" value="Load model" class="largebtn"
     onclick="loadstockmodel()">
   <br>
 
   Number of sites (on all solvent and solute molecules):
-  <input type="text" size="4" value="3" id="ns"
+  <input type="text" size="4" value="0" id="ns"
     onchange="change_ns()">
   <br>
 
@@ -151,42 +161,6 @@ in the browser!
         <span class="math"><i>q</i></span>
         <span class="math">(<i>e</i>)</span>
       </th>
-    </tr>
-
-    <tr id="site_row_1">
-      <td> 1 </td>
-      <td> <input type="text" size="10" value="3.15" id="sigma_1"> </td>
-      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onchange="change_eps6(1)"> </td>
-      <td> <input type="text" size="10" value="76.5364" id="eps12_1" disabled>
-        <input type="checkbox" id="sameeps_1" checked onchange="change_eps6(1)">
-        Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
-      </td>
-      <td> <input type="text" size="14" value="0.033314" id="rho_1"> </td>
-      <td> <input type="text" size="10" value="-0.834" id="charge_1"> </td>
-    </tr>
-
-    <tr id="site_row_2">
-      <td> 2 </td>
-      <td> <input type="text" size="10" value="0.4" id="sigma_2"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_2" onchange="change_eps6(2)"> </td>
-      <td> <input type="text" size="10" value="23.1509" id="eps12_2">
-        <input type="checkbox" id="sameeps_2" onchange="change_eps6(2)">
-        Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
-      </td>
-      <td> <input type="text" size="14" value="0.033314" id="rho_2"> </td>
-      <td> <input type="text" size="10" value="0.417" id="charge_2"> </td>
-    </tr>
-
-    <tr id="site_row_3">
-      <td> 3 </td>
-      <td> <input type="text" size="10" value="0.4" id="sigma_3"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_3" onchange="change_eps6(3)"> </td>
-      <td> <input type="text" size="10" value="23.1509" id="eps12_3">
-        <input type="checkbox" id="sameeps_3" onchange="change_eps6(3)">
-        Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
-      </td>
-      <td> <input type="text" size="14" value="0.033314" id="rho_3"> </td>
-      <td> <input type="text" size="10" value="0.417" id="charge_3"> </td>
     </tr>
 
   </table>
@@ -272,7 +246,7 @@ in the browser!
 
   <hr>
   Number of chemical bonds:
-  <input type="text" size="8" value="3" id="nbonds"
+  <input type="text" size="8" value="0" id="nbonds"
     onchange="change_nbonds()">
   <br>
   <table id="bondTable">
@@ -288,24 +262,6 @@ in the browser!
         <!-- <span class="math"><i>L<sub>i,j</sub></i></span> -->
         (&#197;)
       </th>
-    </tr>
-
-    <tr id="bond_row_1">
-      <td> <input type="text" size="10" value="1" id="bondi_1"> </td>
-      <td> <input type="text" size="10" value="2" id="bondj_1"> </td>
-      <td> <input type="text" size="14" value="1.0" id="bondlen_1"> </td>
-    </tr>
-
-    <tr id="bond_row_2">
-      <td> <input type="text" size="10" value="1" id="bondi_2"> </td>
-      <td> <input type="text" size="10" value="3" id="bondj_2"> </td>
-      <td> <input type="text" size="14" value="1.0" id="bondlen_2"> </td>
-    </tr>
-
-    <tr id="bond_row_3">
-      <td> <input type="text" size="10" value="2" id="bondi_3"> </td>
-      <td> <input type="text" size="10" value="3" id="bondj_3"> </td>
-      <td> <input type="text" size="14" value="1.633" id="bondlen_3"> </td>
     </tr>
 
   </table>
@@ -385,7 +341,7 @@ in the browser!
   &nbsp;
 
   Number of
-  <span class="math"><i>k</i></span> for the Newton-Raphson solver,
+  <span class="math"><i>k</i></span>&rsquo;s for the Newton-Raphson solver,
   <span class="math"><i>M</i></span>:
   <input type="text" size="6" value="25" id="lmv_M">
   <br>
@@ -450,6 +406,7 @@ in the browser!
         <div id="cr_plot" class="plot"></div>
       </td>
     </tr>
+<!--
     <tr>
       <td>
         <div id="wr_plot" class="plot"></div>
@@ -458,6 +415,7 @@ in the browser!
         <div id="wr2_plot" class="plot"></div>
       </td>
     </tr>
+-->
   </table>
 </form>
 

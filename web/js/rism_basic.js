@@ -180,9 +180,9 @@ function ljpot6_12(r, c6, c12, lam)
   var sig, eps, ir, ir6;
 
   if ( c6 < 0 && c12 > 0 ) { /* attractive */
-    sig = pow(-c12/c6, 1./6);
+    sig = Math.pow(-c12/c6, 1./6);
     eps = c6*c6/4/c12;
-    return ljpot(r, sig, eps, eps, lam, nrdu);
+    return ljpot(r, sig, eps, eps, lam);
   }
   if ( c6 > 0 ) lam = 1;
   ir = 1/r;

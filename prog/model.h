@@ -655,7 +655,7 @@ model_t models[] =
     {10, 0.5},
     {5, 0.1}
   },
-  /* 10. PR1982, H2O, model I
+  /* 10. PR1982, H2O, model 1
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * the unit of C6 is kcal A^6 / mol
@@ -677,7 +677,7 @@ model_t models[] =
     {20, 0.5},
     {5, 0.5}
   },
-  /* 11. PR1982, H2O, model II (SPC)
+  /* 11. PR1982, H2O, model 2 (SPC)
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * the unit of C6 is kcal A^6 / mol
@@ -699,7 +699,7 @@ model_t models[] =
     {20, 0.5},
     {5, 0.5}
   },
-  /* 12. PR1982, H2O, model III (TIPS)
+  /* 12. PR1982, H2O, model 3 (TIPS)
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * the unit of C6 is kcal A^6 / mol
@@ -727,9 +727,9 @@ model_t models[] =
    *  /Bossman/Software/3Drism/h2o_lib/spce
    * the unit of LJ energy is Kelvin */
   {3, {3.1666, 0.4, 0.4},
-    { {78.2083543, 78.2083543}, /* O */
-      {0, 23.150478}, /* H1 */ {0, 23.150478} /* H2 */ }, {{0}},
-    {0.033314, 0.033314, 0.033314},
+    { {78.21, 78.21}, /* O */
+      {0, 23.15}, /* H1 */ {0, 23.15} /* H2 */ }, {{0}},
+    {0.03334, 0.03334, 0.03334},
     {1.0, 1.0, 1.633},
     1./300, 1.0, KBNA, LJ_FULL,
     {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0,
@@ -740,7 +740,7 @@ model_t models[] =
     {25, 0.5},
     {5, 0.5}
   },
-  /* 14. TIP3, H2O
+  /* 14. TIP3P, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
    * the following data are copied from
    *  /Bossman/Software/3Drism/h2o_lib/tip3
