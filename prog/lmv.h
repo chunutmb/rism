@@ -190,7 +190,7 @@ static double iter_lmv(model_t *model,
       /* switch between stages */
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->infdil && uv->atomicsolvent ) {
+        if ( uv->infdil && uv->atomicsolute ) {
           step_picard(model, NULL, NULL, vrsr, wk,
                 cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
           break;

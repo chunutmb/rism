@@ -241,7 +241,7 @@ static double iter_mdiis(model_t *model,
 
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->atomicsolvent && uv->infdil ) {
+        if ( uv->atomicsolute && uv->infdil ) {
           step_picard(model, res, NULL, vrsr, wk,
               cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
           break;
