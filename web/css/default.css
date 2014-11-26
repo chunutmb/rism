@@ -5,11 +5,10 @@ body {
   font-size: 12pt; 
 }
 
-div.panel {
+.panel {
   background-color: #fefeee;
   padding: 5px 20px;
-  width: 90%;
-  margin: 5px 2% 10px 2%;
+  margin: 5px 5px 10px 5px;
   border: 3px double #e0e0e0;
   border-radius: 10px;
 
@@ -68,7 +67,7 @@ option {
 
 .largebtn {
   font-family: Georgia, serif;
-  font-size: 120%;
+  font-size: 110%;
   font-weight: bold;
   line-height: 180%;
   padding: 0px 50px;

@@ -24,7 +24,11 @@
   The XRISM program <span class="code">rism0</span>
 </h2>
 
-<div class="panel">
+
+
+<table>
+<tr>
+<td class="panel" style="width:520px;">
 <h2 class="panel-title">What is RISM/XRISM?</h2>
 
 <p>
@@ -53,15 +57,14 @@ For an uncharged system, XRISM is reduced to RISM.
 
 
 
-<div class="panel">
+<td class="panel">
 <h2 class="panel-title">The XRISM program: <span class="code">rism0</span></h2>
 <p>
 The program <span class="code">rism0</span> implements XRISM.
 
 It is written in C.
 
-The latest version of <span class="code">rism0</span>
-can be found in
+The latest version can be found in
 <ul>
   <li>
     <a href="https://github.com/3ki5tj/rism">
@@ -81,6 +84,10 @@ The following tool helps generate input configuration files of
 For simple and small systems, you can even run it directly
 in the browser!
 </div>
+
+</tr>
+</table>
+
 
 
 <form>
@@ -362,40 +369,36 @@ in the browser!
   <input type="reset" value="Reset"
     id="resetbtn" class="largebtn">
 
-  <input type="button" value="Load"
+  <input type="button" value="Load configuration file"
     title="Copy and paste an existing configuration file
     to the text-box below.  Then click me.".
     id="loadbtn" onclick="loadcfg()" class="largebtn">
 
-  <div class="float_right" style="width:400px">
+  <div class="float_right" style="width:440px">
     You can copy and paste an existing configuration file
      into the text-box below,
-     and click the &ldquo;<b>Load</b>&rdquo; button.
+     and click the &ldquo;<b>Load configuration file</b>&rdquo; button.
   </div>
+
+  <input type="button" value="Run!"
+    title="Note, only hit this button for simple systems, because this function is implemented in JavaScript, which is slow compared to C.  Also, the result may be less reliable."
+    id="comutebtn" class="largebtn" onClick="mkplot()">
+
   </div>
 
   <br>
 
   <div>
-    Output configuration file: <br>
+    Configuration file: <br>
   <br>
   <textarea rows="10" id="cfgout"></textarea>
   </div>
 
-  <hr>
-
   <input type="checkbox" id="verbose" onchange="change_verbose()">
-  Logging in the JavaScript console.
+  Enable logging in the JavaScript console.
   <br>
 
-  <div class="center">
-    <input type="button" value="Run"
-    id="comutebtn" class="largebtn" onClick="mkplot()">
-  </div>
-
-  Note, you should only hit &ldquo;<b>Run</b>&rdquo; for simple systems,
-  because this functionally is implemented in JavaScript, which is slow compared to C.
-  Also, the result is likely to be less reliable.
+  <hr>
 
   <table id="plot_table">
     <tr>
