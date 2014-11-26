@@ -3,7 +3,7 @@ var ns2 = 9;
 var npt = 1024;
 var rmax = 20.48;
 var itmax = 10000;
-var tol = 1e-6;
+var tol = 1e-7;
 var picard_damp = 1.0;
 
 var temp = 1.0;
@@ -46,7 +46,7 @@ function read_params()
   rmax = get_float("rmax", 20.48);
   ietype = grab("ietype").value;
   itmax = get_int("itmax", 100000);
-  tol = get_float("tol", 1e-6);
+  tol = get_float("tol", 1e-7);
   picard_damp = get_float("picard_damp", 1.0);
   change_verbose();
 

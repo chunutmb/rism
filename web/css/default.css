@@ -113,3 +113,14 @@ textarea {
   border: 1px solid #e0e0ff;
   border-radius: 10px;
 }
+
+.fignote {
+  margin: auto;
+  margin-top: 10px;
+  background-color: #e0e0ff;
+  padding: 10px;
+  width: 400px;
+  border: 1px solid #c0c0ff;
+  border-radius: 10px;
+}
+

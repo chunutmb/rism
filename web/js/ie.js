@@ -4,7 +4,7 @@ var ietype = "PY";
 var npt = 1024;
 var rmax = 5.12;
 var itmax = 10000;
-var tol = 1e-6;
+var tol = 1e-7;
 var picard_damp = 1.0;
 
 var ri, ki, dr, dk;

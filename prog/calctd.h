@@ -61,7 +61,15 @@ static int getmols(model_t *m)
       fprintf(stderr, "site %d: molecule %d\n", i + IDBASE, mol[i] + IDBASE);
     once = 1;
   }
-  return m->nmol = im + 1;
+  m->nmol = im + 1;
+
+  /* compute the net charge of each molecule */
+  for ( im = 0; im < m->nmol; im++ )
+    m->chargemol[im] = 0;
+  for ( i = 0; i < ns; i++ )
+    m->chargemol[ mol[i] ] += m->charge[i];
+
+  return m->nmol;
 }
 
 

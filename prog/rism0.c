@@ -21,11 +21,14 @@
 #include "calctd.h"
 
 
+
 enum { DOUU_NEVER = 0, DOUU_ALWAYS = 1, DOUU_ATOMIC = 2 };
+
 
 
 int model_id = 16;
 int douu = DOUU_ATOMIC; /* by default, do solute-solute interaction only for atomic solute */
+int allsolvent = 0; /* treat all atoms as solvent */
 int verbose = 0;
 const char *fncrtr = "out.dat";
 int sepout = 0;
@@ -47,6 +50,7 @@ static void help(const char *prog)
   fprintf(stderr, "  -#:    followed by the output coordination number file, default: %s\n", fncrdnum);
   fprintf(stderr, "  -!:    skip the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -u:    always do the solute-solute stage calculation, default: false\n");
+  fprintf(stderr, "  -V:    treat all sites as solvent, default: false\n");
   fprintf(stderr, "  -v:    be verbose, -vv to be more verbose, etc.\n");
   fprintf(stderr, "  -h:    display this message\n");
   exit(1);
@@ -104,6 +108,8 @@ static model_t *doargs(int argc, char **argv)
         douu = DOUU_NEVER;
       } else if ( ch == 'u' ) {
         douu = DOUU_ALWAYS;
+      } else if ( ch == 'V' ) {
+        allsolvent = 1;
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
@@ -242,15 +248,16 @@ static double solveHMrmin(double B, double C, double rho)
 
 /* initialize f(r) */
 static void initfr(model_t *m, double **ur, double **nrdur,
-    double **fr, double **vrqq, double **vrlr, double **vrsr,
-    double lam)
+    double **fr, double **vrqq, double **vrpp,
+    double **vrlr, double **vrsr, double lam)
 {
   const double vrmin = -30;
-  int i, j, ij, ji, ipr, l, ns = m->ns, use_pairpot;
+  int i, j, ij, ji, ipr, l, ns = m->ns, npt = m->npt, use_pairpot;
   double beta = m->beta, r, z, u, uelec, nrdu, ulr, rscreen;
   double sig, eps6, eps12, c6, c12, Bij, rhoij, rminij;
   static int once;
 
+  getmols(m); /* parse the system into molecules */
   for ( ipr = 0, i = 0; i < ns; i++ ) { /* the first site */
     for ( j = i; j < ns; j++, ipr++ ) { /* the second site */
       ij = i*ns + j;
@@ -279,9 +286,9 @@ static void initfr(model_t *m, double **ur, double **nrdur,
       if ( !once )
         fprintf(stderr, "i %d, j %d, sig %4.2f, eps6 %10.2e, eps12 %10.2e, "
             "c6 %10.2e c12 %10.2e, B %10.2e, rho %4.2f, rmin %g, rscreen %g\n",
-          i + 1, j + 1, sig, eps6, eps12, c6, c12, Bij, rhoij, rminij, rscreen);
+          i + IDBASE, j + IDBASE, sig, eps6, eps12, c6, c12, Bij, rhoij, rminij, rscreen);
 
-      for ( l = 0; l < m->npt; l++ ) { /* the radius */
+      for ( l = 0; l < npt; l++ ) { /* the radius */
         r = fft_ri[l];
         if ( m->ljtype  == HARD_SPHERE) {
           if (r < sig) {
@@ -313,6 +320,8 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           nrdur[ij][l] = nrdu + uelec;
           ulr = uelec * erf( r/rscreen );
           vrqq[ij][l] = beta * uelec;
+          vrpp[ij][l] = beta * lam * m->ampch / r
+                      * m->chargemol[ m->mol[i] ] * m->chargemol[ m->mol[j] ];
           vrlr[ij][l] = beta * ulr;
           vrsr[ij][l] = beta * (u + uelec - ulr);
           if ( vrsr[ij][l] < vrmin ) {
@@ -326,12 +335,13 @@ static void initfr(model_t *m, double **ur, double **nrdur,
         fr[ij][l] = z;
       } /* loop over l, the radius */
       if ( j > i ) {
-        cparr(ur[ji],     ur[ij],     m->npt);
-        cparr(nrdur[ji],  nrdur[ij],  m->npt);
-        cparr(vrqq[ji],   vrqq[ij],   m->npt);
-        cparr(vrlr[ji],   vrlr[ij],   m->npt);
-        cparr(vrsr[ji],   vrsr[ij],   m->npt);
-        cparr(fr[ji],     fr[ij],     m->npt);
+        cparr(ur[ji],     ur[ij],     npt);
+        cparr(nrdur[ji],  nrdur[ij],  npt);
+        cparr(vrqq[ji],   vrqq[ij],   npt);
+        cparr(vrpp[ji],   vrpp[ij],   npt);
+        cparr(vrlr[ji],   vrlr[ij],   npt);
+        cparr(vrsr[ji],   vrsr[ij],   npt);
+        cparr(fr[ji],     fr[ij],     npt);
       }
     } /* loop over j, the second site */
   } /* loop over i, the first site */
@@ -539,7 +549,7 @@ static double iter_picard(model_t *model,
 
 /* save correlation functions to file `fn' */
 static char *output(model_t *m,
-    double **cr, double **vrqq, double **vrlr,
+    double **cr, double **vrqq, double **vrpp, double **vrlr,
     double **ur, double **tr, double **fr,
     double **ck, double **vklr, double **tk, double **wk,
     const char *fn, int ilam)
@@ -567,7 +577,7 @@ static char *output(model_t *m,
       ij = i*ns + j;
       for ( l = 0; l < npt; l++ ) {
         double vrl = vrlr[ij][l], vkl = vklr[ij][l];
-        double vrt = m->beta * ur[ij][l], vrq = vrqq[ij][l];
+        double vrt = m->beta * ur[ij][l], vrq = vrqq[ij][l], vrp = vrpp[ij][l];
         /* note that cr[ij][l] and tr[ij][l] exclude
          * the long-range component vrl */
         double crt = cr[ij][l] - vrl, trt = tr[ij][l] + vrl;
@@ -575,7 +585,9 @@ static char *output(model_t *m,
         /* pmfs = beta dW: the short-range correction to
          * the continuum primitive model, in which
          *
-         *  W_c = u_LJ + u_qq/eps  (with u = u_LJ + u_qq)
+         *  W_c = u_LJ + u_pp/eps  (with u = u_LJ + u_pp)
+         *
+         *  Here u_pp is net molecular electrostatic interaction
          *
          * `pmfs' is computed from Eq. (50) of the following paper:
          * [ ``The interionic potential of mean force in a molecular polar
@@ -585,16 +597,16 @@ static char *output(model_t *m,
          *
          *    beta dW
          *  = beta W_rism_corrected - beta W_s
-         *  = (beta W_s - phi_qq/eps) - beta W_c
+         *  = (beta W_s - phi_pp/eps) - beta W_c
          *  = beta W_s + phi*                 (here, phi* = -beta u_LJ)
-         *  = beta W + phi/eps_rism + phi*    (here, phi  = -beta u_qq)
-         *  = beta u - t(r) - beta u_qq/eps_rism - beta u_LJ
-         *  = beta u_q - t(r) - beta u_qq/eps_rism
+         *  = beta W + phi/eps_rism + phi*    (here, phi  = -beta u_pp)
+         *  = beta u - t(r) - beta u_pp/eps_rism - beta u_LJ
+         *  = beta u_q - t(r) - beta u_pp/eps_rism
          * */
-        double pmfs = vrq - trt - vrq/eps_rism;
-        fprintf(fp, "%g %g %g %g %g %g %d %d %g %g ",
+        double pmfs = vrq - trt - vrp/eps_rism;
+        fprintf(fp, "%g %g %g %g %g %g %d %d %g %g %g ",
             fft_ri[l], crt, trt, fr[ij][l],
-            vrl, vrt, i + IDBASE, j + IDBASE, vrq, pmfs);
+            vrl, vrt, i + IDBASE, j + IDBASE, vrq, pmfs, vrp);
         if ( printk )
           fprintf(fp, "%g %g %g %g %g",
               fft_ki[l], ckt, tkt, wk[ij][l], vkl);
@@ -615,7 +627,7 @@ static int dorism(model_t *model)
   double err = 0, dia, eps, lam;
   double **ur, **nrdur, **fr, **wk;
   double **cr, **cp, **ck, **tr, **tk, **ntk;
-  double **der, **vrlr, **vrqq, **vrsr, **vklr;
+  double **der, **vrlr, **vrqq, **vrpp, **vrsr, **vklr;
   double *um, *mum;
   const char *fnout;
   uv_t *uv;
@@ -628,6 +640,7 @@ static int dorism(model_t *model)
   newarr2d(ur,    ns * ns, npt);
   newarr2d(nrdur, ns * ns, npt);
   newarr2d(vrqq,  ns * ns, npt);
+  newarr2d(vrpp,  ns * ns, npt);
   newarr2d(vrlr,  ns * ns, npt);
   newarr2d(vrsr,  ns * ns, npt);
   newarr2d(vklr,  ns * ns, npt);
@@ -653,7 +666,7 @@ static int dorism(model_t *model)
   for ( ilam = 1; ilam <= nlam; ilam++ ) {
     lam = 1.*ilam/nlam;
 
-    initfr(model, ur, nrdur, fr, vrqq, vrlr, vrsr, lam);
+    initfr(model, ur, nrdur, fr, vrqq, vrpp, vrlr, vrsr, lam);
     sphr_r2k(vrlr, vklr, ns, NULL);
 
     /* use f(r) as the initial c(r) for the lowest lambda */
@@ -676,8 +689,8 @@ static int dorism(model_t *model)
 
     uv_close(uv);
 
-    fnout = output(model, cr, vrqq, vrlr, ur, tr, fr, ck, vklr, tk, wk,
-        fncrtr, ilam);
+    fnout = output(model, cr, vrqq, vrpp, vrlr, ur, tr, fr,
+        ck, vklr, tk, wk, fncrtr, ilam);
     fprintf(stderr, "lambda %4.2f, %4d iterations, err %10.4e, output %s\n",
         lam, it, err, fnout);
   }
@@ -693,6 +706,7 @@ static int dorism(model_t *model)
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);
   delarr2d(vrqq,  ns * ns);
+  delarr2d(vrpp,  ns * ns);
   delarr2d(vrlr,  ns * ns);
   delarr2d(vrsr,  ns * ns);
   delarr2d(vklr,  ns * ns);
