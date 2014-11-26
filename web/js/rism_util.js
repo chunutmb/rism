@@ -333,6 +333,7 @@ function striiconv(s)
 }
 
 
+
 /* compare two strings, insensitive to the cases, ignore punctuations */
 function striieq(s, t)
 {
