@@ -21,7 +21,7 @@
 #include "calctd.h"
 
 
-enum { DOUU_NEVER = 0, DOUU_ALWAYS = 1, DOUU_ATOMIC = 2};
+enum { DOUU_NEVER = 0, DOUU_ALWAYS = 1, DOUU_ATOMIC = 2 };
 
 
 int model_id = 16;

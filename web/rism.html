@@ -8,10 +8,14 @@
   <script src="js/util.js"></script>
   <script src="js/debug.js"></script>
   <script src="js/fft.js"></script>
+  <script src="js/lu.js"></script>
   <script src="js/rism_util.js"></script>
   <script src="js/rism_cfg.js"></script>
   <script src="js/rism_model.js"></script>
-  <script src="js/rism.js"></script>
+  <script src="js/rism_basic.js"></script>
+  <script src="js/rism_uv.js"></script>
+  <script src="js/rism_lmv.js"></script>
+  <script src="js/rism_main.js"></script>
 </head>
 <body onload="init()">
 
@@ -92,9 +96,10 @@ in the browser!
     <option value="model_empty_erg">Empty system with the energy unit being erg</option>
     <option value="model_empty_kJpermol">Empty system with the energy unit being kJ/mol</option>
     <option value="model_empty_kcalpermol">Empty system with the energy unit being kcal/mol</option>
-    <option value="model_lc1973_n2hs">N<sub>&#8322;</sub>, hard-sphere potential (LC1973)</option>
+    <option value="model_lc1973_hs">Hard-sphere potential (LC1973), also Model I of CHS1977</option>
     <option value="model_chs1977_modelII">Model II of CHS1977</option>
     <option value="model_chs1977_modelIII">Model III of CHS1977</option>
+    <option value="model_lc1973_n2ljrep">N<sub>&#8322;</sub>, LJ-repulsive potential (LC1973)</option>
   </select>
   <input type="button" value="Load stock model" class="largebtn"
     onclick="loadstockmodel()">
@@ -405,8 +410,8 @@ in the browser!
     to the text-box below.  Then click me.".
     id="loadbtn" onclick="loadcfg()" class="largebtn">
 
-  <div class="float_right" style="width:450px">
-    Note, you can copy and paste an existing configuration file
+  <div class="float_right" style="width:400px">
+    You can copy and paste an existing configuration file
      into the text-box below,
      and click the &ldquo;<b>Load</b>&rdquo; button.
   </div>

@@ -47,7 +47,7 @@ static uv_t *uv_open(model_t *m, int uutype)
     for ( j = 0; j < ns; j++ )
       uv->prmask[i*ns + j] = (i < uv->nsv && j < uv->nsv);
   uv->npr = uv->nsv * (uv->nsv + 1) / 2;
-  uv->stage = 0;
+  uv->stage = SOLVENT_SOLVENT;
   for ( i = uv->nsv; i < uv->ns; i++ )
     if ( m->rho[i] > 0 )
       break;
