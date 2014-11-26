@@ -11,12 +11,14 @@ typedef struct {
   int ns;
   int npt;
   int mnb; /* maximal number of bases */
-  int nb; /* number of bases */
+  int nb; /* number of functions in the basis */
   double **cr;  /* basis */
   double **res; /* residues */
   double *mat; /* correlations of residues */
   double *mat2; /* temporary matrix for LU decomposition */
   double *coef; /* coefficients */
+  double *crbest;
+  double resmin;
 } mdiis_t;
 
 
@@ -39,6 +41,8 @@ static mdiis_t *mdiis_open(int ns, int npt, int mnb)
   newarr(m->mat,    mnb1 * mnb1);
   newarr(m->mat2,   mnb1 * mnb1);
   newarr(m->coef,   mnb1);
+  newarr(m->crbest,   ns2 * npt);
+  m->resmin = 1e300;
   return m;
 }
 
@@ -53,6 +57,7 @@ static void mdiis_close(mdiis_t *m)
   delarr(m->mat);
   delarr(m->mat2);
   delarr(m->coef);
+  delarr(m->crbest);
   free(m);
 }
 
@@ -95,16 +100,37 @@ static void mdiis_gencr(mdiis_t *m, double **cr, double damp,
     for ( il = 0; il < npr * npt; il++ )
       m->cr[nb][il] += coef * (m->cr[k][il] + damp * m->res[k][il]);
   }
+
   /* save m->cr[nb] to c(r) */
   for ( ipr = 0, i = 0; i < ns; i++ )
     for ( j = i; j < ns; j++ ) {
       if ( !uv->prmask[ij = i*ns + j] ) continue;
-      for ( l = 0; l < npt; l++ ) {
-        double y;
-        cr[ij][l] = y = m->cr[nb][ipr*npt + l];
-        if ( j > i) cr[j*ns + i][l] = y;
-      }
+      for ( l = 0; l < npt; l++ )
+        cr[ij][l] = m->cr[nb][ipr*npt + l];
       ipr++;
+      cparr(cr[j*ns + i], cr[ij], npt);
+    }
+}
+
+
+
+/* MDIIS failed */
+static void mdiis_surrender(mdiis_t *m, double **cr, const uv_t *uv)
+{
+  int ns = m->ns, npt = m->npt;
+  int i, j, ij, ipr, l;
+
+  if ( verbose ) {
+    fprintf(stderr, "MDIIS failed: use the best c(r) with residue %g\n", m->resmin); getchar();
+  }
+  /* save m->crbest to c(r) */
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++ ) {
+      if ( !uv->prmask[ij = i*ns + j] ) continue;
+      for ( l = 0; l < npt; l++ )
+        cr[ij][l] = m->crbest[ipr*npt + l];
+      ipr++;
+      cparr(cr[j*ns + i], cr[ij], npt);
     }
 }
 
@@ -169,16 +195,21 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
     /* choose the base with the largest residue */
     ib = 0;
     for ( i = 1; i < nb; i++ )
+      /* the diagonal represents the error */
       if ( m->mat[i*mnb1+i] > m->mat[ib*mnb1 + ib] )
         ib = i;
     max = m->mat[ib*mnb1 + ib];
 
     dot = getdot(res, res, uv->npr * npt);
     if ( dot > max ) {
-      int reset = sqrt(dot) < 1;
-      if ( verbose )
-        fprintf(stderr, "MDIIS: bad basis, %g is greater than %g%s\n",
-          dot, max, reset ? ", reset" : "");
+      int reset = sqrt(dot) < 2;
+      if ( verbose ) {
+        fprintf(stderr, "MDIIS: bad basis, %g is greater than %g, %s, error:",
+          dot, max, reset ? "reset" : "accept");
+        for ( i = 0; i < nb; i++ )
+          fprintf(stderr, " %g", m->mat[i*mnb1+i]);
+        fprintf(stderr, "\n");
+      }
       if ( reset ) {
         mdiis_build(m, cr, res, uv);
         return 1;
@@ -226,19 +257,27 @@ static double iter_mdiis(model_t *model,
       cr, ck, vklr, tr, tk, uv->prmask, 0, 0.);
   mdiis_build(mdiis, cr, res, uv);
 
-  for ( it = 0; it < model->itmax; it++ ) {
+  for ( it = 0; it <= model->itmax; it++ ) {
     mdiis_solve(mdiis);
     mdiis_gencr(mdiis, cr, damp, uv);
     err = step_picard(model, res, NULL, vrsr, wk,
         cr, ck, vklr, tr, tk, uv->prmask, 0, 0.);
     ib = mdiis_update(mdiis, cr, res, uv);
 
+    /* save this function */
+    if ( err < mdiis->resmin ) {
+      cparr(mdiis->crbest, mdiis->cr[mdiis->nb], uv->npr * npt);
+      mdiis->resmin = err;
+    }
+
     if ( verbose )
       fprintf(stderr, "it %d, err %g -> %g, ib %d -> %d\n",
           it, errp, err, ibp, ib);
-    if ( err < model->tol ) {
+    if ( err < model->tol || it == model->itmax ) {
       int update;
 
+      if ( it >= model->itmax )
+        mdiis_surrender(mdiis, cr, uv);
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
         if ( uv->atomicsolute && uv->infdil ) {

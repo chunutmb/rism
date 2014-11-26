@@ -79,6 +79,7 @@ typedef struct {
   /* the rest of the elements are to be computed by the program */
   double disij[MAXATOM][MAXATOM]; /* matrix form of dis[] */
   int nmol, mol[MAXATOM];
+  double chargemol[MAXATOM]; /* net charge of each molecule */
   double diameter[MAXATOM];
 } model_t;
 

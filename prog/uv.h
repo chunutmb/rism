@@ -27,8 +27,10 @@ static int getnsv(model_t *m)
 {
   int i;
 
+  if ( allsolvent ) /* explicitly set all atoms as the solvent */
+    return m->ns;
   for ( i = 0; i < m->ns; i++ )
-    if ( m->rho[i] < DBL_MIN ) break;
+    if ( m->rho[i] <= 0 ) break;
   return i;
 }
 
