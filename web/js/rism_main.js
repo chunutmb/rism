@@ -40,8 +40,7 @@ function solve()
       ret = iter_lmv(vrsr, wk, cr, der, ck, vklr,
           tr, tk, ntk, cp, uv);
     } else if ( solver == "MDIIS" ) {
-      // TODO
-      ret = [0, 0]
+      ret = iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv);
     } else {
       ret = iter_picard(vrsr, wk, cr, ck, vklr, tr, tk)
     }
