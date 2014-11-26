@@ -359,7 +359,6 @@ static void initwk(model_t *m, double **wk)
       cparr(wk[j*ns + i], wk[ij], npt);
     }
   }
-  printvec(fft_ki, npt, "fft_ki");
 }
 
 

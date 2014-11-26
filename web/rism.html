@@ -20,7 +20,7 @@
 </h2>
 
 <div class="panel">
-<h2 class="panel-title">What is it?</h2>
+<h2 class="panel-title">What is RISM/XRISM?</h2>
 
 <p>
 For a simple or atomic fluid (e.g., a box of hard-sphere or Lennard-Jones particles),
@@ -28,8 +28,8 @@ the integral equation method is a powerful tool of
 solving the pair correlation function
 <span class="math"><i>g</i>(<i>r</i>)</span>.
 
-For an introduction of integral equation,
-see <a href="ie.html">this demonstration</a>.
+To see how a basic integral equation works,
+check <a href="ie.html">this demonstration</a>.
 </p>
 
 <p>
@@ -40,14 +40,16 @@ However, the original RISM does not handle charged or polar systems (like a box 
 very well.
 
 The e<b>x</b>tended <b>R</b>eference <b>S</b>ite <b>I</b>nteraction <b>M</b>odel (XRISM)
-is an extension that helps solving the charged systems.
+is an extension for charged systems.
+
+For an uncharged system, XRISM is reduced to RISM.
 </p>
 </div>
 
 
 
 <div class="panel">
-<h2 class="panel-title">The program: <span class="code">rism0</span></h2>
+<h2 class="panel-title">The XRISM program: <span class="code">rism0</span></h2>
 <p>
 The program <span class="code">rism0</span> implements XRISM.
 
@@ -69,9 +71,10 @@ can be found in
 </ul>
 
 <p>
-The tool helps generate input configuration files of
+The following tool helps generate input configuration files of
 <span class="code">rism0</span>.
-For simple and small systems, you can even run it directly.
+For simple and small systems, you can even run it directly
+in the browser!
 </div>
 
 
@@ -89,6 +92,9 @@ For simple and small systems, you can even run it directly.
     <option value="model_empty_erg">Empty system with the energy unit being erg</option>
     <option value="model_empty_kJpermol">Empty system with the energy unit being kJ/mol</option>
     <option value="model_empty_kcalpermol">Empty system with the energy unit being kcal/mol</option>
+    <option value="model_lc1973_n2hs">N<sub>&#8322;</sub>, hard-sphere potential (LC1973)</option>
+    <option value="model_chs1977_modelII">Model II of CHS1977</option>
+    <option value="model_chs1977_modelIII">Model III of CHS1977</option>
   </select>
   <input type="button" value="Load stock model" class="largebtn"
     onclick="loadstockmodel()">
@@ -144,9 +150,9 @@ For simple and small systems, you can even run it directly.
     <tr id="site_row_1">
       <td> 1 </td>
       <td> <input type="text" size="10" value="3.15" id="sigma_1"> </td>
-      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onchange="change_eps6(1, '')"> </td>
+      <td> <input type="text" size="10" value="76.5364" id="eps6_1" onchange="change_eps6(1)"> </td>
       <td> <input type="text" size="10" value="76.5364" id="eps12_1" disabled>
-        <input type="checkbox" id="sameeps_1" checked onchange="change_eps6(1, '')">
+        <input type="checkbox" id="sameeps_1" checked onchange="change_eps6(1)">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_1"> </td>
@@ -156,9 +162,9 @@ For simple and small systems, you can even run it directly.
     <tr id="site_row_2">
       <td> 2 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_2"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_2" onchange="change_eps6(2, '')"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_2" onchange="change_eps6(2)"> </td>
       <td> <input type="text" size="10" value="23.1509" id="eps12_2">
-        <input type="checkbox" id="sameeps_2" onchange="change_eps6(2, '')">
+        <input type="checkbox" id="sameeps_2" onchange="change_eps6(2)">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_2"> </td>
@@ -168,9 +174,9 @@ For simple and small systems, you can even run it directly.
     <tr id="site_row_3">
       <td> 3 </td>
       <td> <input type="text" size="10" value="0.4" id="sigma_3"> </td>
-      <td> <input type="text" size="10" value="0" id="eps6_3" onchange="change_eps6(3, '')"> </td>
+      <td> <input type="text" size="10" value="0" id="eps6_3" onchange="change_eps6(3)"> </td>
       <td> <input type="text" size="10" value="23.1509" id="eps12_3">
-        <input type="checkbox" id="sameeps_3" onchange="change_eps6(3, '')">
+        <input type="checkbox" id="sameeps_3" onchange="change_eps6(3)">
         Same as <span class="math"><i>&epsilon;</i><sub>&#8326;</sub></span>
       </td>
       <td> <input type="text" size="14" value="0.033314" id="rho_3"> </td>

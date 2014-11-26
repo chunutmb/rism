@@ -16,6 +16,8 @@ function change_unit_eps()
 
 function change_eps6(id, prefix)
 {
+  if ( prefix == null || prefix == undefined )
+    prefix = "";
   var txteps12 = grab(prefix + "eps12_" + id);
   if ( grab(prefix + "sameeps_" + id).checked ) {
     txteps12.value = grab(prefix + "eps6_" + id).value;

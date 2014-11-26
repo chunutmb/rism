@@ -573,7 +573,7 @@ function mkplot()
     xlabel: '<i>r</i>',
     ylabel: '<i>g</i>(<i>r</i>)',
     yRangePad: 1,
-    width: 350,
+    width: 480,
     axisLabelFontSize: 10,
   };
 
@@ -581,7 +581,7 @@ function mkplot()
     xlabel: '<i>r</i>',
     ylabel: '<i>c</i>(<i>r</i>)',
     yRangePad: 1,
-    width: 350,
+    width: 480,
     axisLabelFontSize: 10,
   };
 

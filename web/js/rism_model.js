@@ -201,14 +201,17 @@ function loadcfg(s)
       i = model_getidx(key, ns);
       grab("eps6_" + i).value = grab("eps12_" + i).value = parseFloat(val);
       grab("sameeps_" + i).checked = true;
+      change_eps6(i);
     } else if ( strstartswith(key, "eps6(") ) {
       i = model_getidx(key, ns);
       grab("eps6_" + i).value = parseFloat(val);
       grab("sameeps_" + i).checked = false;
+      change_eps6(i);
     } else if ( strstartswith(key, "eps12(") ) {
       i = model_getidx(key, ns);
       grab("eps12_" + i).value = parseFloat(val);
       grab("sameeps_" + i).checked = false;
+      change_eps6(i);
     } else if ( strstartswith(key, "rho(") ) {
       i = model_getidx(key, ns);
       grab("rho_" + i).value = parseFloat(val);
@@ -345,6 +348,9 @@ var stockmodels = {
   "empty_erg": "ns=0\nT=300\nkBT=KB_ERG\nkBU=1\nljtype=LJ-full\nampch=KE2_AERG\nrscreen=1.0\nclosure=HNC\nrmax=20.48\nnpt=1024\nnlambdas=10\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
   "empty_kJpermol": "ns=0\nT=300\nkBT=KBNA\nkBU=1\nljtype=LJ-full\nampch=KE2NA\nrscreen=1.0\nclosure=HNC\nrmax=20.48\nnpt=1024\nnlambdas=10\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
   "empty_kcalpermol": "ns=0\nT=300\nkBT=KBNAC\nkBU=1\nljtype=LJ-full\nampch=KE2NAC\nrscreen=1.0\nclosure=HNC\nrmax=20.48\nnpt=1024\nnlambdas=10\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "lc1973_n2hs": "ns=2\nsigma(1)=1\neps(1)=1\nrho(1)=0.5\ncharge(1)=0\nsigma(2)=1\neps(2)=1\nrho(2)=0.5\ncharge(2)=0\ndis(1,2)=0.6\nT=1\nkBT=1\nkBU=1\nljtype=Hard-sphere\nampch=1\nrscreen=1\nclosure=PY\nrmax=5.12\nnpt=256\nnlambdas=1\ntol=1e-7\nsolver=Picard\npicard_damp=1.0\nlmv_damp=0.5\nlmv_M=15\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "chs1977_modelII": "ns=2\nsigma(1)=0.79\nrho(1)=0.686\ncharge(1)=0\nsigma(2)=1\nrho(2)=0.686\ncharge(2)=0\ndis(1,2)=0.49\nT=1\nkBT=1\nkBU=1\nljtype=Hard-sphere\nampch=1\nrscreen=1\nclosure=PY\nrmax=5.12\nnpt=256\nnlambdas=1\nitmax=1000\ntol=1e-7\nsolver=Picard\npicard_damp=1.0\nlmv_damp=0.5\nlmv_M=15\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "chs1977_modelIII": "ns=2\nsigma(1)=0.675\nrho(1)=0.825\ncharge(1)=0\nsigma(2)=1\nrho(2)=0.825\ncharge(2)=0\ndis(1,2)=0.346\nT=1\nkBT=1\nkBU=1\nljtype=Hard-sphere\nampch=1\nrscreen=1\nclosure=PY\nrmax=5.12\nnpt=256\nnlambdas=1\nitmax=10000\ntol=1e-7\nsolver=Picard\npicard_damp=0.3\nlmv_damp=0.5\nlmv_M=15\nmdiis_damp=0.5\nmdiis_nbases=5\n",
 };
 
 
