@@ -77,12 +77,9 @@ function model_select(id, val)
   var node = grab(id);
   var opts = node.options;
 
-  for ( var i = 0; i < opts.length; i++ ) {
-    if ( striicmp(opts[i].value, val) == 0 ) {
-      node.selectIndex = i;
-      return;
-    }
-  }
+  for ( var i = 0; i < opts.length; i++ )
+    if ( striieq(opts[i].value, val) )
+      return node.selectedIndex = i;
   console.log("cannot find match:", id, opts, val);
 }
 
@@ -166,9 +163,14 @@ function model_findpair(i, j)
 
 
 /* load the configuration file from the textarea */
-function loadcfg()
+function loadcfg(s)
 {
-  var s = grab("cfgout").value.trim();
+  if ( s == null || s == undefined ) {
+    s = grab("cfgout").value.trim();
+  } else {
+    grab("cfgout").value = s;
+  }
+
   var i, l, ln, ij, ipr, ns = 0, nps = 0, nbonds = 0;
   var kBT = 1, kBU = 1, ampch = 1;
 
@@ -264,46 +266,46 @@ function loadcfg()
       ipr = model_findpair(ij[0], ij[1]);
       val = parseFloat(val);
       grab("pairrho_" + ipr).value = val;
-    } else if ( stricmp(key, "t") == 0
-             || stricmp(key, "temp") == 0 ) {
+    } else if ( strieq(key, "t")
+             || strieq(key, "temp") ) {
       grab("temp").value = parseFloat(val);
-    } else if ( stricmp(key, "kbt") == 0 ) {
+    } else if ( strieq(key, "kbt") ) {
       kBT = model_map(val, constants);
-    } else if ( stricmp(key, "kb") == 0 ||
-                stricmp(key, "kbu") == 0 ||
-                stricmp(key, "kbe") == 0 ) {
+    } else if ( strieq(key, "kb") ||
+                strieq(key, "kbu") ||
+                strieq(key, "kbe") ) {
       kBU = model_map(val, constants);
-    } else if ( stricmp(key, "ljtype") == 0 ) {
+    } else if ( strieq(key, "ljtype") ) {
       model_select("ljtype", val);
-    } else if ( stricmp(key, "ampch") == 0 ) {
+    } else if ( strieq(key, "ampch") ) {
       ampch = model_map(val, constants);
-    } else if ( stricmp(key, "rscreen") == 0 ) {
+    } else if ( strieq(key, "rscreen") ) {
       grab("rscreen").value = parseFloat(val);
-    } else if ( stricmp(key, "closure") == 0
-             || stricmp(key, "ietype") == 0 ) {
+    } else if ( strieq(key, "closure")
+             || strieq(key, "ietype") ) {
       model_select("ietype", val);
-    } else if ( stricmp(key, "rmax") == 0 ) {
+    } else if ( strieq(key, "rmax") ) {
       grab("rmax").value = parseFloat(val);
-    } else if ( stricmp(key, "npt") == 0
-             || stricmp(key, "n-pts") == 0 ) {
+    } else if ( strieq(key, "npt")
+             || strieq(key, "n-pts") ) {
       grab("npt").value = parseInt(val);
     } else if ( strstartswith(key, "nlambda") ) {
       grab("nlambdas").value = parseInt(val);
-    } else if ( stricmp(key, "itmax") == 0 ) {
+    } else if ( strieq(key, "itmax") ) {
       grab("itmax").value = parseInt(val);
-    } else if ( stricmp(key, "tol") == 0 ) {
+    } else if ( strieq(key, "tol") ) {
       grab("tol").value = parseFloat(val);
-    } else if ( stricmp(key, "solver") == 0 ) {
+    } else if ( strieq(key, "solver") ) {
       model_select("solver", val);
-    } else if ( stricmp(key, "picard_damp") == 0 ) {
+    } else if ( striieq(key, "picard_damp") ) {
       grab("picard_damp").value = parseFloat(val);
-    } else if ( stricmp(key, "lmv_m") == 0 ) {
+    } else if ( striieq(key, "lmv_m") ) {
       grab("lmv_M").value = parseInt(val);
-    } else if ( stricmp(key, "lmv_damp") == 0 ) {
+    } else if ( striieq(key, "lmv_damp") ) {
       grab("lmv_damp").value = parseFloat(val);
-    } else if ( stricmp(key, "mdiis_nbases") == 0 ) {
+    } else if ( striieq(key, "mdiis_nbases") ) {
       grab("mdiis_nbases").value = parseInt(val);
-    } else if ( stricmp(key, "mdiis_damp") == 0 ) {
+    } else if ( striieq(key, "mdiis_damp") ) {
       grab("mdiis_damp").value = parseFloat(val);
     } else {
       console.log("Warning: unknown option", key, " = ", val);
@@ -313,26 +315,46 @@ function loadcfg()
   // try to figure out the unit system
   var eps = 1e-4;
   if ( Math.abs(kBT - 1) < eps
-    && Math.abs(kBU - 1) < eps
     && Math.abs(ampch - 1) < eps) {
     model_select("unit_eps6", "reduced");
   } else if ( Math.abs(kBT - 1) < eps
-    && Math.abs(kBU/KBNA - 1) < eps
     && Math.abs(ampch/KE2PK - 1) < eps) {
     model_select("unit_eps6", "K");
   } else if ( Math.abs(kBT/KB_ERG - 1) < eps
-    && Math.abs(kBU - 1) < eps
     && Math.abs(ampch/KE2_AERG - 1) < eps) {
     model_select("unit_eps6", "erg");
   } else if ( Math.abs(kBT/KBNA - 1) < eps
-    && Math.abs(kBU - 1) < eps
     && Math.abs(ampch/KE2NA - 1) < eps) {
     model_select("unit_eps6", "kJpermol");
   } else if ( Math.abs(kBT/KBNAC - 1) < eps
-    && Math.abs(kBU - 1) < eps
     && Math.abs(ampch/KE2NAC - 1) < eps) {
     model_select("unit_eps6", "kcalpermol");
   } else {
-    console.log("unknown unit system:", "kBT", kBT, "kBU", kBU, "ampch", ampch);
+    console.log("unknown unit system:", "kBT", kBT, "ampch", ampch);
   }
+  change_unit_eps();
 }
+
+
+
+
+// use the python script data/cfg2str.py to generate the strings from configuration file
+var stockmodels = {
+  "empty_reduced": "ns=0\nT=1\nkBT=1\nkBU=1\nljtype=Hard-sphere\nampch=1\nrscreen=1\nclosure=PY\nrmax=20.48\nnpt=1024\nnlambdas=1\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=1.0\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "empty_K":  "ns=0\nT=300\nkBT=1\nkBU=KBNA\nljtype=LJ-full\nampch=KE2PK\nrscreen=1.0\nclosure=HNC\nrmax=20.48\nnpt=1024\nnlambdas=10\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "empty_erg": "ns=0\nT=300\nkBT=KB_ERG\nkBU=1\nljtype=LJ-full\nampch=KE2_AERG\nrscreen=1.0\nclosure=HNC\nrmax=20.48\nnpt=1024\nnlambdas=10\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "empty_kJpermol": "ns=0\nT=300\nkBT=KBNA\nkBU=1\nljtype=LJ-full\nampch=KE2NA\nrscreen=1.0\nclosure=HNC\nrmax=20.48\nnpt=1024\nnlambdas=10\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "empty_kcalpermol": "ns=0\nT=300\nkBT=KBNAC\nkBU=1\nljtype=LJ-full\nampch=KE2NAC\nrscreen=1.0\nclosure=HNC\nrmax=20.48\nnpt=1024\nnlambdas=10\nitmax=100000\ntol=1e-6\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.5\nlmv_M=25\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+};
+
+
+
+function loadstockmodel()
+{
+  var mdl = grab("stockmodel").value;
+
+  if ( strstartswith(mdl, "model_") )
+    mdl = mdl.substr(6, mdl.length - 6)
+  loadcfg( stockmodels[mdl] );
+}
+

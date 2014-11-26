@@ -270,7 +270,7 @@ function gencfg()
   var s = "# configuration file for rism0\n";
 
   var ns = grab("ns").value;
-  if ( !is_int(ns) || ns <= 0 ) {
+  if ( !is_int(ns) || ns < 0 ) {
     alert("# of sites [" + grab("ns").value + "] is invalid");
     return;
   }

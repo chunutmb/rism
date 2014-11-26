@@ -319,9 +319,9 @@ function strstartswith(s, t)
 
 
 /* compare two strings, insensitive to the cases */
-function stricmp(s, t)
+function strieq(s, t)
 {
-  return s.toLowerCase() != t.toLowerCase();
+  return s.toLowerCase() == t.toLowerCase();
 }
 
 
@@ -329,14 +329,14 @@ function stricmp(s, t)
 /* convert to lower cases, ignore punctuations */
 function striiconv(s)
 {
-  return s.replace(/[^a-z0-9]+/ig, "");
+  return s.toLowerCase().replace(/[^a-z0-9]+/ig, "");
 }
 
 
 /* compare two strings, insensitive to the cases, ignore punctuations */
-function striicmp(s, t)
+function striieq(s, t)
 {
-  return striiconv(s) != striiconv(t);
+  return striiconv(s) == striiconv(t);
 }
 
 

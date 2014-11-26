@@ -82,6 +82,18 @@ For simple and small systems, you can even run it directly.
   </div>
   <br>
 
+  Stock models:
+  <select id="stockmodel">
+    <option value="model_empty_reduced">Empty system in the reduced units</option>
+    <option value="model_empty_K">Empty system with the energy unit being Kelvin</option>
+    <option value="model_empty_erg">Empty system with the energy unit being erg</option>
+    <option value="model_empty_kJpermol">Empty system with the energy unit being kJ/mol</option>
+    <option value="model_empty_kcalpermol">Empty system with the energy unit being kcal/mol</option>
+  </select>
+  <input type="button" value="Load stock model" class="largebtn"
+    onclick="loadstockmodel()">
+  <br>
+
   Number of sites (on all solvent and solute molecules):
   <input type="text" size="4" value="3" id="ns"
     onchange="change_ns()">
@@ -386,14 +398,18 @@ For simple and small systems, you can even run it directly.
     title="Copy and paste an existing configuration file
     to the text-box below.  Then click me.".
     id="loadbtn" onclick="loadcfg()" class="largebtn">
+
+  <div class="float_right" style="width:450px">
+    Note, you can copy and paste an existing configuration file
+     into the text-box below,
+     and click the &ldquo;<b>Load</b>&rdquo; button.
   </div>
+  </div>
+
   <br>
 
   <div>
-    Output configuration file <br>
-    (you can also copy and paste an existing configuration file
-     to the text-box below,
-     and click the &ldquo;<b>Load</b>&rdquo; button above):
+    Output configuration file: <br>
   <br>
   <textarea rows="10" id="cfgout"></textarea>
   </div>
