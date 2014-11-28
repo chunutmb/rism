@@ -38,20 +38,20 @@ set size 1, ht
 set origin 0, hb
 
 plot [:][-1.3:1] \
-  "modelIIIzfree_out.dat"   u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 1 t "Free Atoms", \
-  "modelIIIzRe3.0_out.dat"  u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 2 t "{/Times-Italic R_e} = 3.0", \
-  "modelIIIzRe2.5_out.dat"  u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 4 t "{/Times-Italic R_e} = 2.5", \
-  "modelIIIzRe2.0_out.dat"  u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 3 t "{/Times-Italic R_e} = 2.0", \
+  "modelIIIReInf_out.dat"   u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 1 t "Free Atoms", \
+  "modelIIIRe3.0_out.dat"   u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 2 t "{/Times-Italic R_e} = 3.0", \
+  "modelIIIRe2.5_out.dat"   u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 4 t "{/Times-Italic R_e} = 2.5", \
+  "modelIIIRe2.0_out.dat"   u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 3 t "{/Times-Italic R_e} = 2.0", \
   1 ls 9 notitle
 
 set size 1, hb
 set origin 0, 0
 
 plot [:][-1.3:1] \
-  "modelIIIzfree_out.dat"   u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 1 t "Free Atoms", \
-  "modelIIIzRe1.40_out.dat" u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 2 t "{/Times-Italic R_e} = 1.40", \
-  "modelIIIzRe1.54_out.dat" u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 4 t "{/Times-Italic R_e} = 1.54", \
-  "modelIIIzRe1.75_out.dat" u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 3 t "{/Times-Italic R_e} = 1.75", \
+  "modelIIIReInf_out.dat"   u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 1 t "Free Atoms", \
+  "modelIIIRe1.40_out.dat"  u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 2 t "{/Times-Italic R_e} = 1.40", \
+  "modelIIIRe1.54_out.dat"  u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 4 t "{/Times-Italic R_e} = 1.54", \
+  "modelIIIRe1.75_out.dat"  u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 3 t "{/Times-Italic R_e} = 1.75", \
   1 ls 9 notitle
 
 unset multiplot

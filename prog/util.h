@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 #include <float.h>
 #include <math.h>
 #include <fftw3.h>
-
 
 
 
@@ -388,10 +388,31 @@ __inline static char *strstrip(char *s)
 
 
 
-/* check if `s' starts with `t' */
+#define strcmp_fuzzy(s, t) strncmp_fuzzy(s, t, INT_MAX)
+
+/* comparison, ignoring cases, spaces and punctuations */
+__inline static int strncmp_fuzzy(const char *s, const char *t, int n)
+{
+  int is, it, i;
+  const char cset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()[]{}";
+
+  for ( i = 0; i < n; s++, t++, i++ ) {
+    while ( *s != '\0' && strchr(cset, *s) == NULL ) s++;
+    while ( *t != '\0' && strchr(cset, *t) == NULL ) t++;
+    is = tolower(*s);
+    it = tolower(*t);
+    if ( is != it ) return is - it;
+    if ( *s == '\0' ) return 0;
+  }
+  return 0;
+}
+
+
+
+/* check if `s' starts with `t', using fuzzy comparison */
 __inline static int strstartswith(const char *s, const char *t)
 {
-  return strncmp(s, t, strlen(t)) == 0;
+  return strncmp_fuzzy(s, t, strlen(t)) == 0;
 }
 
 

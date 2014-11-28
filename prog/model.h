@@ -15,9 +15,29 @@
 #define NSMAX     (MAXATOM)
 #define NS2MAX    (NSMAX * NSMAX)
 
-enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE };
-enum { IE_PY, IE_HNC, IE_KH };
-enum { SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS };
+
+
+#define CRMAX 1e30
+
+
+
+enum { FALSE, TRUE, BOOLEAN_COUNT };
+const char *booleans[] = {"False", "True", "BOOLEAN_COUNT"};
+
+enum { HARD_SPHERE, LJ_FULL, LJ_REPULSIVE, LJ_COUNT };
+const char *ljtypes[] = {"Hard-sphere", "LJ-full", "LJ-repulsive", "LJ_COUNT"};
+
+enum { IE_PY, IE_HNC, IE_KH, IE_COUNT };
+const char *ietypes[] = {"PY", "HNC", "KH", "IE_COUNT"};
+
+enum { SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS, SOLVER_COUNT };
+const char *solvers[] = {"Picard", "LMV", "MDIIS", "SOLVER_COUNT"};
+
+enum { DOUU_ATOMIC, DOUU_NEVER, DOUU_ALWAYS, DOUU_COUNT };
+const char *douutypes[] = {"Atomic", "Never", "Always", "DOUU_COUNT"};
+
+
+
 
 typedef struct {
   double damp;
@@ -77,7 +97,12 @@ typedef struct {
   lmv_params_t    lmv;
   mdiis_params_t  mdiis;
 
-  /* the rest of the elements are to be computed by the program */
+  int douu; /* one of DOUU_XXX values */
+  int allsolvent; /* treat all molecules as solvent */
+  double crmax; /* maximal magnitude of c(r), can be used to
+                   improve convergence for highly charged systems */
+
+  /* the following elements are to be computed by the program */
   double disij[MAXATOM][MAXATOM]; /* matrix form of dis[] */
   int nmol, mol[MAXATOM];
   double chargemol[MAXATOM]; /* net charge of each molecule */
@@ -92,7 +117,7 @@ static int model_select(const char *s, int n, const char **arr)
   int i;
 
   for ( i = 0; i < n; i++ )
-    if ( strcmp(arr[i], s) == 0 )
+    if ( strcmp_fuzzy(arr[i], s) == 0 )
       return i;
   fprintf(stderr, "Error: cannot find %s\n", s);
   exit(1);
@@ -114,7 +139,7 @@ static double model_map(const char *s, const constmap_t *arr)
   int i;
 
   for ( i = 0; arr[i].key != NULL; i++ )
-    if ( strcmp(arr[i].key, s) == 0 )
+    if ( strcmp_fuzzy(arr[i].key, s) == 0 )
       return arr[i].val;
   fprintf(stderr, "Error: cannot find %s\n", s);
   exit(1);
@@ -312,7 +337,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
       sprintf(val_, "%-12g (pair %d)", val, ipr); \
       ECHO_STR(key_, val_); }
 
-    if ( strcmp(key, "ns") == 0 ) {
+    if ( strcmp_fuzzy(key, "ns") == 0 ) {
       m->ns = ns = atoi(val);
       if ( ns > MAXATOM ) {
         fprintf(stderr, "too many sites %d > %d, recompile the program with increased MAXATOM\n",
@@ -384,88 +409,86 @@ static int model_load(model_t *m, const char *fn, int verbose)
       ipr = model_getidx2(key, &i, &j, ns, 1);
       m->pairpot[ipr].rscreen = atof(val);
       ECHO_ARR2("rscreen", m->pairpot[ipr].rscreen);
-    } else if ( strcmp(key, "t") == 0 || strcmp(key, "temp") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "T") == 0
+             || strcmp_fuzzy(key, "temp") == 0 ) {
       temp = atof(val);
       ECHO("T", temp);
-    } else if ( strcmp(key, "kbt") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "kBT") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->kBT = model_map(val, constants);
       } else {
         m->kBT = atof(val);
       }
       ECHO("kBT", m->kBT);
-    } else if ( strcmp(key, "kb") == 0 ||
-                strcmp(key, "kbu") == 0 ||
-                strcmp(key, "kbe") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "kB") == 0 ||
+                strcmp_fuzzy(key, "kBU") == 0 ||
+                strcmp_fuzzy(key, "kBE") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->kBU = model_map(val, constants);
       } else {
         m->kBU = atof(val);
       }
       ECHO("kBU", m->kBU);
-    } else if ( strcmp(key, "ljtype") == 0 ) {
-      const char *ljtypes[3];
-      ljtypes[HARD_SPHERE] = "hard-sphere";
-      ljtypes[LJ_FULL] = "lj-full";
-      ljtypes[LJ_REPULSIVE] = "lj-repulsive";
-      m->ljtype = model_select(val, 3, ljtypes);
-      ECHO_STR("LJ type", ljtypes[m->ljtype]);
-    } else if ( strcmp(key, "ampch") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "LJ-type") == 0 ) {
+      m->ljtype = model_select(val, LJ_COUNT, ljtypes);
+      ECHO_STR("LJ-type", ljtypes[m->ljtype]);
+    } else if ( strcmp_fuzzy(key, "ampch") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->ampch = model_map(val, constants);
       } else {
         m->ampch = atof(val);
       }
       ECHO("unit of e^2", m->ampch);
-    } else if ( strcmp(key, "rscreen") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "rscreen") == 0 ) {
       m->rscreen = atof(val);
       ECHO("rscreen", m->rscreen);
-    } else if ( strcmp(key, "closure") == 0
-             || strcmp(key, "ietype") == 0 ) {
-      const char *ietypes[3];
-      ietypes[IE_PY] = "py";
-      ietypes[IE_HNC] = "hnc";
-      ietypes[IE_KH] = "kh";
-      m->ietype = model_select(val, 3, ietypes);
+    } else if ( strcmp_fuzzy(key, "closure") == 0
+             || strcmp_fuzzy(key, "ietype") == 0 ) {
+      m->ietype = model_select(val, IE_COUNT, ietypes);
       ECHO_STR("closure", ietypes[m->ietype]);
-    } else if ( strcmp(key, "rmax") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "rmax") == 0 ) {
       m->rmax = atof(val);
       ECHO("rmax", m->rmax);
-    } else if ( strcmp(key, "npt") == 0
-             || strcmp(key, "n-pts") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "npt") == 0
+             || strcmp_fuzzy(key, "n-pts") == 0 ) {
       m->npt = atoi(val);
       ECHO_INT("npt", m->npt);
     } else if ( strstartswith(key, "nlambda") ) {
       m->nlambdas = atoi(val);
       ECHO_INT("nlambdas", m->nlambdas);
-    } else if ( strcmp(key, "itmax") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "itmax") == 0 ) {
       m->itmax = atoi(val);
       ECHO_INT("itmax", m->itmax);
-    } else if ( strcmp(key, "tol") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "tol") == 0 ) {
       m->tol = atof(val);
       ECHO("tol", m->tol);
-    } else if ( strcmp(key, "solver") == 0 ) {
-      const char *solvers[3];
-      solvers[SOLVER_PICARD] = "picard";
-      solvers[SOLVER_LMV] = "lmv";
-      solvers[SOLVER_MDIIS] = "mdiis";
-      m->solver = model_select(val, 3, solvers);
+    } else if ( strcmp_fuzzy(key, "solver") == 0 ) {
+      m->solver = model_select(val, SOLVER_COUNT, solvers);
       ECHO_STR("solver", solvers[m->solver]);
-    } else if ( strcmp(key, "picard_damp") == 0 ) {
+    } else if ( strcmp_fuzzy(key, "Picard-damp") == 0 ) {
       m->picard.damp = atof(val);
-      ECHO("Picard_damp", m->picard.damp);
-    } else if ( strcmp(key, "lmv_m") == 0 ) {
+      ECHO("Picard-damp", m->picard.damp);
+    } else if ( strcmp_fuzzy(key, "LMV-M") == 0 ) {
       m->lmv.M = atoi(val);
-      ECHO_INT("LMV_M", m->lmv.M);
-    } else if ( strcmp(key, "lmv_damp") == 0 ) {
+      ECHO_INT("LMV-M", m->lmv.M);
+    } else if ( strcmp_fuzzy(key, "LMV-damp") == 0 ) {
       m->lmv.damp = atof(val);
-      ECHO("LMV_damp", m->lmv.damp);
-    } else if ( strcmp(key, "mdiis_nbases") == 0 ) {
+      ECHO("LMV-damp", m->lmv.damp);
+    } else if ( strcmp_fuzzy(key, "MDIIS-nbases") == 0 ) {
       m->mdiis.nbases = atoi(val);
-      ECHO_INT("MDIIS_nbases", m->mdiis.nbases);
-    } else if ( strcmp(key, "mdiis_damp") == 0 ) {
+      ECHO_INT("MDIIS-nbases", m->mdiis.nbases);
+    } else if ( strcmp_fuzzy(key, "MDIIS-damp") == 0 ) {
       m->mdiis.damp = atof(val);
-      ECHO("MDIIS_damp", m->mdiis.damp);
+      ECHO("MDIIS-damp", m->mdiis.damp);
+    } else if ( strcmp_fuzzy(key, "douu") == 0 ) {
+      m->douu = model_select(val, DOUU_COUNT, douutypes);
+      ECHO_STR("douu", douutypes[m->douu]);
+    } else if ( strcmp_fuzzy(key, "all-solvent") == 0 ) {
+      m->allsolvent = model_select(val, BOOLEAN_COUNT, booleans);
+      ECHO_STR("all-solvent", booleans[m->allsolvent]);
+    } else if ( strcmp_fuzzy(key, "crmax") == 0 ) {
+      m->crmax = atof(val);
+      ECHO("crmax", m->crmax);
     } else {
       fprintf(stderr, "Warning: unknown option %s = %s\n", key, val);
       getchar();
@@ -800,6 +823,130 @@ model_t models[] =
   {0} /* empty model, place holder */
 };
 
+
+
+/* model that contains user settings */
+model_t model_usr[1] = {0, {0}, {{0}}, {0},
+  {0}, {0}, 0, 0, 0, -1, /* ljtype */
+  {0}, 0, 0, -1, /* ietype */
+  0, 0, 0, 0, 0.0, -1, /* solver */
+  {0}, {0}, {0},
+  -1, /* douu */
+  0, 0.0,
+};
+
+
+
+/* override an array element
+ * the input string assumes the format of `i,x' */
+static int model_register_arr(double *arr, char *s)
+{
+  char *p;
+  int i;
+
+  /* split the string at the two commas */
+  if ( (p = strchr(s, ',')) == NULL ) {
+    fprintf(stderr, "invalid format for array: %s\n", s);
+    return -1;
+  }
+  *p = '\0';
+  i = atoi(s);
+  if ( i <= 0 || i > NSMAX ) {
+    fprintf(stderr, "invalid index %d\n", i);
+    return -1;
+  }
+  arr[i-1] = atof(p+1);
+  return 0;
+}
+
+
+
+
+/* override the distance of a covalent bond
+ * the input string assumes the format of `i,j,dis'
+ * the distance is saved only to disij, not dis
+ * for the number of sites is not yet known */
+static int model_register_disij(model_t *m_usr, char *s)
+{
+  char *p1, *p2;
+  int i, j;
+  double dis;
+
+  /* split the string at the two commas */
+  if ( (p1 = strchr(s, ',')) == NULL
+    || (p2 = strchr(p1 + 1, ',')) == NULL ) {
+    fprintf(stderr, "invalid format for the distance %s\n", s);
+    return -1;
+  }
+  *p1 = '\0';
+  *p2 = '\0';
+  i = atoi(s);
+  j = atoi(p1 + 1);
+  if ( i <= 0 || j <= 0 || i > NSMAX || j > NSMAX || i == j ) {
+    fprintf(stderr, "invalid distance pair %d and %d\n", i, j);
+    return -1;
+  }
+  i -= 1;
+  j -= 1;
+  p2++;
+  if ( strncmp_fuzzy(p2, "inf", 3) == 0 )
+    dis = -1; /* this means infinity; note, 0 will be ignored */
+  else
+    dis = atof(p2);
+  m_usr->disij[i][j] = m_usr->disij[j][i] = dis;
+  return 0;
+}
+
+
+
+/* override settings in `m' according to `m_usr' */
+static int model_override(model_t *m, const model_t *m_usr)
+{
+  int i, j, ipr, ns = m->ns;
+  double x;
+
+  /* override the density and charges */
+  for ( i = 0; i < ns; i++ ) {
+    if ( (x = m_usr->rho[i]) > 0 )
+     m->rho[i] = m_usr->rho[i];
+    if ( fabs(x = m_usr->charge[i]) > 0 )
+     m->charge[i] = m_usr->charge[i];
+  }
+
+  /* override the distances */
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i + 1; j < ns; j++, ipr++ )
+      if ( (x = m_usr->disij[i][j]) > 0 || x < 0 ) {
+        m->dis[ipr] = m->disij[i][j] = m->disij[i][j] = (x > 0) ? x : 0;
+        fprintf(stderr, "distance between %d and %d is set to %g\n",
+            i + IDBASE, j + IDBASE, x);
+      }
+
+  /* override the solver of the integral equation */
+  if ( m_usr->solver >= 0  && m_usr->solver < SOLVER_COUNT ) {
+    m->solver = m_usr->solver;
+    fprintf(stderr, "solver is changed to %d\n", m->solver);
+  }
+
+  /* override the closure */
+  if ( m_usr->ietype >= 0 && m_usr->ietype < IE_COUNT ) {
+    m->ietype = m_usr->ietype;
+    fprintf(stderr, "ietype is changed to %d\n", m->ietype);
+  }
+
+  /* override how to do solute-solute interactions */
+  if ( m_usr->douu >= 0 && m_usr->douu < DOUU_COUNT
+    && m_usr->douu != m->douu ) {
+    m->douu = m_usr->douu;
+    fprintf(stderr, "douu is changed to %d\n", m->douu);
+  }
+
+  m->allsolvent = m_usr->allsolvent;
+
+  m->crmax = m_usr->crmax;
+  if ( m->crmax <= 0 ) m->crmax = CRMAX;
+  return 0;
+}
 
 
 

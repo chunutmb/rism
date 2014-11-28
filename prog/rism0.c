@@ -22,18 +22,13 @@
 
 
 
-enum { DOUU_NEVER = 0, DOUU_ALWAYS = 1, DOUU_ATOMIC = 2 };
-
-
-
 int model_id = 16;
-int douu = DOUU_ATOMIC; /* by default, do solute-solute interaction only for atomic solute */
-int allsolvent = 0; /* treat all atoms as solvent */
 int verbose = 0;
 const char *fncrtr = "out.dat";
 int sepout = 0;
 const char *fncrdnum = NULL;
 int printk = 0;
+
 
 
 
@@ -48,9 +43,15 @@ static void help(const char *prog)
   fprintf(stderr, "  -k:    print k-space correlation functions, default %d\n", printk);
   fprintf(stderr, "  -$:    separately output file for each lambda, default %d\n", sepout);
   fprintf(stderr, "  -#:    followed by the output coordination number file, default: %s\n", fncrdnum);
+  fprintf(stderr, "  -8:    set the magnitude of c(r), default %g\n", CRMAX);
   fprintf(stderr, "  -!:    skip the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -u:    always do the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -V:    treat all sites as solvent, default: false\n");
+  fprintf(stderr, "  -r:    override the density, must be nonnegative, e.g. -d1,0.03 sets the density of the first atom to 0.03");
+  fprintf(stderr, "  -q:    override the charge, must be nonnegative, e.g. -q2,0.25 sets the charge of the second atom to 0.25");
+  fprintf(stderr, "  -d:    override the distance, e.g. -d1,2,1.5 sets the distance between the first two atoms to 1.5");
+  fprintf(stderr, "  -C:    override the closure, %d: PY, %d: HNC, %d: KH\n", IE_PY, IE_HNC, IE_KH);
+  fprintf(stderr, "  -S:    override the solver, %d: Picard, %d: LMV, %d: MDIIS\n", SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS);
   fprintf(stderr, "  -v:    be verbose, -vv to be more verbose, etc.\n");
   fprintf(stderr, "  -h:    display this message\n");
   exit(1);
@@ -63,7 +64,8 @@ static model_t *doargs(int argc, char **argv)
 {
   model_t *m;
   int i, j, ch;
-  const char *p, *q, *fncfg = NULL;
+  const char *fncfg = NULL, *prog = argv[0];
+  char *p, *q;
 
   for ( i = 1; i < argc; i++ ) {
     /* it's an argument */
@@ -81,7 +83,7 @@ static model_t *doargs(int argc, char **argv)
      * loop over characters in the options
      * in this way, `-vo' is understood as `-v -o' */
     for ( j = 1; (ch = argv[i][j]) != '\0'; j++ ) {
-      if ( ch == 'o' || ch == '#' ) {
+      if ( strchr("orqdCS#8", ch) != NULL ) {
         /* handle options that require an argument */
         q = p = argv[i] + j + 1;
         if ( *p != '\0' ) {
@@ -96,27 +98,44 @@ static model_t *doargs(int argc, char **argv)
           q = argv[i];
         } else {
           fprintf(stderr, "-%c requires an argument!\n", ch);
-          help(argv[0]);
+          help(prog);
         }
         if ( ch == 'o' ) {
           fncrtr = q;
         } else if ( ch == '#' ) {
           fncrdnum = q;
+        } else if ( ch == 'r' ) { /* override the density */
+          if ( model_register_arr(model_usr->rho, q) != 0 )
+            help(prog);
+        } else if ( ch == 'q' ) { /* override the charge */
+          if ( model_register_arr(model_usr->charge, q) != 0 )
+            help(prog);
+        } else if ( ch == 'd' ) { /* override the distance of a bond */
+          if ( model_register_disij(model_usr, q) != 0 )
+            help(prog);
+        } else if ( ch == 'C' ) { /* override the closure */
+          model_usr->ietype = atoi(q);
+        } else if ( ch == 'S' ) { /* override the solver */
+          model_usr->solver = atoi(q);
+        } else if ( ch == '8' ) {
+          model_usr->crmax = atof(q);
         }
         break; /* skip the rest of the characters in the option */
       } else if ( ch == '!' ) {
-        douu = DOUU_NEVER;
+        model_usr->douu = DOUU_NEVER;
       } else if ( ch == 'u' ) {
-        douu = DOUU_ALWAYS;
+        model_usr->douu = DOUU_ALWAYS;
       } else if ( ch == 'V' ) {
-        allsolvent = 1;
+        model_usr->allsolvent = 1;
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
         verbose++;
+      } else if ( ch == 'h' ) {
+        help(prog);
       } else {
         fprintf(stderr, "unknown option %s, j %d, ch %c\n", argv[i], j, ch);
-        help(argv[0]);
+        help(prog);
       }
     }
   }
@@ -125,9 +144,10 @@ static model_t *doargs(int argc, char **argv)
   if ( fncfg != NULL )
     if ( model_load(m, fncfg, verbose) != 0 ) {
       fprintf(stderr, "failed to load %s\n", fncfg);
-      help(argv[0]);
+      help(prog);
     }
-
+  /* override options from the command-line */
+  model_override(m, model_usr);
   return m;
 }
 
@@ -421,33 +441,35 @@ static void oz(model_t *m, double **ck, double **vklr,
 
 /* return the updated cr */
 static double getcr(double tr, double vrsr,
-                    double *dcr, int ietype)
+    double *dcr, int ietype, double crmax)
 {
-  double xp, del, fr;
+  double xp, del, fr, cr = 0;
 
   del = -vrsr + tr;
   if ( ietype == IE_HNC ) {
     xp = exp(del);
     if ( dcr != NULL ) *dcr = xp - 1;
-    return xp - 1 - tr;
+    cr = xp - 1 - tr;
   } else if ( ietype == IE_PY ) {
     fr = exp(-vrsr) - 1;
     if ( dcr != NULL ) *dcr = fr;
-    return fr * (1 + tr);
+    cr = fr * (1 + tr);
   } else if ( ietype == IE_KH ) {
     if ( del <= 0 ) { /* HNC */
       xp = exp(del);
       if ( dcr != NULL ) *dcr = xp - 1;
-      return xp - 1 - tr;
+      cr = xp - 1 - tr;
     } else {
       if ( dcr != NULL ) *dcr = 0;
-      return -vrsr;
+      cr = -vrsr;
     }
   } else {
     fprintf(stderr, "unknown closure %d\n", ietype);
     exit(1);
   }
-  return 0;
+  if ( cr > crmax ) cr = crmax;
+  else if ( cr < -crmax ) cr = -crmax;
+  return cr;
 }
 
 
@@ -472,12 +494,9 @@ static double closure(model_t *model,
       err = max = 0;
       for ( l = 0; l < npt; l++, id++ ) {
         y = getcr(tr[ij][l], vrsr[ij][l], der ? &der[ij][l] : NULL,
-                  model->ietype) - cr[ij][l];
+                  model->ietype, model->crmax) - cr[ij][l];
         if ( res != NULL ) res[id] = y;
-        if ( update ) {
-          cr[ij][l] += damp * y;
-          if ( j > i ) cr[ji][l] = cr[ij][l];
-        }
+        if ( update ) cr[ij][l] += damp * y;
         if ( fabs(y) > err ) {
           err = fabs(y);
           errspot[ij].l = l;
@@ -488,6 +507,7 @@ static double closure(model_t *model,
       /* the c(r) between two ions can be extremely large
        * so we use the relative error to be compared with the tolerance */
       if ( (err /= (max + 1e-6)) > errm ) errm = err;
+      if ( j > i ) cparr(cr[ji], cr[ij], npt);
     }
   return errm;
 }
@@ -509,6 +529,17 @@ static double step_picard(model_t *model,
   sphr_k2r(tk, tr, model->ns, NULL);
   return closure(model, res, der, vrsr, cr, tr,
                  prmask, update, damp);
+}
+
+
+
+/* the uu step for infinitely diluted atomic solute */
+static double step_uu_infdil_atomicsolute(model_t *model,
+    double **vrsr, double **wk, double **cr, double **ck,
+    double **vklr, double **tr, double **tk, int *prmask)
+{
+  return step_picard(model, NULL, NULL, vrsr, wk, cr, ck,
+      vklr, tr, tk, prmask, 1, 1.0);
 }
 
 
@@ -596,7 +627,7 @@ static char *output(model_t *m,
          *    J. Chem. Phys. 78(6) 4133-4144 (1983) ]
          *
          *    beta dW
-         *  = beta W_rism_corrected - beta W_s
+         *  = beta W_rism_corrected - beta W_c
          *  = (beta W_s - phi_pp/eps) - beta W_c
          *  = beta W_s + phi*                 (here, phi* = -beta u_LJ)
          *  = beta W + phi/eps_rism + phi*    (here, phi  = -beta u_pp)
@@ -604,6 +635,12 @@ static char *output(model_t *m,
          *  = beta u_q - t(r) - beta u_pp/eps_rism
          * */
         double pmfs = vrq - trt - vrp/eps_rism;
+        if ( m->ietype != IE_HNC ) {
+          double gr = 1 + crt + trt, loggr;
+          if (gr < DBL_MIN) gr = DBL_MIN;
+          if ( (loggr = log(gr)) > trt - vrt )
+            pmfs = -loggr - vrt + vrq - vrp/eps_rism;
+        }
         fprintf(fp, "%g %g %g %g %g %g %d %d %g %g %g ",
             fft_ri[l], crt, trt, fr[ij][l],
             vrl, vrt, i + IDBASE, j + IDBASE, vrq, pmfs, vrp);
@@ -674,7 +711,7 @@ static int dorism(model_t *model)
       cparr2d(cr, fr, ns * ns, npt);
 
     /* initialize the manager for solute-solvent iteraction */
-    uv = uv_open(model, douu);
+    uv = uv_open(model);
 
     if ( model->solver == SOLVER_LMV ) {
       err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr,

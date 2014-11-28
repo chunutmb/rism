@@ -97,7 +97,7 @@ in the browser!
   </div>
   <br>
 
-  Models:
+  Model templates:
   <select id="stockmodel">
     <option value="model_empty_reduced">Empty system in the reduced units</option>
     <option value="model_empty_K">Empty system with the energy unit being Kelvin</option>
@@ -119,7 +119,7 @@ in the browser!
     <option value="model_spce">H<sub>&#8322;</sub>O, SPC/E</option>
     <option value="model_tip3p">H<sub>&#8322;</sub>O, TIP3P</option>
   </select>
-  <input type="button" value="Load model" class="largebtn"
+  <input type="button" value="Load model template" class="largebtn"
     onclick="loadstockmodel()">
   <br>
 
@@ -433,13 +433,30 @@ Normally, the program <span class="code">rism0</span> produces an output file
 <a href="../doc/pmfs.pdf">This note</a> contains information on how to use the output
 to compute various potentials of mean force.
 
+</div>
+
+<div class="panel">
+<h2 class="panel-title">References</h2>
+
 <p>
 The program <span class="code">rism0</span>
 was used to reproduce some figures in several classic papers of XRISM:
 <ul>
-<li><a href="./mkpapers/hrp1983.html">HRP1983</a>
-<li><a href="./mkpapers/pk1985.html">PK1985</a>
-<li><a href="./mkpapers/pr1986.html">PR1986</a>
+<li><a href="./mkpapers/hrp1983.html">HRP1983</a>:
+The Interionic potential of mean force in a molecular polar solvent from an extended RISM equation
+Fumio Hirata, Peter J. Rossky, and B. Montgomery Pettitt
+J. Chem. Phys. 78(6) 4133-4144 (1983).
+
+<li><a href="./mkpapers/pk1985.html">PK1985</a>:
+The potential of mean force between polyatomic molecular in polar molecular solvents,
+B. Montgomery Pettit and Martin Karplus,
+J. Chem. Phys. 83(2), 781-789 (1985).
+
+<li><a href="./mkpapers/pr1986.html">PR1986</a>:
+Alkali halides in water: Ion-solvent correlations and ion-ion potentials of mean force at infinite dilution,
+B. Montgomery Pettitt and Peter J. Rossky,
+J. Chem. Phys. 84(10) 5836-5844 (1986)
+
 </ul>
 
 </div>
