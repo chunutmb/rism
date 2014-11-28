@@ -1,5 +1,5 @@
 # debugging
-CC = gcc -O0 -Wall -Wunused -g
+CC = gcc -O0 -Wall -Wunused -Wextra -Wno-missing-field-initializers -g
 LM = -lm -lfftw3
 # optimized compiling
 # Note: -O3 makes it slower
