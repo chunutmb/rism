@@ -34,7 +34,7 @@ set style line 4 lt 5 lw 2
 set style line 9 lt 4 lw 4 lc rgb "#cccccc"
 
 plot [:][-ymax:ymax] \
-  "modelIIIz_out.dat" u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 1 t "PMF", \
+  "modelIII_out.dat"  u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 1 t "PMF", \
   ""                  u 1:(($7 == 3 && $8 == 3)?$6-$9:1/0) w l ls 2 t "{/Times-Italic U}^*", \
   1 ls 9 notitle
 

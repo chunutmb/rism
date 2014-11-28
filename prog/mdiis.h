@@ -202,7 +202,10 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
 
     dot = getdot(res, res, uv->npr * npt);
     if ( dot > max ) {
-      int reset = sqrt(dot) < 2;
+#ifndef MDIIS_THRESHOLD
+#define MDIIS_THRESHOLD 1.0
+#endif
+      int reset = ( sqrt(dot) < MDIIS_THRESHOLD );
       if ( verbose ) {
         fprintf(stderr, "MDIIS: bad basis, %g is greater than %g, %s, error:",
           dot, max, reset ? "reset" : "accept");
@@ -280,9 +283,9 @@ static double iter_mdiis(model_t *model,
         mdiis_surrender(mdiis, cr, uv);
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->atomicsolute && uv->infdil ) {
-          step_picard(model, res, NULL, vrsr, wk,
-              cr, ck, vklr, tr, tk, uv->prmask, 1, 1.);
+        if ( uv->infdil && uv->atomicsolute ) {
+          err = step_uu_infdil_atomicsolute(model, vrsr, wk,
+              cr, ck, vklr, tr, tk, uv->prmask);
           break;
         }
       }
