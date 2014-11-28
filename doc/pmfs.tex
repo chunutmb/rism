@@ -15,7 +15,7 @@
 \pagenumbering{gobble}
 
 \begin{center}
-\begin{tabular}{ >{\arraybackslash}m{2.5in}  >{\arraybackslash}m{2.2in}  >{\arraybackslash}m{2.5in} }
+\begin{tabular}{ >{\arraybackslash}m{2.45in}  >{\arraybackslash}m{1.85in}  >{\arraybackslash}m{2.9in} }
 
 Formula
 &
@@ -28,7 +28,7 @@ Notes
 {
 \begin{align}
   \beta u
-&= \beta u_\mathrm{LJ} + \beta u_\mathrm{c}
+&= \beta u_\mathrm{LJ} + \beta u_c
 \notag \\
 &= -\phi^* - \phi.
 \label{eq:udecomp}
@@ -41,7 +41,7 @@ Pair potential
 
 Eq. \eqref{eq:udecomp}: (23) in HPR1982.
 &
-The Coulombic potential $\phi = -\beta u_\mathrm{c}$
+The Coulombic potential $\phi = -\beta u_c$
 is written as $\phi''$ in PK1985.
 
 The Lennard-Jones potential $u_\mathrm{LJ}$
@@ -51,9 +51,12 @@ is commonly written as $u^*$.
 
 $\beta u$: Column 6 (denoted as \texttt{\$6} below).
 
-$\beta u_\mathrm{c}$: \texttt{\$9}.
+$\beta u_c$:
+\texttt{\$9} (atomic, $\beta u_c^a$)
+or
+\texttt{\$11} (molecular, $\beta u_c^m$).
 
-$\beta u_\mathrm{LJ}$: \texttt{\$6 -\$9}.
+$\beta u_\mathrm{LJ}$: $\mathtt{\$6} - \mathtt{\$9}$.
 \\
 %\hline
 
@@ -92,7 +95,8 @@ in XRISM.
 
 \rismprog
 
-Eq. \eqref{eq:Wut}: \texttt{\$6 - \$3}.
+Eq. \eqref{eq:Wut}: $\mathtt{\$6} - \mathtt{\$3}$
+(for HNC).
 \\
 %\hline
 
@@ -119,7 +123,7 @@ Eq. \eqref{eq:Wexmu}: (1) of HK2000.
 
 \rismprog
 
-$-t(r)$: \texttt{$-$\$3}.
+$-t(r)$: $-\mathtt{\$3}$.
 
 Eq. \eqref{eq:Wexmu}: Use \texttt{chempot.py}.
 
@@ -131,9 +135,9 @@ Eq. \eqref{eq:Wexmu}: Use \texttt{chempot.py}.
 {
 \begin{align}
 \beta W_s
-&= \beta W - \dfrac{\beta u_\mathrm{c}} {\epsilon_\mathrm{RISM}}
+&= \beta W - \dfrac{\beta u_c^m} {\epsilon_\mathrm{RISM}}
 \notag \\
-&= \beta W + \dfrac{\phi} {\epsilon_\mathrm{RISM}}.
+&= \beta W + \dfrac{\phi^m} {\epsilon_\mathrm{RISM}}.
 \label{eq:Wsphi}
 \end{align}
 }
@@ -145,7 +149,7 @@ The short-range part of the PMF.
 Eq. \eqref{eq:Wsphi}: (47) in HRP1983.
 &
 Here, $\beta W$ means the PMF directly from solving RISM.
-The long-range part $\beta u_\mathrm{C}/\epsilon_\mathrm{RISM}$
+The long-range part $\beta u_c^m/\epsilon_\mathrm{RISM}$
 is subtracted.
 
 \rismprog
@@ -160,11 +164,11 @@ see Eq. \eqref{eq:deltaW}.
 {
 \begin{align}
 \beta W^\mathrm{corr}
-&= \beta W_s + \dfrac{\beta u_\mathrm{c}} {\epsilon}
+&= \beta W_s + \dfrac{\beta u_c^m} {\epsilon}
     \notag \\
 &= \beta W
-- \dfrac{\beta u_\mathrm{c}} {\epsilon_\mathrm{RISM}}
-+ \dfrac{\beta u_\mathrm{c}} {\epsilon}.
+- \dfrac{\beta u_c^m} {\epsilon_\mathrm{RISM}}
++ \dfrac{\beta u_c^m} {\epsilon}.
   \label{eq:Wcorrmp}
 \end{align}
 }
@@ -184,7 +188,7 @@ $\epsilon_\mathrm{RISM}$ is the dielectric constant from RISM.
 \rismprog
 
 $\beta W^\mathrm{corr}$:
-$\mathtt{\$10} + (\mathtt{\$6} - \mathtt{\$9}) + \mathtt{\$9}/\epsilon$.
+$\mathtt{\$10} + (\mathtt{\$6} - \mathtt{\$9}) + \mathtt{\$11}/\epsilon$.
 \\
 %\hline
 
@@ -192,7 +196,7 @@ $\mathtt{\$10} + (\mathtt{\$6} - \mathtt{\$9}) + \mathtt{\$9}/\epsilon$.
 {
 \begin{align}
 \beta W_c
-&= \beta u_\mathrm{LJ} + \dfrac{\beta u_\mathrm{c}} {\epsilon}
+&= \beta u_\mathrm{LJ} + \frac{\beta u_c^m} {\epsilon}
 \notag \\
 &= -\phi^* - \phi/\epsilon.
 \label{eq:Wcphi}
@@ -208,7 +212,7 @@ Eq. \eqref{eq:Wcphi}: (49) in HRP1983.
 \rismprog
 
 $\beta W_c$:
-$\mathtt{\$6} - \mathtt{\$9} + \mathtt{\$9}/\epsilon$.
+$\mathtt{\$6} - \mathtt{\$9} + \mathtt{\$11}/\epsilon$.
 \\
 %\hline
 
@@ -222,8 +226,8 @@ $\mathtt{\$6} - \mathtt{\$9} + \mathtt{\$9}/\epsilon$.
 &= \beta W_s - \beta u_\mathrm{LJ}
 \label{eq:deltaW} \\
 &= \beta W^\mathrm{ex}
-+ \beta u_\mathrm{c}
-\left( 1 - \frac{ 1 } { \epsilon_\mathrm{RISM} } \right).
++ \beta u_c^a
+- \frac{ \beta u_c^m } { \epsilon_\mathrm{RISM} }.
 \label{eq:deltaWWex}
 \end{align}
 }
@@ -238,7 +242,9 @@ Eq. \eqref{eq:deltaW}: (50) in HRP1983.
 \rismprog
 
 $\beta \delta W$:
-$\mathtt{\$10}$.
+$\mathtt{\$10}$
+($= \mathtt{\$9} - \mathtt{\$3} - \mathtt{\$11}/\epsilon_\mathrm{RISM}$
+for HNC).
 \\
 
 
@@ -247,9 +253,9 @@ $\mathtt{\$10}$.
 \beta \Delta W
 &= \beta W - \beta u_\mathrm{LJ}
 \notag \\
-&= \beta u_\mathrm{c} + \beta W^\mathrm{ex}
+&= \beta u_c^a + \beta W^\mathrm{ex}
 \notag \\
-&= \beta u_\mathrm{c} - t. \; \mbox{(for HNC)}
+&= \beta u_c^a - t. \; \mbox{(for HNC)}
 \label{eq:DeltaW}
 \end{align}
 }
@@ -261,21 +267,21 @@ Eq. \eqref{eq:DeltaW}: (9) in PR1986.
 \rismprog
 
 $\beta \Delta W$:
-$\mathtt{\$9} - \mathtt{\$3}$.
+$\mathtt{\$9} - \mathtt{\$3}$ (for HNC).
 \\
 
 
 {
 \begin{align}
 \beta \Delta W'
-&= \beta \Delta W - \dfrac{ \beta u_\mathrm{c} } { \epsilon_\mathrm{RISM} }
-                  + \dfrac{ \beta u_\mathrm{c} } { \epsilon }
+&= \beta \Delta W - \dfrac{ \beta u_c^m } { \epsilon_\mathrm{RISM} }
+                  + \dfrac{ \beta u_c^m } { \epsilon }
 \label{eq:DeltaWp} \\
-&= \beta W^\mathrm{ex} + \beta u_\mathrm{c}
-                  - \dfrac{ \beta u_\mathrm{c} } { \epsilon_\mathrm{RISM} }
-                  + \dfrac{ \beta u_\mathrm{c} } { \epsilon }
+&= \beta W^\mathrm{ex} + \beta u_c^a
+   - \frac{ \beta u_c^m } { \epsilon_\mathrm{RISM} }
+   + \frac{ \beta u_c^m } { \epsilon }
 \notag \\
-&= \beta \delta W + \dfrac{ \beta u_\mathrm{c} } { \epsilon }.
+&= \beta \delta W + \dfrac{ \beta u_c^m } { \epsilon }.
 \label{eq:DeltaWpdeltaW}
 \end{align}
 }
@@ -289,7 +295,7 @@ The last step follows from Eq. \eqref{eq:deltaWWex}.
 \rismprog
 
 $\beta \Delta W'$:
-$\mathtt{\$10} + \mathtt{\$9}/\epsilon$,
+$\mathtt{\$10} + \mathtt{\$11}/\epsilon$,
 see Eq. \eqref{eq:DeltaWpdeltaW}.
 
 \\

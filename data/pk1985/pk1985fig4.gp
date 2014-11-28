@@ -52,8 +52,8 @@ set format x ""
 set ytics ("0.5" 0.5, "1.0" 1.0)
 
 plot [:][:] \
-  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 2)?$6-$9+$11/eps:1/0)     w l ls 2 t "+ +, {/Times-Italic U}^* + {/Times-Italic U}'/{/Symbol-Oblique e}_{/Times-Italic p}", \
-  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 2)?$10+$6-$9+$11/eps:1/0) w l ls 1 t "+ +, PMF", \
+  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 2)?$6-$9+$11/eps:1/0)     w l ls 2 t "+ +, {/Times-Italic U}^* + {/Times-Italic U\264}/{/Symbol-Oblique e}_{/Times-Italic p}", \
+  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 2)?$6-$3:1/0) w l ls 1 t "+ +, PMF", \
 
 set size 1, hm
 set origin 0, hb
@@ -61,9 +61,11 @@ set origin 0, hb
 set tmargin 0
 set bmargin 0
 
-plot [:][:] \
-  "modelIIasym_out.dat" u 1:(($7 == 3 && $8 == 3)?$6-$9+$11/eps:1/0)     w l ls 2 t "- -, {/Times-Italic U}^* + {/Times-Italic U}'/{/Symbol-Oblique e}_{/Times-Italic p}", \
-  "modelIIasym_out.dat" u 1:(($7 == 3 && $8 == 3)?$10+$6-$9+$11/eps:1/0) w l ls 1 t "- -, PMF", \
+set ytics ("" 0, "0.5" 0.5, "1.0" 1.0)
+
+plot [:][-0.1:] \
+  "modelIIasym_out.dat" u 1:(($7 == 3 && $8 == 3)?$6-$9+$11/eps:1/0)     w l ls 2 t "- -, {/Times-Italic U}^* + {/Times-Italic U\264}/{/Symbol-Oblique e}_{/Times-Italic p}", \
+  "modelIIasym_out.dat" u 1:(($7 == 3 && $8 == 3)?$6-$3:1/0) w l ls 1 t "- -, PMF", \
 
 set size 1, hb
 set origin 0, 0
@@ -77,8 +79,8 @@ set ytics ("0.0" 0.0, "0.5" 0.5, "1.0" 1.0)
 set ylabel "{/Times-Italic E} / {/Times-Italic kT}" offset 1, 10
 
 plot [:][:] \
-  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 3)?$6-$9+$11/eps:1/0)      w l ls 2 t "+ -, {/Times-Italic U}^* + {/Times-Italic U}'/{/Symbol-Oblique e}_{/Times-Italic p}", \
-  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 3)?$10+$6-$9+$11/eps:1/0)  w l ls 1 t "+ -, PMF", \
+  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 3)?$6-$9+$11/eps:1/0)      w l ls 2 t "+ -, {/Times-Italic U}^* + {/Times-Italic U}{\264}/{/Symbol-Oblique e}_{/Times-Italic p}", \
+  "modelIIasym_out.dat" u 1:(($7 == 2 && $8 == 3)?$6-$3:1/0)  w l ls 1 t "+ -, PMF", \
 
 unset multiplot
 
