@@ -20,6 +20,8 @@ var dis; // chemical bonds
 
 var nlambdas = 1;
 
+var crmax = 1e30;
+
 var verbose = true;
 
 var ur, nrdur, fr, cr, tr, cp;
@@ -78,6 +80,8 @@ function read_params()
   rscreen = get_float("rscreen", 1.0);
 
   nlambdas = Math.max( get_int("nlambdas", 1), 1 );
+
+  crmax = get_float("crmax", 1e30);
 
   // Lennard-Jones parameters
   ljtype = grab("ljtype").value;
@@ -438,28 +442,34 @@ function oz(ck, vklr, tk, wk, invwc1w)
 
 
 /* return the updated cr */
-function getcr(tr, vrsr, ietype)
+function getcr(tr, vrsr, ietype, crmax)
 {
-  var xp, del, fr;
+  var xp, del, fr, cr, dcr;
 
   del = -vrsr + tr;
   if ( ietype == "HNC" ) {
     xp = Math.exp(del);
-    return [xp - 1 - tr, xp - 1];
+    cr = xp - 1 - tr;
+    dcr = xp - 1;
   } else if ( ietype == "PY" ) {
     fr = Math.exp(-vrsr) - 1;
-    return [fr * (1 + tr), fr];
+    cr = fr * (1 + tr);
+    dcr = fr;
   } else if ( ietype == "KH" ) {
     if ( del <= 0 ) { // HNC
       xp = Math.exp(del);
-      return [xp - 1 - tr, xp - 1];
+      cr = xp - 1 - tr;
+      dcr = xp - 1;
     } else {
-      return [-vrsr, 0];
+      cr = -vrsr;
+      dcr = 0;
     }
   } else {
     throw new Error("unknown closure " + ietype);
   }
-  return [0, 0]; // never reaches here
+  if ( cr > crmax ) cr = crmax;
+  else if ( cr < -crmax ) cr = -crmax;
+  return [cr, dcr];
 }
 
 
@@ -478,7 +488,7 @@ function closure(res, der, vrsr, cr, tr, prmask, update, damp)
       if ( prmask != null && !prmask[ij] ) continue;
       err = max = 0;
       for ( l = 0; l < npt; l++, id++ ) {
-        ret = getcr(tr[ij][l], vrsr[ij][l], ietype);
+        ret = getcr(tr[ij][l], vrsr[ij][l], ietype, crmax);
         y = ret[0] - cr[ij][l];
         if ( der != null ) der[ij][l] = ret[1];
         if ( res != null ) res[id] = y;

@@ -34,7 +34,7 @@ function solve()
     if ( ilam == 1 )
       cparr2d(cr, fr, ns2, npt); // cr = fr
 
-    uv = uv_open(DOUU_ATOMIC);
+    uv = new UV(ns);
 
     if ( solver == "LMV" ) {
       ret = iter_lmv(vrsr, wk, cr, der, ck, vklr,

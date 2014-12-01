@@ -123,6 +123,9 @@ in the browser!
     onclick="loadstockmodel()">
   <br>
 
+  <div class="panel">
+  <div class="panel-title">System</div>
+
   Number of sites (on all solvent and solute molecules):
   <input type="text" size="4" value="0" id="ns"
     onchange="change_ns()">
@@ -288,6 +291,11 @@ in the browser!
   </select>
   <br>
 
+  </div> <!-- Panel system -->
+
+  <div class="panel">
+  <div class="panel-title">Solver</div>
+
   Closure:
   <select id="ietype">
     <option value="PY">Percus-Yevick (PY)</option>
@@ -328,6 +336,8 @@ in the browser!
   <input type="text" size="6" value="1e-7" id="tol">
   <br>
 
+  <hr>
+
   Solver:
   <select id="solver">
     <option value="Picard">Picard (direct) iteration</option>
@@ -362,6 +372,22 @@ in the browser!
   <input type="text" size="6" value="5" id="mdiis_nbases">
   <br>
 
+  <hr>
+
+  How to handle solute-solute interaction?
+  <select id="douu">
+    <option value="Atomic" selected>Only for atomic solutes</option>
+    <option value="Never">Never</option>
+    <option value="Always">Always</option>
+    <option value="All-solvent">Treat all atoms as solute.</option>
+  </select>
+  <br>
+
+  Maximal magnitude of <span class="math"><i>c</i>(<i>r</i>)</span>:
+  <input type="text" size="6" value="1e30" id="crmax">
+
+  </div>  <!-- Panel solver -->
+
   <div class="center">
   <input type="button" value="Generate configuration file"
     id="gencfgbtn" onclick="gencfg()" class="largebtn">
@@ -374,17 +400,22 @@ in the browser!
     to the text-box below.  Then click me.".
     id="loadbtn" onclick="loadcfg()" class="largebtn">
 
-  <div class="float_right" style="width:440px">
-    You can copy and paste an existing configuration file
-     into the text-box below,
-     and click the &ldquo;<b>Load configuration file</b>&rdquo; button.
-  </div>
-
   <input type="button" value="Run!"
-    title="Note, only hit this button for simple systems, because this function is implemented in JavaScript, which is slow compared to C.  Also, the result may be less reliable."
+    title="Note, only hit this button for simple systems. This function is implemented in JavaScript, and is slow compared to the C version.  Also, the result may be less reliable."
     id="comutebtn" class="largebtn" onClick="mkplot()">
 
+  <div class="float_right" style="width:200px">
+    For a simple system, you can test the configuration
+    by clicking the &ldquo;<b>Run!</b>&rdquo; button.
   </div>
+
+  <div class="float_right" style="width:320px">
+    To load an existing configuration file,
+    copy the content and paste it into the text-box below,
+    and click the &ldquo;<b>Load configuration file</b>&rdquo; button.
+  </div>
+
+  </div> <!-- array of buttons -->
 
   <br>
 

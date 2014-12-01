@@ -110,7 +110,7 @@ MDIIS.prototype.build = function(cr, res, uv)
 
 
 /* replace base ib by cr */
-MDIIS.prototype.update = function update(cr, res, uv)
+MDIIS.prototype.update = function(cr, res, uv)
 {
   var i, j, l, id, ib, nb, mnb1, ns = this.ns, npt = this.npt;
   var dot, max;
@@ -189,7 +189,7 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
     if ( verbose )
       console.log("it", it, "err", errp, "->", err, "ib", ibp, "->", ib);
     if ( err < tol ) {
-      if ( uv_switch(uv) != 0 ) break;
+      if ( uv.switchstage() != 0 ) break;
       /* if all solutes are of zero density, break the loop */
       if ( uv.stage == SOLUTE_SOLUTE
         && uv.infdil && uv.atomicsolute ) {

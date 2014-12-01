@@ -1,5 +1,5 @@
 body {
-  width: 1100px;
+  width: 1140px;
   margin: auto;
   font-family: Nimbus, Georgia, serif;
   font-size: 12pt; 
@@ -11,7 +11,6 @@ body {
   margin: 5px 5px 10px 5px;
   border: 3px double #e0e0e0;
   border-radius: 10px;
-
 }
 
 .panel-title {
@@ -46,8 +45,9 @@ th {
 }
 
 hr {
-  width: 95%;
-  margin: 2px 20px 15px 20px;
+  border: 1px solid #dddddd;
+  width: 75%;
+  text-align: center;
 }
 
 .math {

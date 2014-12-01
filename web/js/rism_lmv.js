@@ -151,7 +151,7 @@ function iter_lmv(vrsr, wk, cr, der, ck, vklr,
 
     if ( err < tol ) {
       // switch between stages
-      if ( uv_switch(uv) != 0 ) break;
+      if ( uv.switchstage() != 0 ) break;
       if ( uv.stage == SOLUTE_SOLUTE
         && uv.infdil && uv.atomicsolute ) {
         step_picard(null, null, vrsr, wk,

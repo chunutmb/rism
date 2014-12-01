@@ -33,8 +33,8 @@ const char *ietypes[] = {"PY", "HNC", "KH", "IE_COUNT"};
 enum { SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS, SOLVER_COUNT };
 const char *solvers[] = {"Picard", "LMV", "MDIIS", "SOLVER_COUNT"};
 
-enum { DOUU_ATOMIC, DOUU_NEVER, DOUU_ALWAYS, DOUU_COUNT };
-const char *douutypes[] = {"Atomic", "Never", "Always", "DOUU_COUNT"};
+enum { DOUU_ATOMIC, DOUU_NEVER, DOUU_ALWAYS, DOUU_ALLSOLVENT, DOUU_COUNT };
+const char *douutypes[] = {"Atomic", "Never", "Always", "Allsolvent", "DOUU_COUNT"};
 
 
 
@@ -98,7 +98,6 @@ typedef struct {
   mdiis_params_t  mdiis;
 
   int douu; /* one of DOUU_XXX values */
-  int allsolvent; /* treat all molecules as solvent */
   double crmax; /* maximal magnitude of c(r), can be used to
                    improve convergence for highly charged systems */
 
@@ -483,9 +482,6 @@ static int model_load(model_t *m, const char *fn, int verbose)
     } else if ( strcmp_fuzzy(key, "douu") == 0 ) {
       m->douu = model_select(val, DOUU_COUNT, douutypes);
       ECHO_STR("douu", douutypes[m->douu]);
-    } else if ( strcmp_fuzzy(key, "all-solvent") == 0 ) {
-      m->allsolvent = model_select(val, BOOLEAN_COUNT, booleans);
-      ECHO_STR("all-solvent", booleans[m->allsolvent]);
     } else if ( strcmp_fuzzy(key, "crmax") == 0 ) {
       m->crmax = atof(val);
       ECHO("crmax", m->crmax);
@@ -826,14 +822,15 @@ model_t models[] =
 
 
 /* model that contains user settings */
-model_t model_usr[1] = {0, {0}, {{0}}, {0},
-  {0}, {0}, 0, 0, 0, -1, /* ljtype */
-  {0}, 0, 0, -1, /* ietype */
-  0, 0, 0, 0, 0.0, -1, /* solver */
+model_t model_usr[1] = { {0, {0.0}, {{0.0}}, {{0}}, /* pairpot */
+  {0.0}, {0.0}, 0.0, 0.0, 0.0, -1, /* ljtype */
+  {0.0}, 0.0, 0.0, -1, /* ietype */
+  0.0, 0, 0, 0, 0.0, -1, /* solver */
   {0}, {0}, {0},
   -1, /* douu */
-  0, 0.0,
-};
+  0.0, /* crmax */
+  {{0.0}}, 0, {0}, {0.0}, {0.0}
+} };
 
 
 
@@ -917,7 +914,8 @@ static int model_override(model_t *m, const model_t *m_usr)
   for ( ipr = 0, i = 0; i < ns; i++ )
     for ( j = i + 1; j < ns; j++, ipr++ )
       if ( (x = m_usr->disij[i][j]) > 0 || x < 0 ) {
-        m->dis[ipr] = m->disij[i][j] = m->disij[i][j] = (x > 0) ? x : 0;
+        if ( x < 0 ) x = 0;
+        m->dis[ipr] = m->disij[i][j] = m->disij[j][i] = x;
         fprintf(stderr, "distance between %d and %d is set to %g\n",
             i + IDBASE, j + IDBASE, x);
       }
@@ -940,8 +938,6 @@ static int model_override(model_t *m, const model_t *m_usr)
     m->douu = m_usr->douu;
     fprintf(stderr, "douu is changed to %d\n", m->douu);
   }
-
-  m->allsolvent = m_usr->allsolvent;
 
   m->crmax = m_usr->crmax;
   if ( m->crmax <= 0 ) m->crmax = CRMAX;
