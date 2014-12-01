@@ -20,6 +20,9 @@
   </div>
   <br>
 
+  <div class="panel">
+  <div class="panel-title">System</div>
+
   Number of sites (on all solvent and solute molecules):
   <input type="text" size="4" value="3" id="ns"
     onchange="change_ns()">
@@ -239,6 +242,11 @@
   </select>
   <br>
 
+  </div> <!-- Panel system -->
+
+  <div class="panel">
+  <div class="panel-title">Solver</div>
+
   Closure:
   <select id="ietype">
     <option value="PY">Percus-Yevick (PY)</option>
@@ -279,6 +287,8 @@
   <input type="text" size="6" value="1e-7" id="tol">
   <br>
 
+  <hr>
+
   Solver:
   <select id="solver">
     <option value="Picard">Picard (direct) iteration</option>
@@ -313,13 +323,31 @@
   <input type="text" size="6" value="5" id="mdiis_nbases">
   <br>
 
+  <hr>
+
+  How to handle solute-solute interaction?
+  <select id="douu">
+    <option value="Atomic" selected>Only for atomic solutes</option>
+    <option value="Never">Never</option>
+    <option value="Always">Always</option>
+    <option value="All-solvent">Treat all atoms as solute.</option>
+  </select>
+  <br>
+
+  Maximal magnitude of <span class="math"><i>c</i>(<i>r</i>)</span>:
+  <input type="text" size="6" value="1e30" id="crmax">
+
+  </div>  <!-- Panel solver -->
+
   <div class="center">
   <input type="button" value="Generate configuration file"
     id="gencfgbtn" onclick="gencfg()" class="largebtn">
 
   <input type="reset" value="Reset"
     id="resetbtn" class="largebtn">
-  </div>
+
+  </div> <!-- array of buttons -->
+
   <br>
 
   <div>
@@ -328,7 +356,12 @@
   </div>
 </form>
 
-<h2>The XRISM program <span class="code">rism0</span></h2>
+
+
+<div class="panel">
+<h2 class="panel-title">
+  The XRISM program <span class="code">rism0</span>
+</h2>
 
 <p>
 The program <span class="code">rism0</span>
@@ -363,6 +396,8 @@ Normally, the program produces an output file
 to compute various potentials of mean force.
 
 </div>
+
+
 
 <div class="panel">
 <h2 class="panel-title">References</h2>

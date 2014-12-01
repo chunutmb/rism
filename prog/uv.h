@@ -27,10 +27,11 @@ static int getnsv(model_t *m)
 {
   int i;
 
-  if ( m->allsolvent ) /* explicitly set all atoms as the solvent */
+  if ( m->douu == DOUU_ALLSOLVENT ) /* explicitly set all atoms as the solvent */
     return m->ns;
   for ( i = 0; i < m->ns; i++ )
-    if ( m->rho[i] <= 0 ) break;
+    if ( m->rho[i] <= 0 )
+      break;
   return i;
 }
 
@@ -57,7 +58,7 @@ static uv_t *uv_open(model_t *m)
   /* check if the solute is atomic */
   uv->atomicsolute = 1;
   for ( ipr = 0, i = 0; i < ns; i++ )
-    for ( j = i + 1; j < ns; j++, ipr++ )
+    for ( j = i + 1; j < ns && uv->atomicsolute; j++, ipr++ )
       if ( i >= uv->nsv && j >= uv->nsv && m->dis[ipr] > 0 ) {
         uv->atomicsolute = 0;
         break;

@@ -31,7 +31,6 @@ int printk = 0;
 
 
 
-
 /* print help message and die */
 static void help(const char *prog)
 {
@@ -126,7 +125,7 @@ static model_t *doargs(int argc, char **argv)
       } else if ( ch == 'u' ) {
         model_usr->douu = DOUU_ALWAYS;
       } else if ( ch == 'V' ) {
-        model_usr->allsolvent = 1;
+        model_usr->douu = DOUU_ALLSOLVENT;
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
