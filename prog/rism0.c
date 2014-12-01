@@ -46,9 +46,10 @@ static void help(const char *prog)
   fprintf(stderr, "  -!:    skip the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -u:    always do the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -V:    treat all sites as solvent, default: false\n");
-  fprintf(stderr, "  -r:    override the density, must be nonnegative, e.g. -d1,0.03 sets the density of the first atom to 0.03");
-  fprintf(stderr, "  -q:    override the charge, must be nonnegative, e.g. -q2,0.25 sets the charge of the second atom to 0.25");
-  fprintf(stderr, "  -d:    override the distance, e.g. -d1,2,1.5 sets the distance between the first two atoms to 1.5");
+  fprintf(stderr, "  -r:    override the density, must be nonnegative, e.g. -d1,0.03 sets the density of the first atom to 0.03\n");
+  fprintf(stderr, "  -q:    override the charge, must be nonnegative, e.g. -q2,0.25 sets the charge of the second atom to 0.25\n");
+  fprintf(stderr, "  -d:    override the distance, e.g. -d1,2,1.5 sets the distance between the first two atoms to 1.5\n");
+  fprintf(stderr, "  -T:    override the temperature, e.g. -T298 sets the temperature to 298K\n");
   fprintf(stderr, "  -C:    override the closure, %d: PY, %d: HNC, %d: KH\n", IE_PY, IE_HNC, IE_KH);
   fprintf(stderr, "  -S:    override the solver, %d: Picard, %d: LMV, %d: MDIIS\n", SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS);
   fprintf(stderr, "  -v:    be verbose, -vv to be more verbose, etc.\n");
@@ -82,7 +83,7 @@ static model_t *doargs(int argc, char **argv)
      * loop over characters in the options
      * in this way, `-vo' is understood as `-v -o' */
     for ( j = 1; (ch = argv[i][j]) != '\0'; j++ ) {
-      if ( strchr("orqdCS#8", ch) != NULL ) {
+      if ( strchr("orqdTCS#8", ch) != NULL ) {
         /* handle options that require an argument */
         q = p = argv[i] + j + 1;
         if ( *p != '\0' ) {
@@ -112,6 +113,8 @@ static model_t *doargs(int argc, char **argv)
         } else if ( ch == 'd' ) { /* override the distance of a bond */
           if ( model_register_disij(model_usr, q) != 0 )
             help(prog);
+        } else if ( ch == 'T' ) {
+          model_usr->beta = 1/atof(q);
         } else if ( ch == 'C' ) { /* override the closure */
           model_usr->ietype = atoi(q);
         } else if ( ch == 'S' ) { /* override the solver */

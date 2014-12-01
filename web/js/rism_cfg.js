@@ -29,11 +29,16 @@ function change_eps6(id, prefix)
 
 
 
-function change_ns()
+function change_ns(ns)
 {
-  var ns = grab("ns").value;
-  if ( !is_int(ns) ) return;
-  ns = parseInt(ns);
+  if ( ns == null || ns == undefined ) {
+    ns = grab("ns").value;
+    if ( !is_int(ns) ) return;
+    ns = parseInt(ns);
+  } else {
+    grab("ns").value = ns;
+  }
+
   var tab = grab("siteTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
@@ -108,12 +113,12 @@ function change_npairs(npairs)
 {
   if ( npairs == null || npairs == undefined ) {
     npairs = grab("npairs").value;
+    if ( !is_int(npairs) ) return;
+    npairs = parseInt(npairs);
   } else {
     grab("npairs").value = npairs;
   }
 
-  if ( !is_int(npairs) ) return;
-  npairs = parseInt(npairs);
   var tab = grab("pairTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
@@ -209,12 +214,12 @@ function change_nbonds(nbonds)
 {
   if ( nbonds == null || nbonds == undefined ) {
     nbonds = grab("nbonds").value;
+    if ( !is_int(nbonds) || nbonds < 0 ) return;
+    nbonds = parseInt(nbonds);
   } else {
     grab("nbonds").value = nbonds;
   }
 
-  if ( !is_int(nbonds) || nbonds < 0 ) return;
-  nbonds = parseInt(nbonds);
   var tab = grab("bondTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
