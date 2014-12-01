@@ -17,4 +17,6 @@ Bossman: clean
 Bossman2: clean
 	rsync -vzL $(excludes) * cz1@129.109.88.204:/Bossman/cz1/rism/
 
+Dropbox: clean
+	rsync -avzL $(excludes) --exclude=refs * ~/Dropbox/code/
 

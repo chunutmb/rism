@@ -73,7 +73,7 @@ typedef struct {
 
   double rho[MAXATOM];
   double dis[MAXATOM*(MAXATOM-1)/2];
-  double beta; /* sometimes it is given as 1/T without kB */
+  double beta; /* 1/(kBT*T), sometimes given as 1/T without kB */
   double kBT; /* Boltzman constant, to be multiplied on T */
   double kBU; /* Boltzmann constant, only used if the unit
                  of LJ energy is already divided by kB */
@@ -736,11 +736,12 @@ model_t models[] =
     {20, 0.5},
     {5, 0.5}
   },
-  /* 13. SPCE, H2O
+  /* 13. SPC/E, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
    * the following data are copied from
    *  /Bossman/Software/3Drism/h2o_lib/spce
-   * the unit of LJ energy is Kelvin */
+   * the unit of LJ energy is Kelvin
+   * cf. https://en.wikipedia.org/wiki/Water_model */
   {3, {3.1666, 0.4, 0.4},
     { {78.2083543, 78.2083543}, /* O */
       {0, 23.150478}, /* H1 */ {0, 23.150478} /* H2 */ }, {{0}},
@@ -759,12 +760,13 @@ model_t models[] =
    * atom 0: O, atom 1: H1, atom 2: H2
    * the following data are copied from
    *  /Bossman/Software/3Drism/h2o_lib/tip3
-   * the unit of LJ energy is Kelvin */
+   * the unit of LJ energy is Kelvin
+   * cf. https://en.wikipedia.org/wiki/Water_model */
   {3, {3.15, 0.4, 0.4},
     { {76.5364, 76.5364}, /* O */
       {0, 23.1509}, /* H1 */ {0, 23.1509} /* H2 */ }, {{0}},
-    {0.033314, 0.033314, 0.033314},
-    {0.95719835, 0.95719835, 1.5139},
+    {0.03334, 0.03334, 0.03334},
+    {0.9572, 0.9572, 1.5139},
     1./300, 1.0, KBNA, LJ_FULL,
     {-0.834, 0.417, 0.417}, KE2PK, 1.0,
     IE_HNC, 40.96, 2048,
@@ -791,7 +793,7 @@ model_t models[] =
     {15, 0.5},
     {5, 0.5}
   },
-  /* 16. SPCE, H2O, Na+, Cl-
+  /* 16. SPC/E, H2O, Na+, Cl-
    * atom 0: O, atom 1: H1, atom 2: H2, atom 3: Na, atom 4: Cl-
    * the following data are copied from
    *  /Bossman/Software/3Drism/h2o_lib/spce
@@ -800,7 +802,7 @@ model_t models[] =
     { {78.2083543, 78.2083543}, /* O */
       {0, 23.150478}, /* H1 */ {0, 23.150478}, /* H2 */
       {65.42, 65.42}, {50.32, 50.32} }, {{0}},
-    {0.033314, 0.033314, 0.033314, 0.0, 0.0},
+    {0.03334, 0.03334, 0.03334, 0.0, 0.0},
     {1.0, 1.0, 0, 0, 1.633},
     1./300, 1.0, KBNA, LJ_FULL,
     {-0.8476, 0.4238, 0.4238, 1, -1}, KE2PK, 1.0,
@@ -914,6 +916,9 @@ static int model_override(model_t *m, const model_t *m_usr)
         fprintf(stderr, "distance between %d and %d is set to %g\n",
             i + IDBASE, j + IDBASE, x);
       }
+
+  /* override the temprature */
+  m->beta = m_usr->beta / m->kBT;
 
   /* override the solver of the integral equation */
   if ( m_usr->solver >= 0  && m_usr->solver < SOLVER_COUNT ) {

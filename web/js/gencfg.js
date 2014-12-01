@@ -25,11 +25,16 @@ function change_eps6(id, prefix)
 
 
 
-function change_ns()
+function change_ns(ns)
 {
-  var ns = grab("ns").value;
-  if ( !is_int(ns) ) return;
-  ns = parseInt(ns);
+  if ( ns == null || ns == undefined ) {
+    ns = grab("ns").value;
+    if ( !is_int(ns) ) return;
+    ns = parseInt(ns);
+  } else {
+    grab("ns").value = ns;
+  }
+
   var tab = grab("siteTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
@@ -101,11 +106,12 @@ function change_ns()
 
 
 
-function change_nprs()
+function change_npairs()
 {
-  var nprs = grab("npairs").value;
-  if ( !is_int(nprs) ) return;
-  nprs = parseInt(nprs);
+  var npairs = grab("npairs").value;
+  if ( !is_int(npairs) ) return;
+  npairs = parseInt(npairs);
+
   var tab = grab("pairTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
@@ -119,7 +125,7 @@ function change_nprs()
   var nrows = i; // number of existing rows
 
   // remove redundant elements, if any
-  for ( var i = nprs; i < nrows; i++ ) {
+  for ( var i = npairs; i < nrows; i++ ) {
     rowid = "pair_row_" + (i+1);
     row = document.getElementById(rowid);
     if ( row.parentNode == tbody )
@@ -127,10 +133,10 @@ function change_nprs()
   }
 
   // create non-existing elements
-  for ( var i = nrows; i < nprs; i++ ) {
+  for ( var i = nrows; i < npairs; i++ ) {
     var i1 = "" + (i+1);
 
-    rowid = "pair_row_" + (i+1);
+    rowid = "pair_row_" + i1;
     row = document.createElement("tr");
 
     row.setAttribute("id", rowid);
@@ -202,6 +208,7 @@ function change_nbonds()
   var nbonds = grab("nbonds").value;
   if ( !is_int(nbonds) || nbonds < 0 ) return;
   nbonds = parseInt(nbonds);
+
   var tab = grab("bondTable");
   var tbody = tab.lastChild;
   var rowid, row, td;
@@ -379,7 +386,7 @@ function gencfg()
 function init()
 {
   change_ns();
-  change_nprs();
+  change_npairs();
   change_nbonds();
   change_unit_eps();
 }
