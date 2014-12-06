@@ -643,7 +643,7 @@ model_t models[] =
     1./72, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
-    10, 100000, 1e-7,
+    10, 1000, 1e-7,
     SOLVER_LMV,
     {0.01},
     {10, 0.5},
@@ -656,7 +656,7 @@ model_t models[] =
     1./210, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
-    10, 100000, 1e-7,
+    10, 1000, 1e-7,
     SOLVER_LMV,
     {0.01},
     {10, 0.5},
@@ -923,7 +923,8 @@ static int model_override(model_t *m, const model_t *m_usr)
       }
 
   /* override the temprature */
-  m->beta = m_usr->beta / m->kBT;
+  if ( m_usr->beta > 0 )
+    m->beta = m_usr->beta / m->kBT;
 
   /* override the solver of the integral equation */
   if ( m_usr->solver >= 0  && m_usr->solver < SOLVER_COUNT ) {

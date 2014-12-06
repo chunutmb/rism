@@ -121,7 +121,7 @@ static void mdiis_surrender(mdiis_t *m, double **cr, const uv_t *uv)
   int i, j, ij, ipr, l;
 
   if ( verbose ) {
-    fprintf(stderr, "MDIIS failed: use the best c(r) with residue %g\n", m->resmin); getchar();
+    fprintf(stderr, "MDIIS failed: use the best c(r) with residue %g\n", m->resmin); //getchar();
   }
   /* save m->crbest to c(r) */
   for ( ipr = 0, i = 0; i < ns; i++ )
@@ -243,7 +243,7 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
 static double iter_mdiis(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
-    double **tr, double **tk,
+    double **tr, double **tk, double **Qrx,
     uv_t *uv, int *niter)
 {
   mdiis_t *mdiis;
@@ -257,14 +257,14 @@ static double iter_mdiis(model_t *model,
 
   /* construct the initial base set */
   step_picard(model, res, NULL, vrsr, wk,
-      cr, ck, vklr, tr, tk, uv->prmask, 0, 0.);
+      cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0, 0.);
   mdiis_build(mdiis, cr, res, uv);
 
   for ( it = 0; it <= model->itmax; it++ ) {
     mdiis_solve(mdiis);
     mdiis_gencr(mdiis, cr, damp, uv);
     err = step_picard(model, res, NULL, vrsr, wk,
-        cr, ck, vklr, tr, tk, uv->prmask, 0, 0.);
+        cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0, 0.);
     ib = mdiis_update(mdiis, cr, res, uv);
 
     /* save this function */
@@ -285,14 +285,14 @@ static double iter_mdiis(model_t *model,
       if ( uv->stage == SOLUTE_SOLUTE ) {
         if ( uv->infdil && uv->atomicsolute ) {
           err = step_uu_infdil_atomicsolute(model, vrsr, wk,
-              cr, ck, vklr, tr, tk, uv->prmask);
+              cr, ck, vklr, tr, tk, Qrx, uv->prmask);
           break;
         }
       }
       /* reset the bases */
       update = 0; /* compute ck, tk, tr, and res without updating */
       err = step_picard(model, res, NULL, vrsr, wk,
-          cr, ck, vklr, tr, tk, uv->prmask, update, 0.);
+          cr, ck, vklr, tr, tk, Qrx, uv->prmask, update, 0.);
       mdiis_build(mdiis, cr, res, uv);
       it = -1;
       err = errinf;

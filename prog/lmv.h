@@ -97,7 +97,7 @@ static void getjacob(double *mat, double *b, int M, int npr, int ns,
 static double iter_lmv(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **der, double **ck, double **vklr,
-    double **tr, double **tk, double **ntk,
+    double **tr, double **tk, double **ntk, double **Qrx,
     double **invwc1w, uv_t *uv, int *niter)
 {
   int i, j, l, ij, it, M, npr, ipr, Mp;
@@ -136,7 +136,7 @@ static double iter_lmv(model_t *model,
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
-    err = closure(model, NULL, der, vrsr, cr, tr, uv->prmask, 1, 1.0);
+    err = closure(model, NULL, der, vrsr, cr, tr, Qrx, uv->prmask, 1, 1.0);
     sphr_r2k(cr, ck, ns, NULL);
     //printf("stage %d, it %d, cr %g, ck %g, tr %g, tk %g, err %g\n", uv->stage, it, cr[0][0], ck[0][0], tr[0][0], tk[0][0], err);
 
@@ -192,7 +192,7 @@ static double iter_lmv(model_t *model,
       if ( uv->stage == SOLUTE_SOLUTE ) {
         if ( uv->infdil && uv->atomicsolute ) {
           err = step_uu_infdil_atomicsolute(model, vrsr, wk,
-              cr, ck, vklr, tr, tk, uv->prmask);
+              cr, ck, vklr, tr, tk, Qrx, uv->prmask);
           break;
         }
       }

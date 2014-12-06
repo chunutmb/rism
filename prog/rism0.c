@@ -129,6 +129,8 @@ static model_t *doargs(int argc, char **argv)
         model_usr->douu = DOUU_ALWAYS;
       } else if ( ch == 'V' ) {
         model_usr->douu = DOUU_ALLSOLVENT;
+      } else if ( ch == 'k' ) {
+        printk = 1;
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
@@ -270,7 +272,7 @@ static double solveHMrmin(double B, double C, double rho)
 
 /* initialize f(r) */
 static void initfr(model_t *m, double **ur, double **nrdur,
-    double **fr, double **vrqq, double **vrpp,
+    double **fr, double **vrlj, double **vrqq, double **vrpp,
     double **vrlr, double **vrsr, double lam)
 {
   const double vrmin = -30;
@@ -320,8 +322,9 @@ static void initfr(model_t *m, double **ur, double **nrdur,
             vrsr[ij][l] = 0;
             z = 0;
           }
+          vrlj[ij][l] = vrsr[ij][l];
           nrdur[ij][l] = ur[ij][l] = 0;
-          vrlr[ij][l] = vrqq[ij][l] = 0;
+          vrlr[ij][l] = vrqq[ij][l] = vrpp[ij][l] = 0;
         } else { /* Lennard-Jones */
           if ( use_pairpot ) {
             if ( Bij > 0 ) {
@@ -341,7 +344,9 @@ static void initfr(model_t *m, double **ur, double **nrdur,
           ur[ij][l] = u + uelec;
           nrdur[ij][l] = nrdu + uelec;
           ulr = uelec * erf( r/rscreen );
+          vrlj[ij][l] = beta * u;
           vrqq[ij][l] = beta * uelec;
+          /* vrpp concerns only the net charge on the molecule */
           vrpp[ij][l] = beta * lam * m->ampch / r
                       * m->chargemol[ m->mol[i] ] * m->chargemol[ m->mol[j] ];
           vrlr[ij][l] = beta * ulr;
@@ -359,6 +364,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
       if ( j > i ) {
         cparr(ur[ji],     ur[ij],     npt);
         cparr(nrdur[ji],  nrdur[ij],  npt);
+        cparr(vrlj[ji],   vrlj[ij],   npt);
         cparr(vrqq[ji],   vrqq[ij],   npt);
         cparr(vrpp[ji],   vrpp[ij],   npt);
         cparr(vrlr[ji],   vrlr[ij],   npt);
@@ -400,13 +406,14 @@ static void oz(model_t *m, double **ck, double **vklr,
     double **tk, double **wk, double **invwc1w)
 {
   int i, j, ij, l, ns = m->ns;
-  double w[NS2MAX], dw[NS2MAX], c[NS2MAX], wc[NS2MAX], invwc1[NS2MAX];
+  double w[NS2MAX], dw[NS2MAX], c[NS2MAX], wc[NS2MAX], invwc1[NS2MAX], v[NS2MAX] = {0};
   double tm1[NS2MAX], tm2[NS2MAX], tm3[NS2MAX];
 
   for ( l = 0; l < m->npt; l++ ) {
     for ( ij = 0; ij < ns * ns; ij++ ) {
+      if ( vklr != NULL ) v[ij] = vklr[ij][l];
       w[ij] = wk[ij][l];
-      c[ij] = ck[ij][l] - vklr[ij][l];
+      c[ij] = ck[ij][l] - v[ij];
     }
 
     /* note that w c is not symmetric w.r.t. i and j */
@@ -419,7 +426,7 @@ static void oz(model_t *m, double **ck, double **vklr,
         dw[ij] = wk[ij][l] - (i == j);
       }
 
-    invmat(tm2, invwc1, ns); /* invwc1 = (1 - wc)^(-1) */
+    invmat(tm2, invwc1, ns); /* invwc1 = (1 - rho w c)^(-1) */
 
     matmul(tm3, invwc1, w, ns); /* tm3 = (1 - rho w c)^(-1) w */
     if ( invwc1w != NULL )
@@ -435,35 +442,59 @@ static void oz(model_t *m, double **ck, double **vklr,
     /* compute w c (1 - rho w c)^(-1) w - c
      * = [w c rho w c (1 - rho w c)^(-1) w - w c w] + (w c w - c) */
     for ( ij = 0; ij < ns * ns; ij++ )
-      tk[ij][l] = tm1[ij] + tm2[ij] + tm3[ij] - vklr[ij][l];
+      tk[ij][l] = tm1[ij] + tm2[ij] + tm3[ij] - v[ij];
   }
 }
 
 
 
+/* compute the chain sum Q(r) for the charge interation */
+static void getQr(model_t *m, double **vrqq, double **Qr,
+    double **Qk, double **wk, double **vkqq,
+    double **Qrx, double **vrlj)
+{
+  int ij, l, ns = m->ns, npt = m->npt;
+
+  /* c(r) --> -vqq(r) for large r */
+  sphr_r2k(vrqq, vkqq, ns, NULL);
+  for ( l = 0; l < npt; l++ )
+    for ( ij = 0; ij < ns * ns; ij++ )
+      vkqq[ij][l] = -vkqq[ij][l];
+  oz(m, vkqq, NULL, Qk, wk, NULL);
+  sphr_k2r(Qk, Qr, ns, NULL);
+  for ( ij = 0; ij < ns * ns; ij++ )
+    for ( l = 0; l < npt; l++ )
+      Qrx[ij][l] = Qr[ij][l] - vrlj[ij][l];
+}
+
+
+
 /* return the updated cr */
-static double getcr(double tr, double vrsr,
+static double getcr(double tr, double vrsr, double Qrx,
     double *dcr, int ietype, double crmax)
 {
-  double xp, del, fr, cr = 0;
+  double xp, del, cr = 0;
 
   del = -vrsr + tr;
   if ( ietype == IE_HNC ) {
     xp = exp(del);
-    if ( dcr != NULL ) *dcr = xp - 1;
     cr = xp - 1 - tr;
+    if ( dcr != NULL ) *dcr = xp - 1;
   } else if ( ietype == IE_PY ) {
-    fr = exp(-vrsr) - 1;
-    if ( dcr != NULL ) *dcr = fr;
-    cr = fr * (1 + tr);
+    /* del == -vrlj + Qr + taur == Qrx + taur, so taur = del - Qrx  */
+    double taur = del - Qrx;
+    /* del == Qr - vrlj + taur = Qrx + taur */
+    xp = exp(Qrx);
+    cr = xp * (1 + taur) - 1 - tr;
+    if ( dcr != NULL ) *dcr = xp - 1;
   } else if ( ietype == IE_KH ) {
     if ( del <= 0 ) { /* HNC */
       xp = exp(del);
-      if ( dcr != NULL ) *dcr = xp - 1;
       cr = xp - 1 - tr;
+      if ( dcr != NULL ) *dcr = xp - 1;
     } else {
-      if ( dcr != NULL ) *dcr = 0;
       cr = -vrsr;
+      if ( dcr != NULL ) *dcr = 0;
     }
   } else {
     fprintf(stderr, "unknown closure %d\n", ietype);
@@ -482,7 +513,7 @@ struct { int l; double err; } errspot[NS2MAX];
  * compute residue vector if needed */
 static double closure(model_t *model,
     double *res, double **der, double **vrsr,
-    double **cr, double **tr,
+    double **cr, double **tr, double **Qrx,
     int *prmask, int update, double damp)
 {
   int ns = model->ns, npt = model->npt, i, j, ij, ji, id, l;
@@ -495,8 +526,9 @@ static double closure(model_t *model,
       if ( prmask && !prmask[ij] ) continue;
       err = max = 0;
       for ( l = 0; l < npt; l++, id++ ) {
-        y = getcr(tr[ij][l], vrsr[ij][l], der ? &der[ij][l] : NULL,
-                  model->ietype, model->crmax) - cr[ij][l];
+        y = getcr(tr[ij][l], vrsr[ij][l], Qrx[ij][l],
+            der ? &der[ij][l] : NULL, model->ietype, model->crmax)
+          - cr[ij][l];
         if ( res != NULL ) res[id] = y;
         if ( update ) cr[ij][l] += damp * y;
         if ( fabs(y) > err ) {
@@ -523,13 +555,13 @@ static double step_picard(model_t *model,
     double *res, double **der,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
-    double **tr, double **tk,
+    double **tr, double **tk, double **Qrx,
     int *prmask, int update, double damp)
 {
   sphr_r2k(cr, ck, model->ns, NULL);
   oz(model, ck, vklr, tk, wk, NULL);
   sphr_k2r(tk, tr, model->ns, NULL);
-  return closure(model, res, der, vrsr, cr, tr,
+  return closure(model, res, der, vrsr, cr, tr, Qrx,
                  prmask, update, damp);
 }
 
@@ -538,10 +570,11 @@ static double step_picard(model_t *model,
 /* the uu step for infinitely diluted atomic solute */
 static double step_uu_infdil_atomicsolute(model_t *model,
     double **vrsr, double **wk, double **cr, double **ck,
-    double **vklr, double **tr, double **tk, int *prmask)
+    double **vklr, double **tr, double **tk, double **Qrx,
+    int *prmask)
 {
   return step_picard(model, NULL, NULL, vrsr, wk, cr, ck,
-      vklr, tr, tk, prmask, 1, 1.0);
+      vklr, tr, tk, Qrx, prmask, 1, 1.0);
 }
 
 
@@ -559,7 +592,7 @@ const double errinf = 1e20;
 static double iter_picard(model_t *model,
     double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
-    double **tr, double **tk,
+    double **tr, double **tk, double **Qrx,
     int *niter)
 {
   int it;
@@ -567,7 +600,7 @@ static double iter_picard(model_t *model,
 
   for ( it = 0; it < model->itmax; it++ ) {
     err = step_picard(model, NULL, NULL, vrsr, wk, cr, ck, vklr,
-        tr, tk, NULL, 1, model->picard.damp);
+        tr, tk, Qrx, NULL, 1, model->picard.damp);
     if ( err < model->tol ) break;
     if ( verbose )
       fprintf(stderr, "it %d err %g -> %g\n", it, errp, err); //getchar();
@@ -585,6 +618,7 @@ static char *output(model_t *m,
     double **cr, double **vrqq, double **vrpp, double **vrlr,
     double **ur, double **tr, double **fr,
     double **ck, double **vklr, double **tk, double **wk,
+    double **Qr, double **Qrx, double **Qk,
     const char *fn, int ilam)
 {
   int i, j, ij, l, ns = m->ns, npt = m->npt;
@@ -643,12 +677,13 @@ static char *output(model_t *m,
           if ( (loggr = log(gr)) > trt - vrt )
             pmfs = -loggr - vrt + vrq - vrp/eps_rism;
         }
-        fprintf(fp, "%g %g %g %g %g %g %d %d %g %g %g ",
+        fprintf(fp, "%g %g %g %g %g %g %d %d %g %g %g %g %g ",
             fft_ri[l], crt, trt, fr[ij][l],
-            vrl, vrt, i + IDBASE, j + IDBASE, vrq, pmfs, vrp);
+            vrl, vrt, i + IDBASE, j + IDBASE,
+            vrq, pmfs, vrp, Qr[ij][l], Qrx[ij][l]);
         if ( printk )
-          fprintf(fp, "%g %g %g %g %g",
-              fft_ki[l], ckt, tkt, wk[ij][l], vkl);
+          fprintf(fp, "%g %g %g %g %g %g",
+              fft_ki[l], ckt, tkt, wk[ij][l], vkl, Qk[ij][l]);
         fprintf(fp, "\n");
       }
       fprintf(fp, "\n");
@@ -666,7 +701,8 @@ static int dorism(model_t *model)
   double err = 0, dia, eps, lam;
   double **ur, **nrdur, **fr, **wk;
   double **cr, **cp, **ck, **tr, **tk, **ntk;
-  double **der, **vrlr, **vrqq, **vrpp, **vrsr, **vklr;
+  double **der, **vrlr, **vrlj, **vrqq, **vrpp, **vrsr, **vklr;
+  double **Qr, **Qk, **Qrx;
   double *um, *mum;
   const char *fnout;
   uv_t *uv;
@@ -678,6 +714,7 @@ static int dorism(model_t *model)
   npt = model->npt;
   newarr2d(ur,    ns * ns, npt);
   newarr2d(nrdur, ns * ns, npt);
+  newarr2d(vrlj,  ns * ns, npt);
   newarr2d(vrqq,  ns * ns, npt);
   newarr2d(vrpp,  ns * ns, npt);
   newarr2d(vrlr,  ns * ns, npt);
@@ -692,6 +729,9 @@ static int dorism(model_t *model)
   newarr2d(tk,    ns * ns, npt);
   newarr2d(ntk,   ns * ns, npt);
   newarr2d(der,   ns * ns, npt);
+  newarr2d(Qr,    ns * ns, npt);
+  newarr2d(Qk,    ns * ns, npt);
+  newarr2d(Qrx,   ns * ns, npt);
   xnew(um, ns);
   xnew(mum, ns);
 
@@ -705,8 +745,9 @@ static int dorism(model_t *model)
   for ( ilam = 1; ilam <= nlam; ilam++ ) {
     lam = 1.*ilam/nlam;
 
-    initfr(model, ur, nrdur, fr, vrqq, vrpp, vrlr, vrsr, lam);
+    initfr(model, ur, nrdur, fr, vrlj, vrqq, vrpp, vrlr, vrsr, lam);
     sphr_r2k(vrlr, vklr, ns, NULL);
+    getQr(model, vrqq, Qr, Qk, wk, ntk, Qrx, vrlj);
 
     /* use f(r) as the initial c(r) for the lowest lambda */
     if ( ilam == 1 )
@@ -717,26 +758,26 @@ static int dorism(model_t *model)
 
     if ( model->solver == SOLVER_LMV ) {
       err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr,
-          tr, tk, ntk, cp, uv, &it);
+          tr, tk, ntk, Qrx, cp, uv, &it);
     } else if ( model->solver == SOLVER_MDIIS ) {
       err = iter_mdiis(model, vrsr, wk, cr, ck, vklr,
-          tr, tk, uv, &it);
+          tr, tk, Qrx, uv, &it);
     } else {
       err = iter_picard(model, vrsr, wk, cr, ck, vklr,
-          tr, tk, &it);
+          tr, tk, Qrx, &it);
     }
 
     uv_close(uv);
 
     fnout = output(model, cr, vrqq, vrpp, vrlr, ur, tr, fr,
-        ck, vklr, tk, wk, fncrtr, ilam);
+        ck, vklr, tk, wk, Qr, Qrx, Qk, fncrtr, ilam);
     fprintf(stderr, "lambda %4.2f, %4d iterations, err %10.4e, output %s\n",
         lam, it, err, fnout);
   }
 
   calcU(model, ur, cr, tr, vrsr, um);
   calcchempot(model, cr, tr, vrsr, vrlr, mum, verbose);
-  calckirk(model, cr, tr, NULL);
+  calckirk(model, cr, tr, vrsr, NULL);
   calccrdnum(model, cr, tr, vrsr, fncrdnum);
   eps = calcdielec(model);
   printf("dielectric constant %g, d %g, rho*d^3 %g\n",
@@ -744,6 +785,7 @@ static int dorism(model_t *model)
 
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);
+  delarr2d(vrlj,  ns * ns);
   delarr2d(vrqq,  ns * ns);
   delarr2d(vrpp,  ns * ns);
   delarr2d(vrlr,  ns * ns);
@@ -758,6 +800,9 @@ static int dorism(model_t *model)
   delarr2d(tk,    ns * ns);
   delarr2d(ntk,   ns * ns);
   delarr2d(der,   ns * ns);
+  delarr2d(Qr,    ns * ns);
+  delarr2d(Qk,    ns * ns);
+  delarr2d(Qrx,   ns * ns);
   free(um);
   free(mum);
   donefftw();

@@ -162,9 +162,21 @@ static double calcdielec(model_t *m)
 
 
 
+/* return the radial distribution function */
+static double getgr(model_t *m, double cr, double tr, double vrsr)
+{
+  double gr_tiny = m->tol * 100, gr;
+  gr = cr + tr + 1;
+  if ( gr < gr_tiny || m->ietype == IE_HNC ) /* only for HNC */
+    gr = exp( -vrsr + tr );
+  return gr;
+}
+
+
+
 /* compute the Kirkword integrals */
 static int calckirk(model_t *m, double **cr, double **tr,
-    double *kirk)
+    double **vrsr, double *kirk)
 {
   int i, j, ij, l, ns = m->ns, npt = m->npt;
   double kij, dr, ri, hr;
@@ -177,7 +189,7 @@ static int calckirk(model_t *m, double **cr, double **tr,
       /* integrating over the radius */
       for ( l = 0; l < npt; l++ ) {
         ri = (l + .5) * dr;
-        hr = cr[ij][l] + tr[ij][l];
+        hr = getgr(m, cr[ij][l], tr[ij][l], vrsr[ij][l]) - 1;
         kij += hr * ri * ri;
       }
       kij *= 4 * PI * dr;
@@ -187,18 +199,6 @@ static int calckirk(model_t *m, double **cr, double **tr,
     }
   }
   return 0;
-}
-
-
-
-/* return the radial distribution function */
-static double getgr(model_t *m, double cr, double tr, double vrsr)
-{
-  double gr_tiny = m->tol * 100, gr;
-  gr = cr + tr + 1;
-  if ( gr < gr_tiny || m->ietype == IE_HNC ) /* only for HNC */
-    gr = exp( -vrsr + tr );
-  return gr;
 }
 
 
