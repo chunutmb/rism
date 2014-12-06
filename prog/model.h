@@ -918,7 +918,8 @@ static int model_override(model_t *m, const model_t *m_usr)
       }
 
   /* override the temprature */
-  m->beta = m_usr->beta / m->kBT;
+  if ( m_usr->beta > 0 )
+    m->beta = m_usr->beta / m->kBT;
 
   /* override the solver of the integral equation */
   if ( m_usr->solver >= 0  && m_usr->solver < SOLVER_COUNT ) {

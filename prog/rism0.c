@@ -129,6 +129,8 @@ static model_t *doargs(int argc, char **argv)
         model_usr->douu = DOUU_ALWAYS;
       } else if ( ch == 'V' ) {
         model_usr->douu = DOUU_ALLSOLVENT;
+      } else if ( ch == 'k' ) {
+        printk = 1;
       } else if ( ch == '$' ) {
         sepout = 1;
       } else if ( ch == 'v' ) {
@@ -394,13 +396,14 @@ static void oz(model_t *m, double **ck, double **vklr,
     double **tk, double **wk, double **invwc1w)
 {
   int i, j, ij, l, ns = m->ns;
-  double w[NS2MAX], dw[NS2MAX], c[NS2MAX], wc[NS2MAX], invwc1[NS2MAX];
+  double w[NS2MAX], dw[NS2MAX], c[NS2MAX], wc[NS2MAX], invwc1[NS2MAX], v[NS2MAX] = {0};
   double tm1[NS2MAX], tm2[NS2MAX], tm3[NS2MAX];
 
   for ( l = 0; l < m->npt; l++ ) {
     for ( ij = 0; ij < ns * ns; ij++ ) {
+      if ( vklr != NULL ) v[ij] = vklr[ij][l];
       w[ij] = wk[ij][l];
-      c[ij] = ck[ij][l] - vklr[ij][l];
+      c[ij] = ck[ij][l] - v[ij];
     }
 
     /* note that w c is not symmetric w.r.t. i and j */
@@ -413,7 +416,7 @@ static void oz(model_t *m, double **ck, double **vklr,
         dw[ij] = w[ij] - (i == j);
       }
 
-    invmat(tm2, invwc1, ns); /* invwc1 = (1 - wc)^(-1) */
+    invmat(tm2, invwc1, ns); /* invwc1 = (1 - rho w c)^(-1) */
 
     matmul(tm3, invwc1, w, ns); /* tm3 = (1 - rho w c)^(-1) w */
     if ( invwc1w != NULL )
@@ -429,7 +432,7 @@ static void oz(model_t *m, double **ck, double **vklr,
     /* compute w c (1 - rho w c)^(-1) w - c
      * = [w c rho w c (1 - rho w c)^(-1) w - w c w] + (w c w - c) */
     for ( ij = 0; ij < ns * ns; ij++ )
-      tk[ij][l] = tm1[ij] + tm2[ij] + tm3[ij] - vklr[ij][l];
+      tk[ij][l] = tm1[ij] + tm2[ij] + tm3[ij] - v[ij];
   }
 }
 
@@ -730,7 +733,7 @@ static int dorism(model_t *model)
 
   calcU(model, ur, cr, tr, vrsr, um);
   calcchempot(model, cr, tr, vrsr, vrlr, mum, verbose);
-  calckirk(model, cr, tr, NULL);
+  calckirk(model, cr, tr, vrsr, NULL);
   calccrdnum(model, cr, tr, vrsr, fncrdnum);
   eps = calcdielec(model);
   printf("dielectric constant %g, d %g, rho*d^3 %g\n",
