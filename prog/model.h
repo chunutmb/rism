@@ -906,10 +906,14 @@ static int model_override(model_t *m, const model_t *m_usr)
 
   /* override the density and charges */
   for ( i = 0; i < ns; i++ ) {
-    if ( (x = m_usr->rho[i]) > 0 )
-     m->rho[i] = m_usr->rho[i];
-    if ( fabs(x = m_usr->charge[i]) > 0 )
-     m->charge[i] = m_usr->charge[i];
+    if ( (x = m_usr->rho[i]) > 0 ) {
+      m->rho[i] = m_usr->rho[i];
+      fprintf(stderr, "density of %d is set to %g\n", i+IDBASE, m->rho[i]);
+    }
+    if ( fabs(x = m_usr->charge[i]) > 0 ) {
+      m->charge[i] = m_usr->charge[i];
+      fprintf(stderr, "charge of %d is set to %g\n", i+IDBASE, m->charge[i]);
+    }
   }
 
   /* override the distances */

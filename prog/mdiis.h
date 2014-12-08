@@ -248,7 +248,7 @@ static double iter_mdiis(model_t *model,
 {
   mdiis_t *mdiis;
   int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
-  double err, errp = errinf, damp = model->mdiis.damp, *res;
+  double err, errp, damp = model->mdiis.damp, *res;
 
   /* open the mdiis object if needed */
   mdiis = mdiis_open(ns, npt, model->mdiis.nbases);
@@ -260,6 +260,7 @@ static double iter_mdiis(model_t *model,
       cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0, 0.);
   mdiis_build(mdiis, cr, res, uv);
 
+  err = errp = errinf;
   for ( it = 0; it <= model->itmax; it++ ) {
     mdiis_solve(mdiis);
     mdiis_gencr(mdiis, cr, damp, uv);

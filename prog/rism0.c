@@ -283,7 +283,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
 {
   const double vrmin = -30;
   int i, j, ij, ji, ipr, l, ns = m->ns, npt = m->npt, use_pairpot;
-  double beta = m->beta, r, z, u, uelec, nrdu, ulr, rscreen;
+  double beta = m->beta, r, z, u, uelec, nrdu = 0, ulr, rscreen;
   double sig, eps6, eps12, c6, c12, Bij, rhoij, rminij;
   static int once;
 
@@ -801,7 +801,7 @@ static int dorism(model_t *model)
   xnew(um, ns);
   xnew(mum, ns);
 
-  initfftw(model->rmax, npt);
+  initfft(model->rmax, npt);
   initwk(model, wk);
 
   /* lambda is used to gradually switch on long-range interaction */
@@ -885,7 +885,7 @@ EXIT:
   delarr2d(Qrx,   ns * ns);
   free(um);
   free(mum);
-  donefftw();
+  donefft();
   return 0;
 }
 
