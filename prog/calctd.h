@@ -174,7 +174,8 @@ static double getgr(model_t *m, double cr, double tr, double vrsr)
 
 
 
-/* compute the Kirkword integrals */
+/* compute the Kirkword integrals
+ * NOTE: this routine may fail for charged systems */
 static int calckirk(model_t *m, double **cr, double **tr,
     double **vrsr, double *kirk)
 {
@@ -203,7 +204,8 @@ static int calckirk(model_t *m, double **cr, double **tr,
 
 
 
-/* compute the running coordination numbers */
+/* compute the running coordination numbers
+ * NOTE: this routine may fail for charged systems */
 static int calccrdnum(model_t *m,
     double **cr, double **tr, double **vrsr,
     const char *fn)
@@ -267,7 +269,7 @@ static int calccrdnum(model_t *m,
 
 
 /* compute the internal energy
- * NOTE: this routine does not work for charged systems */
+ * NOTE: this routine may fail for charged systems */
 static int calcU(model_t *m, double **ur,
     double **cr, double **tr, double **vrsr,
     double *um)
@@ -302,7 +304,7 @@ static int calcU(model_t *m, double **ur,
 
 
 /* compute the chemical potential
- * NOTE: this routine does not work for charged systems */
+ * NOTE: this routine may fail for charged systems */
 static int calcchempot(model_t *m, double **cr, double **tr,
     double **vrsr, double **vrlr, double *bmum, int verbose)
 {

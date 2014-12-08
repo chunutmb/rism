@@ -162,13 +162,30 @@ function model_findpair(i, j)
 
 
 
+/* beautify the configuration file from the input string */
+function fmtcfg(s)
+{
+  s = s.split('\n');
+  for ( var i = 0; i < s.length; i++ ) {
+    var ln = s[i];
+    var p = ln.indexOf("=");
+    if ( p < 0 ) continue;
+    var key = ln.substring(0, p).trim();
+    var val = ln.substring(p + 1).trim();
+    while ( key.length < 14  ) key += " ";
+    s[i] = key + "= " + val;
+  }
+  return s.join('\n');
+}
+
+
 /* load the configuration file from the textarea */
 function loadcfg(s)
 {
   if ( s == null || s == undefined ) {
     s = grab("cfgout").value.trim();
   } else {
-    grab("cfgout").value = s;
+    grab("cfgout").value = fmtcfg(s);
   }
 
   var i, l, ln, ij, ipr, ns = 0, nps = 0, nbonds = 0;

@@ -945,6 +945,11 @@ static int model_override(model_t *m, const model_t *m_usr)
     fprintf(stderr, "douu is changed to %d\n", m->douu);
   }
 
+  /* override the number of lambdas */
+  if ( m_usr->nlambdas > 0 )
+    m->nlambdas = m_usr->nlambdas;
+
+  /* override the maximal value of c(r) */
   m->crmax = m_usr->crmax;
   if ( m->crmax <= 0 ) m->crmax = CRMAX;
   return 0;

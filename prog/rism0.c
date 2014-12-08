@@ -25,10 +25,10 @@
 int model_id = 16;
 int verbose = 0;
 const char *fncrtr = "out.dat";
+const char *fncrtrinp = NULL;
 int sepout = 0;
 const char *fncrdnum = NULL;
 int printk = 0;
-
 
 
 /* print help message and die */
@@ -38,10 +38,11 @@ static void help(const char *prog)
   fprintf(stderr, "Usage:\n");
   fprintf(stderr, "  %s [Options] [input.cfg|model_id]\n\n", prog);
   fprintf(stderr, "Options:\n");
-  fprintf(stderr, "  -o:    followed by the output file, default: %s\n", fncrtr);
+  fprintf(stderr, "  -o:    followed by the output crtr file, default: %s\n", fncrtr);
+  fprintf(stderr, "  -i:    followed by the input crtr file, default: NULL\n");
   fprintf(stderr, "  -k:    print k-space correlation functions, default %d\n", printk);
   fprintf(stderr, "  -$:    separately output file for each lambda, default %d\n", sepout);
-  fprintf(stderr, "  -#:    followed by the output coordination number file, default: %s\n", fncrdnum);
+  fprintf(stderr, "  -#:    followed by the output coordination number file, default: NULL\n");
   fprintf(stderr, "  -8:    set the magnitude of c(r), default %g\n", CRMAX);
   fprintf(stderr, "  -!:    skip the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -u:    always do the solute-solute stage calculation, default: false\n");
@@ -52,6 +53,7 @@ static void help(const char *prog)
   fprintf(stderr, "  -T:    override the temperature, e.g. -T298 sets the temperature to 298K\n");
   fprintf(stderr, "  -C:    override the closure, %d: PY, %d: HNC, %d: KH\n", IE_PY, IE_HNC, IE_KH);
   fprintf(stderr, "  -S:    override the solver, %d: Picard, %d: LMV, %d: MDIIS\n", SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS);
+  fprintf(stderr, "  -^:    override the number of lambda stages\n");
   fprintf(stderr, "  -v:    be verbose, -vv to be more verbose, etc.\n");
   fprintf(stderr, "  -h:    display this message\n");
   exit(1);
@@ -83,7 +85,7 @@ static model_t *doargs(int argc, char **argv)
      * loop over characters in the options
      * in this way, `-vo' is understood as `-v -o' */
     for ( j = 1; (ch = argv[i][j]) != '\0'; j++ ) {
-      if ( strchr("orqdTCS#8", ch) != NULL ) {
+      if ( strchr("oi#rqdTCS^8", ch) != NULL ) {
         /* handle options that require an argument */
         q = p = argv[i] + j + 1;
         if ( *p != '\0' ) {
@@ -102,6 +104,8 @@ static model_t *doargs(int argc, char **argv)
         }
         if ( ch == 'o' ) {
           fncrtr = q;
+        } else if ( ch == 'i' ) {
+          fncrtrinp = q;
         } else if ( ch == '#' ) {
           fncrdnum = q;
         } else if ( ch == 'r' ) { /* override the density */
@@ -119,7 +123,9 @@ static model_t *doargs(int argc, char **argv)
           model_usr->ietype = atoi(q);
         } else if ( ch == 'S' ) { /* override the solver */
           model_usr->solver = atoi(q);
-        } else if ( ch == '8' ) {
+        } else if ( ch == '^' ) { /* override the number of lambdas */
+          model_usr->nlambdas = atoi(q);
+        } else if ( ch == '8' ) { /* override the maximal value of c(r) */
           model_usr->crmax = atof(q);
         }
         break; /* skip the rest of the characters in the option */
@@ -481,10 +487,16 @@ static double getcr(double tr, double vrsr, double Qrx,
     cr = xp - 1 - tr;
     if ( dcr != NULL ) *dcr = xp - 1;
   } else if ( ietype == IE_PY ) {
-    /* del == -vrlj + Qr + taur == Qrx + taur, so taur = del - Qrx  */
-    double taur = del - Qrx;
-    /* del == Qr - vrlj + taur = Qrx + taur */
-    xp = exp(Qrx);
+#ifdef PYA
+    /* currently, the PYA closure does not work
+     * this branch is disabled by default */
+    /* del == -vrlj + Qr + taur == Qrx + taur */
+    double taur = tr - vrsr - Qrx;
+#else
+    double taur = tr;
+    (void) Qrx;
+#endif
+    xp = exp(del - taur);
     cr = xp * (1 + taur) - 1 - tr;
     if ( dcr != NULL ) *dcr = xp - 1;
   } else if ( ietype == IE_KH ) {
@@ -695,6 +707,60 @@ static char *output(model_t *m,
 
 
 
+/* load correlation functions from the file `fn' */
+static int loadcrtr(model_t *m, double **cr, double **tr,
+    const char *fn)
+{
+  int i, j, ij, l, ns = m->ns, npt = m->npt;
+  double ri, crt, trt, fr, vrl;
+  char ln[40960];
+  FILE *fp;
+
+  if ( (fp = fopen(fn, "r")) == NULL ) {
+    fprintf(stderr, "cannot load %s\n", fn);
+    return -1;
+  }
+  if ( fgets(ln, sizeof ln, fp) == NULL
+    || ln[0] != '#' ) {
+    fprintf(stderr, "invalid file %s\n", fn);
+    return -1;
+  }
+  for ( i = 0; i < ns; i++ ) {
+    for ( j = i; j < ns; j++ ) {
+      ij = i*ns + j;
+      for ( l = 0; l < npt; l++ ) {
+        do {
+          if ( fgets(ln, sizeof ln, fp) == NULL ) {
+            fprintf(stderr, "%s stops at i %d, j %d, l %d\n",
+                fn, i, j, l);
+            return -1;
+          }
+          strstrip(ln);
+        } while ( ln[0] == '\0' ); /* skip blank lines */
+
+        if ( 5 != sscanf(ln, "%lf %lf %lf %lf %lf",
+              &ri, &crt, &trt, &fr, &vrl) ) {
+          fprintf(stderr, "%s: corrupted on line i %d j %d l %d\n%s",
+              fn, i, j, l, ln);
+          return -1;
+        }
+        cr[ij][l] = crt + vrl;
+        tr[ij][l] = trt - vrl;
+      }
+      if ( j > i ) {
+        int ji = j*ns + i;
+        cparr(cr[ji], cr[ij], npt);
+        cparr(tr[ji], tr[ij], npt);
+      }
+    }
+  }
+  fclose(fp);
+  fprintf(stderr, "successfully loaded %s\n", fn);
+  return 0;
+}
+
+
+
 static int dorism(model_t *model)
 {
   int it, ns, npt, ilam, nlam;
@@ -741,6 +807,8 @@ static int dorism(model_t *model)
   /* lambda is used to gradually switch on long-range interaction */
   nlam = model->nlambdas;
   if ( nlam < 1 ) nlam = 1;
+  /* if we use an input file, don't use lambda */
+  if ( fncrtrinp != NULL ) nlam = 1;
 
   for ( ilam = 1; ilam <= nlam; ilam++ ) {
     lam = 1.*ilam/nlam;
@@ -749,9 +817,20 @@ static int dorism(model_t *model)
     sphr_r2k(vrlr, vklr, ns, NULL);
     getQr(model, vrqq, Qr, Qk, wk, ntk, Qrx, vrlj);
 
-    /* use f(r) as the initial c(r) for the lowest lambda */
-    if ( ilam == 1 )
-      cparr2d(cr, fr, ns * ns, npt);
+    if ( ilam == 1 ) {
+      if ( fncrtrinp != NULL ) {
+        /* load previous c(r) as the initial condition */
+        if ( loadcrtr(model, cr, tr, fncrtrinp) != 0 ) {
+          fprintf(stderr, "error loading %s\n", fncrtrinp);
+          goto EXIT;
+        }
+        output(model, cr, vrqq, vrpp, vrlr, ur, tr, fr,
+          ck, vklr, tk, wk, Qr, Qrx, Qk, "test.dat", ilam);
+      } else {
+        /* use f(r) as the initial c(r) for the lowest lambda */
+        cparr2d(cr, fr, ns * ns, npt);
+      }
+    }
 
     /* initialize the manager for solute-solvent iteraction */
     uv = uv_open(model);
@@ -783,6 +862,7 @@ static int dorism(model_t *model)
   printf("dielectric constant %g, d %g, rho*d^3 %g\n",
       eps, dia, model->rho[0]*dia*dia*dia);
 
+EXIT:
   delarr2d(ur,    ns * ns);
   delarr2d(nrdur, ns * ns);
   delarr2d(vrlj,  ns * ns);
