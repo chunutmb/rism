@@ -162,14 +162,29 @@ static double calcdielec(model_t *m)
 
 
 
-/* return the radial distribution function */
+/* return the logarithm of the radial distribution function */
+static double getlngr(model_t *m, double cr, double tr, double vrsr)
+{
+#ifdef GR_TINY /* user-specified threshold */
+  double gr_tiny = GR_TINY;
+#else
+  double gr_tiny = m->tol * 100;
+#endif
+  double lngr = -vrsr + tr; /* the HNC case, stable */
+  if ( m->ietype != IE_HNC ) { /* try to use the exact g(r) if it is positive */
+    double gr0 = 1 + cr + tr;
+    return ( gr0 > gr_tiny ) ? log(gr0) : lngr;
+  }
+  return lngr;
+}
+
+
+
+/* return the radial distribution function
+ * the result is nonnegative */
 static double getgr(model_t *m, double cr, double tr, double vrsr)
 {
-  double gr_tiny = m->tol * 100, gr;
-  gr = cr + tr + 1;
-  if ( gr < gr_tiny || m->ietype == IE_HNC ) /* only for HNC */
-    gr = exp( -vrsr + tr );
-  return gr;
+  return exp( getlngr(m, cr, tr, vrsr) );
 }
 
 

@@ -51,8 +51,8 @@ static void help(const char *prog)
   fprintf(stderr, "  -q:    override the charge, must be nonnegative, e.g. -q2,0.25 sets the charge of the second atom to 0.25\n");
   fprintf(stderr, "  -d:    override the distance, e.g. -d1,2,1.5 sets the distance between the first two atoms to 1.5\n");
   fprintf(stderr, "  -T:    override the temperature, e.g. -T298 sets the temperature to 298K\n");
-  fprintf(stderr, "  -C:    override the closure, %d: PY, %d: HNC, %d: KH\n", IE_PY, IE_HNC, IE_KH);
-  fprintf(stderr, "  -S:    override the solver, %d: Picard, %d: LMV, %d: MDIIS\n", SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS);
+  fprintf(stderr, "  -C:    override the closure, options: PY, HNC, or KH\n");
+  fprintf(stderr, "  -S:    override the solver, options: Picard, LMV, or MDIIS\n");
   fprintf(stderr, "  -^:    override the number of lambda stages\n");
   fprintf(stderr, "  -v:    be verbose, -vv to be more verbose, etc.\n");
   fprintf(stderr, "  -h:    display this message\n");
@@ -120,9 +120,9 @@ static model_t *doargs(int argc, char **argv)
         } else if ( ch == 'T' ) {
           model_usr->beta = 1/atof(q);
         } else if ( ch == 'C' ) { /* override the closure */
-          model_usr->ietype = atoi(q);
+          model_usr->ietype = model_select(q, IE_COUNT, ietypes);
         } else if ( ch == 'S' ) { /* override the solver */
-          model_usr->solver = atoi(q);
+          model_usr->solver = model_select(q, SOLVER_COUNT, solvers);
         } else if ( ch == '^' ) { /* override the number of lambdas */
           model_usr->nlambdas = atoi(q);
         } else if ( ch == '8' ) { /* override the maximal value of c(r) */
@@ -682,13 +682,7 @@ static char *output(model_t *m,
          *  = beta u - t(r) - beta u_pp/eps_rism - beta u_LJ
          *  = beta u_q - t(r) - beta u_pp/eps_rism
          * */
-        double pmfs = vrq - trt - vrp/eps_rism;
-        if ( m->ietype != IE_HNC ) {
-          double gr = 1 + crt + trt, loggr;
-          if (gr < DBL_MIN) gr = DBL_MIN;
-          if ( (loggr = log(gr)) > trt - vrt )
-            pmfs = -loggr - vrt + vrq - vrp/eps_rism;
-        }
+        double pmfs = -getlngr(m, crt, trt, vrt) - vrt + vrq - vrp/eps_rism;
         fprintf(fp, "%g %g %g %g %g %g %d %d %g %g %g %g %g ",
             fft_ri[l], crt, trt, fr[ij][l],
             vrl, vrt, i + IDBASE, j + IDBASE,

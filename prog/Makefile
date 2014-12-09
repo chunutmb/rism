@@ -3,7 +3,7 @@ CC = gcc -O0 -Wall -Wunused -Wextra -Wno-missing-field-initializers -g
 LM = -lm
 
 # optimized compiling
-CX = gcc -O3 -ffast-math -Wall -Wextra -Wno-missing-field-initializers
+CX = gcc -O3 -Wall -Wextra -Wno-missing-field-initializers
 LMX = -lm
 
 # alternative using intel C compiler

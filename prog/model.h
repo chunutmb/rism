@@ -933,20 +933,20 @@ static int model_override(model_t *m, const model_t *m_usr)
   /* override the solver of the integral equation */
   if ( m_usr->solver >= 0  && m_usr->solver < SOLVER_COUNT ) {
     m->solver = m_usr->solver;
-    fprintf(stderr, "solver is changed to %d\n", m->solver);
+    fprintf(stderr, "solver is changed to %s\n", solvers[m->solver]);
   }
 
   /* override the closure */
   if ( m_usr->ietype >= 0 && m_usr->ietype < IE_COUNT ) {
     m->ietype = m_usr->ietype;
-    fprintf(stderr, "ietype is changed to %d\n", m->ietype);
+    fprintf(stderr, "ietype is changed to %s\n", ietypes[m->ietype]);
   }
 
   /* override how to do solute-solute interactions */
   if ( m_usr->douu >= 0 && m_usr->douu < DOUU_COUNT
     && m_usr->douu != m->douu ) {
     m->douu = m_usr->douu;
-    fprintf(stderr, "douu is changed to %d\n", m->douu);
+    fprintf(stderr, "douu is changed to %s\n", douutypes[m->douu]);
   }
 
   /* override the number of lambdas */
