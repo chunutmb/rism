@@ -256,16 +256,16 @@ static double iter_mdiis(model_t *model,
   res = mdiis->res[mdiis->mnb];
 
   /* construct the initial base set */
-  step_picard(model, res, NULL, vrsr, wk,
-      cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0, 0.);
+  step_picard(model, res, vrsr, wk,
+      cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
   mdiis_build(mdiis, cr, res, uv);
 
   err = errp = errinf;
   for ( it = 0; it <= model->itmax; it++ ) {
     mdiis_solve(mdiis);
     mdiis_gencr(mdiis, cr, damp, uv);
-    err = step_picard(model, res, NULL, vrsr, wk,
-        cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0, 0.);
+    err = step_picard(model, res, vrsr, wk,
+        cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
     ib = mdiis_update(mdiis, cr, res, uv);
 
     /* save this function */
@@ -278,8 +278,6 @@ static double iter_mdiis(model_t *model,
       fprintf(stderr, "it %d, err %g -> %g, ib %d -> %d\n",
           it, errp, err, ibp, ib);
     if ( err < model->tol || it == model->itmax ) {
-      int update;
-
       if ( it >= model->itmax )
         mdiis_surrender(mdiis, cr, uv);
       if ( uv_switch(uv) != 0 ) break;
@@ -291,9 +289,8 @@ static double iter_mdiis(model_t *model,
         }
       }
       /* reset the bases */
-      update = 0; /* compute ck, tk, tr, and res without updating */
-      err = step_picard(model, res, NULL, vrsr, wk,
-          cr, ck, vklr, tr, tk, Qrx, uv->prmask, update, 0.);
+      err = step_picard(model, res, vrsr, wk,
+          cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
       mdiis_build(mdiis, cr, res, uv);
       it = -1;
       err = errinf;

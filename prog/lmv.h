@@ -136,7 +136,7 @@ static double iter_lmv(model_t *model,
 
   for ( it = 0; it < model->itmax; it++ ) {
     /* compute c(r) and c(k) from the closure */
-    err = closure(model, NULL, der, vrsr, cr, tr, Qrx, uv->prmask, 1, 1.0);
+    err = closure(model, NULL, der, vrsr, cr, tr, Qrx, uv->prmask, 1.0);
     sphr_r2k(cr, ck, ns, NULL);
     //printf("stage %d, it %d, cr %g, ck %g, tr %g, tk %g, err %g\n", uv->stage, it, cr[0][0], ck[0][0], tr[0][0], tk[0][0], err);
 

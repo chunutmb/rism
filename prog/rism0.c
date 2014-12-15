@@ -526,7 +526,7 @@ struct { int l; double err; } errspot[NS2MAX];
 static double closure(model_t *model,
     double *res, double **der, double **vrsr,
     double **cr, double **tr, double **Qrx,
-    int *prmask, int update, double damp)
+    int *prmask, double damp)
 {
   int ns = model->ns, npt = model->npt, i, j, ij, ji, id, l;
   double y, err, max, errm = 0;
@@ -542,7 +542,7 @@ static double closure(model_t *model,
             der ? &der[ij][l] : NULL, model->ietype, model->crmax)
           - cr[ij][l];
         if ( res != NULL ) res[id] = y;
-        if ( update ) cr[ij][l] += damp * y;
+        cr[ij][l] += damp * y;
         if ( fabs(y) > err ) {
           err = fabs(y);
           errspot[ij].l = l;
@@ -564,30 +564,24 @@ static double closure(model_t *model,
 /* a step of direct iteration (Picard)
  * compute residue vector if needed */
 static double step_picard(model_t *model,
-    double *res, double **der,
-    double **vrsr, double **wk,
+    double *res, double **vrsr, double **wk,
     double **cr, double **ck, double **vklr,
     double **tr, double **tk, double **Qrx,
-    int *prmask, int update, double damp)
+    int *prmask, double damp)
 {
   sphr_r2k(cr, ck, model->ns, NULL);
   oz(model, ck, vklr, tk, wk, NULL);
   sphr_k2r(tk, tr, model->ns, NULL);
-  return closure(model, res, der, vrsr, cr, tr, Qrx,
-                 prmask, update, damp);
+  return closure(model, res, NULL, vrsr, cr, tr, Qrx,
+                 prmask, damp);
 }
 
 
 
 /* the uu step for infinitely diluted atomic solute */
-static double step_uu_infdil_atomicsolute(model_t *model,
-    double **vrsr, double **wk, double **cr, double **ck,
-    double **vklr, double **tr, double **tk, double **Qrx,
-    int *prmask)
-{
-  return step_picard(model, NULL, NULL, vrsr, wk, cr, ck,
-      vklr, tr, tk, Qrx, prmask, 1, 1.0);
-}
+#define step_uu_infdil_atomicsolute(m, vrsr, wk, cr, ck, \
+    vklr, tr, tk, Qrx, prmask) \
+  step_picard(m, NULL, vrsr, wk, cr, ck, vklr, tr, tk, Qrx, prmask, 1.0)
 
 
 
@@ -611,8 +605,8 @@ static double iter_picard(model_t *model,
   double err = 0, errp = errinf;
 
   for ( it = 0; it < model->itmax; it++ ) {
-    err = step_picard(model, NULL, NULL, vrsr, wk, cr, ck, vklr,
-        tr, tk, Qrx, NULL, 1, model->picard.damp);
+    err = step_picard(model, NULL, vrsr, wk, cr, ck, vklr,
+        tr, tk, Qrx, NULL, model->picard.damp);
     if ( err < model->tol ) break;
     if ( verbose )
       fprintf(stderr, "it %d err %g -> %g\n", it, errp, err); //getchar();
