@@ -104,11 +104,16 @@ static double iter_lmv(model_t *model,
   int ns = model->ns, npt = model->npt;
   double **Cjk = NULL, *mat = NULL, *b = NULL, **costab = NULL, *dp = NULL;
   double y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
+  double **crbest, **tr1, **tk1, errmin = errinf;
+
+  newarr2d(crbest,  ns * ns,  npt);
+  newarr2d(tr1,     ns * ns,  npt);
+  newarr2d(tk1,     ns * ns,  npt);
+
+  cparr2d(crbest, cr, ns * ns, npt);
 
   /* initialize t(k) and t(r) */
-  sphr_r2k(cr, ck, ns, NULL);
-  oz(model, ck, vklr, tk, wk, NULL); /* c(k) --> t(k) */
-  sphr_k2r(tk, tr, ns, NULL);
+  step_picard(model, NULL, vrsr, wk, cr, ck, vklr, tr, tk, Qrx, NULL, 0);
 
   /* set the optimal M */
   M = (model->lmv.M > 0) ? model->lmv.M :
@@ -135,8 +140,18 @@ static double iter_lmv(model_t *model,
   }
 
   for ( it = 0; it < model->itmax; it++ ) {
+    /* compute the error of the current c(r) and c(k)
+     * by applying the closure without updating */
+    oz(model, ck, vklr, tk1, wk, NULL);
+    sphr_k2r(tk1, tr1, model->ns, uv->prmask);
+    err = closure(model, NULL, NULL, vrsr, cr, tr1, Qrx, uv->prmask, 0.0);
+    if ( err < errmin ) {
+      cparr2d(crbest, cr, ns * ns, npt);
+      errmin = err;
+    }
+
     /* compute c(r) and c(k) from the closure */
-    err = closure(model, NULL, der, vrsr, cr, tr, Qrx, uv->prmask, 1.0);
+    closure(model, NULL, der, vrsr, cr, tr, Qrx, uv->prmask, 1.0);
     sphr_r2k(cr, ck, ns, NULL);
     //printf("stage %d, it %d, cr %g, ck %g, tr %g, tk %g, err %g\n", uv->stage, it, cr[0][0], ck[0][0], tr[0][0], tk[0][0], err);
 
@@ -199,16 +214,13 @@ static double iter_lmv(model_t *model,
       it = -1;
       err = errinf;
     }
-/*
-    // adaptively adjust the damping factor
-    if ( err > errp ) {
-      dmp *= 0.8;
-    } else {
-      dmp = dmp * 0.9 + 0.1;
-    }
-*/
     errp = err;
   }
+  /* use the best cr discovered so far */
+  cparr2d(cr, crbest, ns * ns, npt);
+  /* update the corresponding ck, tr, tk, and the error */
+  err = step_picard(model, NULL, vrsr, wk, cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0);
+
   *niter = it;
   if ( M > 0 ) {
     delarr2d(Cjk, ns*ns);
@@ -217,6 +229,10 @@ static double iter_lmv(model_t *model,
     delarr(dp);
     delarr2d(costab, 3*M);
   }
+  delarr2d(crbest,  ns * ns);
+  delarr2d(tr1,     ns * ns);
+  delarr2d(tk1,     ns * ns);
+
   return err;
 }
 

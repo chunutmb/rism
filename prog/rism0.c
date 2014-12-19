@@ -569,11 +569,10 @@ static double step_picard(model_t *model,
     double **tr, double **tk, double **Qrx,
     int *prmask, double damp)
 {
-  sphr_r2k(cr, ck, model->ns, NULL);
+  sphr_r2k(cr, ck, model->ns, prmask);
   oz(model, ck, vklr, tk, wk, NULL);
-  sphr_k2r(tk, tr, model->ns, NULL);
-  return closure(model, res, NULL, vrsr, cr, tr, Qrx,
-                 prmask, damp);
+  sphr_k2r(tk, tr, model->ns, prmask);
+  return closure(model, res, NULL, vrsr, cr, tr, Qrx, prmask, damp);
 }
 
 

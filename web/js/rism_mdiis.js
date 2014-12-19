@@ -175,15 +175,13 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
   res = mdiis.res[mdiis.mnb];
 
   /* construct the initial base set */
-  step_picard(res, null, vrsr, wk,
-      cr, ck, vklr, tr, tk, uv.prmask, false, 0.);
+  step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
   mdiis.build(cr, res, uv);
 
   for ( it = 0; it < itmax; it++ ) {
     mdiis.solve();
     mdiis.gencr(cr, damp, uv);
-    err = step_picard(res, null, vrsr, wk,
-        cr, ck, vklr, tr, tk, uv.prmask, false, 0.);
+    err = step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
     ib = mdiis.update(cr, res, uv);
 
     if ( verbose )
@@ -193,13 +191,11 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
       /* if all solutes are of zero density, break the loop */
       if ( uv.stage == SOLUTE_SOLUTE
         && uv.infdil && uv.atomicsolute ) {
-        step_picard(res, null, vrsr, wk,
-            cr, ck, vklr, tr, tk, uv.prmask, true, 1.);
+        step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
         break;
       }
       /* reset the bases */
-      step_picard(res, null, vrsr, wk,
-          cr, ck, vklr, tr, tk, uv.prmask, false, 0.);
+      step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
       mdiis_build(mdiis, cr, res, uv);
       it = -1;
       err = errinf;

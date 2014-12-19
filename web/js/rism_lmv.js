@@ -73,11 +73,16 @@ function iter_lmv(vrsr, wk, cr, der, ck, vklr,
   var i, j, l, ij, it, M, npr, ipr, Mp;
   var Cjk, mat, b, costab, dp;
   var y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
+  var crbest, tr1, tk1, errmin = errinf;
+
+  crbest = newarr2d(ns2,  npt);
+  tr1 = newarr2d(ns2,  npt);
+  tk1 = newarr2d(ns2,  npt);
+
+  cparr2d(crbest, cr, ns2, npt);
 
   // initialize t(k) and t(r)
-  sphr_r2k(cr, ck, ns, null);
-  oz(ck, vklr, tk, wk, null); // c(k) --> t(k)
-  sphr_k2r(tk, tr, ns, null);
+  step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, null, 0.0);
 
   // set the optimal M
   M = get_int("lmv_M", 0);
@@ -104,8 +109,18 @@ function iter_lmv(vrsr, wk, cr, der, ck, vklr,
   }
 
   for ( it = 0; it < itmax; it++ ) {
+    // compute the error of the current c(r) and c(k)
+    // by applying the closure without updating
+    oz(ck, vklr, tk1, wk, null);
+    sphr_k2r(tk1, tr1, ns, uv.prmask);
+    err = closure(null, null, vrsr, cr, tr1, uv.prmask, 0.0);
+    if ( err < errmin ) {
+      cparr2d(crbest, cr, ns2, npt);
+      errmin = err;
+    }
+
     // compute c(r) and c(k) from the closure
-    err = closure(null, der, vrsr, cr, tr, uv.prmask, true, 1.0);
+    closure(null, der, vrsr, cr, tr, uv.prmask, 1.0);
     sphr_r2k(cr, ck, ns, null);
 
     // compute Cjk
@@ -154,8 +169,7 @@ function iter_lmv(vrsr, wk, cr, der, ck, vklr,
       if ( uv.switchstage() != 0 ) break;
       if ( uv.stage == SOLUTE_SOLUTE
         && uv.infdil && uv.atomicsolute ) {
-        step_picard(null, null, vrsr, wk,
-            cr, ck, vklr, tr, tk, uv.prmask, 1, 1.);
+        step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
         break; // no need to iterate further
       }
       it = -1;
@@ -163,6 +177,10 @@ function iter_lmv(vrsr, wk, cr, der, ck, vklr,
     }
     errp = err;
   }
+  /* use the best cr discovered so far */
+  cparr2d(cr, crbest, ns2, npt);
+  /* update the corresponding ck, tr, tk, and the error */
+  err = step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
   return [err, it];
 }
 

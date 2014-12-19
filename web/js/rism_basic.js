@@ -476,7 +476,7 @@ function getcr(tr, vrsr, ietype, crmax)
 
 /* apply the closure
  * compute residue vector if needed */
-function closure(res, der, vrsr, cr, tr, prmask, update, damp)
+function closure(res, der, vrsr, cr, tr, prmask, damp)
 {
   var i, j, ij, ji, id, l;
   var ret, y, err, max, errm = 0;
@@ -492,8 +492,7 @@ function closure(res, der, vrsr, cr, tr, prmask, update, damp)
         y = ret[0] - cr[ij][l];
         if ( der != null ) der[ij][l] = ret[1];
         if ( res != null ) res[id] = y;
-        if ( update )
-          cr[ij][l] += damp * y;
+        cr[ij][l] += damp * y;
         err = Math.max(err, Math.abs(y));
         max = Math.max(max, Math.abs(cr[ij][l]));
       }
@@ -509,13 +508,13 @@ function closure(res, der, vrsr, cr, tr, prmask, update, damp)
 
 /* a step of direct iteration (Picard)
  * compute residue vector if needed */
-function step_picard(res, der, vrsr, wk, cr, ck, vklr,
-    tr, tk, prmask, update, damp)
+function step_picard(res, vrsr, wk, cr, ck, vklr,
+    tr, tk, prmask, damp)
 {
-  sphr_r2k(cr, ck, ns, null);
+  sphr_r2k(cr, ck, ns, prmask);
   oz(ck, vklr, tk, wk, null);
-  sphr_k2r(tk, tr, ns, null);
-  return closure(res, der, vrsr, cr, tr, prmask, update, damp);
+  sphr_k2r(tk, tr, ns, prmask);
+  return closure(res, null, vrsr, cr, tr, prmask, damp);
 }
 
 

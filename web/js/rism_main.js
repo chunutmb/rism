@@ -7,8 +7,7 @@ function iter_picard(vrsr, wk, cr, ck, vklr, tr, tk)
   var err = 0, errp = errinf;
 
   for ( it = 0; it < itmax; it++ ) {
-    err = step_picard(null, null, vrsr, wk, cr, ck, vklr,
-        tr, tk, null, 1, picard_damp);
+    err = step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, null, picard_damp);
     if ( verbose ) console.log("it", it, "err", errp, "->", err);
     if ( err < tol ) break;
     if ( err > errp ) break;
