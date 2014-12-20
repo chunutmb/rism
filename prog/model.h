@@ -831,6 +831,14 @@ model_t model_usr[1] = { {0, {0.0}, {{0.0}}, {{0}}, /* pairpot */
 
 
 
+/* replace a zero by DBL_MIN */
+static double replzero(double x)
+{
+  return fabs(x) <= 0 ? DBL_MIN : x;
+}
+
+
+
 /* override an array element
  * the input string assumes the format of `i,x' */
 static int model_register_arr(double *arr, char *s)
@@ -849,7 +857,7 @@ static int model_register_arr(double *arr, char *s)
     fprintf(stderr, "invalid index %d\n", i);
     return -1;
   }
-  arr[i-1] = atof(p+1);
+  arr[i-1] = replzero( atof(p+1) );
   return 0;
 }
 
@@ -886,7 +894,7 @@ static int model_register_disij(model_t *m_usr, char *s)
   if ( strncmp_fuzzy(p2, "inf", 3) == 0 )
     dis = -1; /* this means infinity; note, 0 will be ignored */
   else
-    dis = atof(p2);
+    dis = replzero( atof(p2) );
   m_usr->disij[i][j] = m_usr->disij[j][i] = dis;
   return 0;
 }

@@ -1,44 +1,32 @@
-Reference Interaction Site Model for molecular fluids
+# Reference Interaction Site Model for molecular fluids #
 
 
+## The C program `rism0` ##
 
-# rism0 #
+`rism0` is an XRISM program.
+See the [prog/README.md](prog/README.md) under program for details.
 
-An XRISM program.
+### Features ###
 
-## Features ##
-
-### Solvers ###
+#### Solvers ####
  * Picard solver
  * Labik-Malijevsky-Vonka solver
  * modified (MDIIS) solver
 
-### Closures ###
+#### Closures ####
  * PY
  * HNC
  * KH
 
 
+## The JavaScript translation ##
+
+The C program is translated to JavaScript.
+
+[HTML5/JavaScript application in web](web/rism.html)
+
 
 ## Download ##
 
-GitHub (source code only)
-https://github.com/3ki5tj/rism
-
-
-
-## Notes ##
-
-### Reference implementations ###
-
-By Jesse Howard, Pettitt Group
-/Bossman/Software/rism/
-/Bossman/Software/3Drism/
-
-### Water parameters ###
-
-/Bossman/Software/3Drism/h2o_lib/
-
-See also
-https://en.wikipedia.org/wiki/Water_model
+[GitHub (source code only)](https://github.com/3ki5tj/rism)
 
