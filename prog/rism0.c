@@ -47,7 +47,7 @@ static void help(const char *prog)
   fprintf(stderr, "  -!:    skip the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -u:    always do the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -V:    treat all sites as solvent, default: false\n");
-  fprintf(stderr, "  -r:    override the density, must be nonnegative, e.g. -d1,0.03 sets the density of the first atom to 0.03\n");
+  fprintf(stderr, "  -r:    override the density, must be nonnegative, e.g. -r1,0.03 sets the density of the first atom to 0.03\n");
   fprintf(stderr, "  -q:    override the charge, must be nonnegative, e.g. -q2,0.25 sets the charge of the second atom to 0.25\n");
   fprintf(stderr, "  -d:    override the distance, e.g. -d1,2,1.5 sets the distance between the first two atoms to 1.5\n");
   fprintf(stderr, "  -T:    override the temperature, e.g. -T298 sets the temperature to 298K\n");

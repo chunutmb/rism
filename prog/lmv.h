@@ -205,7 +205,7 @@ static double iter_lmv(model_t *model,
       /* switch between stages */
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->infdil && uv->atomicsolute ) {
+        if ( uv->infdil && uv->atomicsolute && uv->douu != DOUU_ALWAYS ) {
           err = step_uu_infdil_atomicsolute(model, vrsr, wk,
               cr, ck, vklr, tr, tk, Qrx, uv->prmask);
           break;

@@ -18,6 +18,8 @@ function MDIIS(ns, npt, mnb)
   this.mat   = newarr(mnb1 * mnb1); // correlations of residues
   this.mat2  = newarr(mnb1 * mnb1); // temporary matrix for LU decomposition
   this.coef  = newarr(mnb1); // coefficients
+  this.crbest = newarr(ns2 * npt); // best function
+  this.errmin = errinf;
 }
 
 
@@ -29,7 +31,7 @@ MDIIS.prototype.solve = function()
 
   for ( i = 0; i < nb; i++ ) this.coef[i] = 0;
   this.coef[nb] = -1;
-  /* copy the matrix, for the content is to be destroyed */
+  // copy the matrix, for the content is to be destroyed
   for ( i = 0; i < nb1; i++ )
     for ( j = 0; j < nb1; j++ )
       this.mat2[i*nb1 + j] = this.mat[i*mnb1 + j];
@@ -42,11 +44,29 @@ MDIIS.prototype.solve = function()
 
 
 
+/* save src in cr */
+MDIIS.prototype.copyout = function(cr, src, uv)
+{
+  var ns = this.ns, npt = this.npt;
+  var i, j, ij, ipr, l;
+
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++ ) {
+      if ( !uv.prmask[ij = i*ns + j] ) continue;
+      for ( l = 0; l < npt; l++ )
+        cr[ij][l] = src[ipr*npt + l];
+      ipr++;
+      cparr(cr[j*ns + i], cr[ij], npt);
+    }
+}
+
+
+
 /* construct the new c(r) */
 MDIIS.prototype.gencr = function(cr, damp, uv)
 {
   var ns = this.ns, npt = this.npt, nb = this.nb, npr = uv.npr;
-  var i, j, ij, ipr, k, l, il, y, coef;
+  var i, j, ij, ipr, k, l, il, coef;
 
   for ( il = 0; il < npr * npt; il++ )
     this.cr[nb][il] = 0;
@@ -55,22 +75,15 @@ MDIIS.prototype.gencr = function(cr, damp, uv)
     for ( il = 0; il < npr * npt; il++ )
       this.cr[nb][il] += coef * (this.cr[k][il] + damp * this.res[k][il]);
   }
-  /* save this.cr[nb] to c(r) */
-  for ( ipr = 0, i = 0; i < ns; i++ )
-    for ( j = i; j < ns; j++ ) {
-      if ( !uv.prmask[ij = i*ns + j] ) continue;
-      for ( l = 0; l < npt; l++ ) {
-        cr[ij][l] = y = this.cr[nb][ipr*npt + l];
-        if ( j > i) cr[j*ns + i][l] = y;
-      }
-      ipr++;
-    }
+  // cr = this.cr[nb]
+  this.copyout(cr, this.cr[nb], uv);
 }
 
 
 
+
 /* compute the dot product */
-function getdot(a, b, n)
+MDIIS.prototype.getdot = function(a, b, n)
 {
   var i, x = 0;
 
@@ -100,7 +113,7 @@ MDIIS.prototype.build = function(cr, res, uv)
       ipr++;
     }
 
-  this.mat[0] = getdot(this.res[0], this.res[0], uv.npr * npt);
+  this.mat[0] = this.getdot(this.res[0], this.res[0], uv.npr * npt);
   for ( ib = 0; ib < mnb; ib++ )
     this.mat[ib*mnb1 + mnb] = this.mat[mnb*mnb1 + ib] = -1;
   this.mat[mnb*mnb1 + mnb] = 0;
@@ -110,13 +123,19 @@ MDIIS.prototype.build = function(cr, res, uv)
 
 
 /* replace base ib by cr */
-MDIIS.prototype.update = function(cr, res, uv)
+MDIIS.prototype.update = function(cr, res, err, uv)
 {
   var i, j, l, id, ib, nb, mnb1, ns = this.ns, npt = this.npt;
   var dot, max;
 
   nb = this.nb;
   mnb1 = this.mnb + 1;
+
+  // save this function if it achieves the minimal error so far
+  if ( err < this.errmin ) {
+    cparr(this.crbest, this.cr[nb], uv.npr * npt);
+    this.errmin = err;
+  }
 
   if ( nb < this.mnb ) {
     ib = nb;
@@ -129,7 +148,7 @@ MDIIS.prototype.update = function(cr, res, uv)
         ib = i;
     max = this.mat[ib*mnb1 + ib];
 
-    dot = getdot(res, res, uv.npr * npt);
+    dot = this.getdot(res, res, uv.npr * npt);
     if ( dot > max ) {
       var reset = Math.sqrt(dot) < 1;
       if ( verbose )
@@ -155,7 +174,7 @@ MDIIS.prototype.update = function(cr, res, uv)
    * note: we do not need to update the last row & column */
   for ( i = 0; i < nb; i++ )
     this.mat[i*mnb1 + ib] = this.mat[ib*mnb1 + i]
-      = getdot(this.res[i], res, uv.npr * npt);
+      = this.getdot(this.res[i], res, uv.npr * npt);
   return ib;
 }
 
@@ -178,27 +197,29 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
   step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
   mdiis.build(cr, res, uv);
 
-  for ( it = 0; it < itmax; it++ ) {
+  for ( it = 0; it <= itmax; it++ ) {
     mdiis.solve();
     mdiis.gencr(cr, damp, uv);
     err = step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
-    ib = mdiis.update(cr, res, uv);
+    ib = mdiis.update(cr, res, err, uv);
 
     if ( verbose )
       console.log("it", it, "err", errp, "->", err, "ib", ibp, "->", ib);
-    if ( err < tol ) {
+    if ( err < tol || it == itmax ) {
+      mdiis.copyout(cr, mdiis.crbest, uv);
+      err = step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
       if ( uv.switchstage() != 0 ) break;
-      /* if all solutes are of zero density, break the loop */
+      // if all solutes are of zero density, break the loop
       if ( uv.stage == SOLUTE_SOLUTE
-        && uv.infdil && uv.atomicsolute ) {
+        && uv.infdil && uv.atomicsolute && uv.uutype != "Always" ) {
         step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
         break;
       }
-      /* reset the bases */
-      step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
-      mdiis_build(mdiis, cr, res, uv);
+      // reset the basis
+      err = step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
+      mdiis.build(cr, res, uv);
+      mdiis.errmin = err;
       it = -1;
-      err = errinf;
     }
     ibp = ib;
     errp = err;

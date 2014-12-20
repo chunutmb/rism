@@ -18,7 +18,7 @@ typedef struct {
   double *mat2; /* temporary matrix for LU decomposition */
   double *coef; /* coefficients */
   double *crbest;
-  double resmin;
+  double errmin;
 } mdiis_t;
 
 
@@ -42,7 +42,7 @@ static mdiis_t *mdiis_open(int ns, int npt, int mnb)
   newarr(m->mat2,   mnb1 * mnb1);
   newarr(m->coef,   mnb1);
   newarr(m->crbest,   ns2 * npt);
-  m->resmin = 1e300;
+  m->errmin = errinf;
   return m;
 }
 
@@ -86,27 +86,17 @@ static int mdiis_solve(mdiis_t *m)
 
 
 
-/* construct the new c(r) */
-static void mdiis_gencr(mdiis_t *m, double **cr, double damp,
-    const uv_t *uv)
+/* copy out cr */
+static void mdiis_copyout(double **cr, double *src,
+    int ns, int npt, int *prmask)
 {
-  int ns = m->ns, npt = m->npt, nb = m->nb, npr = uv->npr;
-  int i, j, ij, ipr, k, l, il;
+  int i, j, ij, ipr, l;
 
-  for ( il = 0; il < npr * npt; il++ )
-    m->cr[nb][il] = 0;
-  for ( k = 0; k < nb; k++ ) {
-    double coef = m->coef[k];
-    for ( il = 0; il < npr * npt; il++ )
-      m->cr[nb][il] += coef * (m->cr[k][il] + damp * m->res[k][il]);
-  }
-
-  /* save m->cr[nb] to c(r) */
   for ( ipr = 0, i = 0; i < ns; i++ )
     for ( j = i; j < ns; j++ ) {
-      if ( !uv->prmask[ij = i*ns + j] ) continue;
+      if ( !prmask[ij = i*ns + j] ) continue;
       for ( l = 0; l < npt; l++ )
-        cr[ij][l] = m->cr[nb][ipr*npt + l];
+        cr[ij][l] = src[ipr*npt + l];
       ipr++;
       cparr(cr[j*ns + i], cr[ij], npt);
     }
@@ -114,30 +104,28 @@ static void mdiis_gencr(mdiis_t *m, double **cr, double damp,
 
 
 
-/* MDIIS failed */
-static void mdiis_surrender(mdiis_t *m, double **cr, const uv_t *uv)
+/* construct the new c(r) */
+static void mdiis_gencr(mdiis_t *m, double **cr, double damp,
+    const uv_t *uv)
 {
-  int ns = m->ns, npt = m->npt;
-  int i, j, ij, ipr, l;
+  int ib, il, npt = m->npt, nb = m->nb, npr = uv->npr;
 
-  if ( verbose ) {
-    fprintf(stderr, "MDIIS failed: use the best c(r) with residue %g\n", m->resmin); //getchar();
+  for ( il = 0; il < npr * npt; il++ )
+    m->cr[nb][il] = 0;
+  for ( ib = 0; ib < nb; ib++ ) {
+    double coef = m->coef[ib];
+    for ( il = 0; il < npr * npt; il++ )
+      m->cr[nb][il] += coef * (m->cr[ib][il] + damp * m->res[ib][il]);
   }
-  /* save m->crbest to c(r) */
-  for ( ipr = 0, i = 0; i < ns; i++ )
-    for ( j = i; j < ns; j++ ) {
-      if ( !uv->prmask[ij = i*ns + j] ) continue;
-      for ( l = 0; l < npt; l++ )
-        cr[ij][l] = m->crbest[ipr*npt + l];
-      ipr++;
-      cparr(cr[j*ns + i], cr[ij], npt);
-    }
+
+  /* cr = m->cr[nb] */
+  mdiis_copyout(cr, m->cr[nb], m->ns, m->npt, uv->prmask);
 }
 
 
 
 /* compute the dot product */
-static double getdot(double *a, double *b, int n)
+static double mdiis_getdot(double *a, double *b, int n)
 {
   int i;
   double x = 0;
@@ -169,7 +157,7 @@ static int mdiis_build(mdiis_t *m, double **cr, double *res,
       ipr++;
     }
 
-  m->mat[0] = getdot(m->res[0], m->res[0], uv->npr * npt);
+  m->mat[0] = mdiis_getdot(m->res[0], m->res[0], uv->npr * npt);
   for ( ib = 0; ib < mnb; ib++ )
     m->mat[ib*mnb1 + mnb] = m->mat[mnb*mnb1 + ib] = -1;
   m->mat[mnb*mnb1 + mnb] = 0;
@@ -180,13 +168,19 @@ static int mdiis_build(mdiis_t *m, double **cr, double *res,
 
 /* replace base ib by cr */
 static int mdiis_update(mdiis_t *m, double **cr, double *res,
-    const uv_t *uv)
+    double err, const uv_t *uv)
 {
   int i, j, l, id, ib, nb, mnb1, ns = m->ns, npt = m->npt;
   double dot, max;
 
   nb = m->nb;
   mnb1 = m->mnb + 1;
+
+  /* save this function if it achieves the minimal error so far */
+  if ( err < m->errmin ) {
+    cparr(m->crbest, m->cr[nb], uv->npr * npt);
+    m->errmin = err;
+  }
 
   if ( nb < m->mnb ) {
     ib = nb;
@@ -200,7 +194,7 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
         ib = i;
     max = m->mat[ib*mnb1 + ib];
 
-    dot = getdot(res, res, uv->npr * npt);
+    dot = mdiis_getdot(res, res, uv->npr * npt);
     if ( dot > max ) {
 #ifndef MDIIS_THRESHOLD
 #define MDIIS_THRESHOLD 1.0
@@ -234,7 +228,7 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
    * note: we do not need to update the last row & column */
   for ( i = 0; i < nb; i++ )
     m->mat[i*mnb1 + ib] = m->mat[ib*mnb1 + i]
-      = getdot(m->res[i], res, uv->npr * npt);
+      = mdiis_getdot(m->res[i], res, uv->npr * npt);
   return ib;
 }
 
@@ -262,38 +256,39 @@ static double iter_mdiis(model_t *model,
 
   err = errp = errinf;
   for ( it = 0; it <= model->itmax; it++ ) {
+    /* obtain a set of optimal coefficients of combination */
     mdiis_solve(mdiis);
+    /* generate a new cr from the set of coefficients */
     mdiis_gencr(mdiis, cr, damp, uv);
     err = step_picard(model, res, vrsr, wk,
         cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
-    ib = mdiis_update(mdiis, cr, res, uv);
-
-    /* save this function */
-    if ( err < mdiis->resmin ) {
-      cparr(mdiis->crbest, mdiis->cr[mdiis->nb], uv->npr * npt);
-      mdiis->resmin = err;
-    }
+    /* add the new cr into the basis */
+    ib = mdiis_update(mdiis, cr, res, err, uv);
 
     if ( verbose )
       fprintf(stderr, "it %d, err %g -> %g, ib %d -> %d\n",
           it, errp, err, ibp, ib);
     if ( err < model->tol || it == model->itmax ) {
-      if ( it >= model->itmax )
-        mdiis_surrender(mdiis, cr, uv);
+      mdiis_copyout(cr, mdiis->crbest, ns, npt, uv->prmask);
+      err = step_picard(model, res, vrsr, wk,
+          cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
+      if ( it >= model->itmax && verbose )
+        fprintf(stderr, "MDIIS: failure, stage %d, use the best c(r) with residue %g\n",
+           uv->stage, mdiis->errmin); //getchar();
       if ( uv_switch(uv) != 0 ) break;
       if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->infdil && uv->atomicsolute ) {
+        if ( uv->infdil && uv->atomicsolute && uv->douu != DOUU_ALWAYS ) {
           err = step_uu_infdil_atomicsolute(model, vrsr, wk,
               cr, ck, vklr, tr, tk, Qrx, uv->prmask);
           break;
         }
       }
-      /* reset the bases */
+      /* reset the basis */
       err = step_picard(model, res, vrsr, wk,
           cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
       mdiis_build(mdiis, cr, res, uv);
+      mdiis->errmin = err;
       it = -1;
-      err = errinf;
     }
     ibp = ib;
     errp = err;
