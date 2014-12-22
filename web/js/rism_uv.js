@@ -46,6 +46,7 @@ function UV(ns)
         this.atomicsolute = false;
         break;
       }
+  this.uu1step = false;
 }
 
 
@@ -84,8 +85,11 @@ UV.prototype.switchstage = function()
         } else { // update all interactions
           this.prmask[i*ns + j] = 1;
         }
-    this.npr = ( !this.infdil ? nsv * (nsv + 1) / 2 : ns * (ns + 1) / 2 );
+    this.npr = !this.infdil ? nsv*(nsv + 1)/2 : ns*(ns + 1)/2;
     this.stage = SOLUTE_SOLUTE;
+    this.uu1step = (this.infdil && this.atomicsolute && this.douu != "Always");
+    if ( this.uu1step ) // stop after a single uu step
+      return 1;
     console.log("turning on solute-solute interaction");
   } else {
     this.stage = LAST_STAGE;

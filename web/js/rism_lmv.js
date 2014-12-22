@@ -1,186 +1,211 @@
-/* Labik-Malijevsky-Vonka solver */
+/* Labik-Malijevsky-Vonka (LMV) solver */
 
 
-
-// compute Cjk
-function getCjk(Cjk, npt, M, ns, der, costab, dp)
+function LMV(ns, npt, M, ki)
 {
-  var i, j, ij, ji, m, k, l;
+  this.ns = ns;
+  var ns2 = ns * ns;
+  this.npr = ns * (ns + 1) / 2;
+  this.npt = npt;
+  if ( M >= npt ) M = npt;
+  if ( verbose ) console.log("select M", M);
+  this.M = M;
+  this.ki = ki;
+  this.tr1      = newarr2d(ns2, npt);
+  this.tk1      = newarr2d(ns2, npt);
+  this.invwc1w  = newarr2d(ns2, npt);
+  this.der      = newarr2d(ns2, npt);
+  this.crbest   = newarr2d(ns2, npt);
+  this.errmin   = errinf;
+  /* initialize the cosine table */
+  if ( M > 0 ) {
+    var Mp = M * this.npr;
+    this.Cjk = newarr2d(ns2, M * M);
+    this.mat = newarr(Mp * Mp);
+    this.a = newarr(Mp);
+    this.dp = newarr(3 * M);
+    this.costab = newarr2d(3 * M, npt);
+    for ( j = 0; j < 3*M; j++ )
+      for ( i = 0; i < npt; i++ )
+        this.costab[j][i] = Math.cos(PI*(i+.5)*(j-M)/npt);
+  }
+}
 
-  for ( i = 0; i < ns; i++ ) {
-    for ( j = i; j < ns; j++ ) {
-      ij = i*ns + j;
+
+
+/* save a good cr */
+LMV.prototype.savebest = function(cr, err)
+{
+  if ( err < this.errmin ) {
+    cparr2d(this.crbest, cr, this.ns * this.ns, this.npt);
+    this.errmin = err;
+  }
+}
+
+
+
+/* compute Cjk = d ck / d tk */
+LMV.prototype.getCjk = function()
+{
+  var ns = this.ns, npt = this.npt, M = this.M;
+  var k, m, l;
+
+  for ( var i = 0; i < ns; i++ ) {
+    for ( var j = i; j < ns; j++ ) {
+      var ij = i*ns + j;
 
       for ( m = 1; m < 3*M - 1; m++ ) {
-        for ( dp[m] = 0, l = 0; l < npt; l++ )
-          dp[m] += der[ij][l] * costab[m][l];
-        dp[m] /= npt;
+        for ( this.dp[m] = 0, l = 0; l < npt; l++ )
+          this.dp[m] += der[ij][l] * this.costab[m][l];
+        this.dp[m] /= npt;
       }
 
       for ( m = 0; m < M; m++ )
         for ( k = 0; k < M; k++ )
-          Cjk[ij][m*M+k] = dp[k-m+M] - dp[k+m+M];
+          this.Cjk[ij][m*M+k] = this.dp[k-m+M] - this.dp[k+m+M];
 
       if ( j == i ) continue;
 
-      ji = j*ns + i;
+      var ji = j*ns + i;
       for ( m = 0; m < M*M; m++ )
-        Cjk[ji][m] = Cjk[ij][m];
+        this.Cjk[ji][m] = this.Cjk[ij][m];
     }
   }
 }
 
 
 
-// compute the Jacobian matrix for the Newton-Raphson method
-function getjacob(mat, b, M, npr, ns,
-    prmask, ntk, tk, Cjk, invwc1w)
+/* compute the Jacobian matrix for the Newton-Raphson method */
+LMV.prototype.getjacob = function(tk, uv)
 {
-  var i1, j1, ipr1, m1, id1, i2, j2, ipr2, m2, id2, Mp;
-  var y;
+  var ns = this.ns, npr = this.npr, M = this.M;
+  var Mp = M * npr;
+  for ( var m1 = 0; m1 < M; m1++ )
+    for ( var ipr1 = 0, i1 = 0; i1 < ns; i1++ )
+      for ( var j1 = i1; j1 < ns; j1++, ipr1++ ) {
+        var ij1 = i1*ns + j1;
+        var id1 = m1*npr + ipr1;
+        this.a[id1] = uv.prmask[ij1] ? this.ki[m1] * (this.tk1[ij1][m1] - tk[ij1][m1]) : 0;
 
-  Mp = M * npr;
-  for ( m1 = 0; m1 < M; m1++ )
-    for ( ipr1 = 0, i1 = 0; i1 < ns; i1++ )
-      for ( j1 = i1; j1 < ns; j1++, ipr1++ ) {
-        id1 = m1*npr + ipr1;
-        if ( prmask[i1*ns + j1] )
-          b[id1] = fft_ki[m1] * (ntk[i1*ns+j1][m1] - tk[i1*ns+j1][m1]);
-        else
-          b[id1] = 0;
-
-        for ( m2 = 0; m2 < M; m2++ )
-          for ( ipr2 = 0, i2 = 0; i2 < ns; i2++ )
-            for ( j2 = i2; j2 < ns; j2++, ipr2++ ) {
-              id2 = m2*npr + ipr2;
-              y = (ipr1 == ipr2 ? (m1 == m2) + Cjk[i1*ns+j1][m1*M+m2] : 0)
-                - invwc1w[i2*ns+i1][m1] * Cjk[i2*ns+j2][m1*M+m2]
-                * invwc1w[j2*ns+j1][m2];
-              mat[id1*Mp + id2] = y;
+        for ( var m2 = 0; m2 < M; m2++ )
+          for ( var ipr2 = 0, i2 = 0; i2 < ns; i2++ )
+            for ( var j2 = i2; j2 < ns; j2++, ipr2++ ) {
+              var id2 = m2*npr + ipr2;
+              this.mat[id1*Mp + id2] =
+                (ipr1 == ipr2 ? (m1 == m2) + this.Cjk[ij1][m1*M+m2] : 0)
+                - this.invwc1w[i2*ns+i1][m1] * this.Cjk[i2*ns+j2][m1*M+m2]
+                * this.invwc1w[j2*ns+j1][m2];
             }
       }
 }
 
 
 
-// Reference:
-// Stanislav Labik, Anatol Malijevsky, Petr Vonka
-// A rapidly convergent method of solving the OZ equation
-// Molecular Physics, 1985, Vol. 56, No. 3, 709-715
+/* update tk */
+LMV.prototype.update = function(tk, dmp, uv)
+{
+  var ns = this.ns, npr = this.npr, npt = this.npt, M = this.M;
+  var i, j, ij, l, ipr;
+  var del;
+
+  // compute d ck / d tk
+  this.getCjk();
+
+  // compute the Jacobian matrix for the Newton-Raphson method
+  this.getjacob(tk, uv);
+
+  if ( lusolve(this.mat, this.a, npr * M, 1e-10) != 0 ) {
+    console.log("LU solve failed: stage", uv.stage);
+    return -1;
+  }
+
+  // compute the new t(k)
+  this.err1 = this.err2 = 0;
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++, ipr++ ) {
+      ij = i*ns + j;
+      if ( !uv.prmask[ij] ) continue;
+
+      for ( l = 0; l < npt; l++ ) {
+        if ( l < M ) {
+          // use the Newton-Raphson method to solve for t(k) of small k
+          del = this.a[l*npr+ipr] / this.ki[l];
+          if ( Math.abs(del) > this.err1 ) this.err1 = Math.abs(del);
+        } else {
+          // use the OZ relation to solve for t(k) of large k
+          del = this.tk1[ij][l] - tk[ij][l];
+          if ( Math.abs(del) > this.err2 ) this.err2 = Math.abs(del);
+        }
+
+        tk[ij][l] += dmp * del;
+      }
+      if ( j > i ) cparr(tk[j*ns + i], tk[ij], npt);
+    }
+
+  return 0;
+}
+
+
+
+/* LMV solver */
 function iter_lmv(vrsr, wk, cr, der, ck, vklr,
     tr, tk, ntk, invwc1w, uv)
 {
-  var i, j, l, ij, it, M, npr, ipr, Mp;
-  var Cjk, mat, b, costab, dp;
-  var y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
-  var crbest, tr1, tk1, errmin = errinf;
-
-  crbest = newarr2d(ns2,  npt);
-  tr1 = newarr2d(ns2,  npt);
-  tk1 = newarr2d(ns2,  npt);
-
-  cparr2d(crbest, cr, ns2, npt);
-
-  // initialize t(k) and t(r)
-  step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, null, 0.0);
+  var it;
+  var err = 0, errp = errinf, dmp;
 
   // set the optimal M
-  M = get_int("lmv_M", 0);
+  var M = get_int("lmv_M", 0);
   M = (M > 0) ? M : (2 * rmax/sigma[ns-1]);
-  if ( M >= npt ) M = npt;
-  if ( verbose ) console.log("select M", M);
+
+  var lmv = new LMV(ns, npt, M, fft_ki);
+  cparr2d(lmv.crbest, cr, ns2, npt);
+
+  // initialize t(k) and t(r)
+  step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, null, 0.);
+  cparr2d(lmv.tk1, tk, ns2, npt);
 
   // set the damping factor
   dmp = get_float("lmv_damp", 1);
 
-  npr = ns * (ns + 1) / 2;
-  Mp = M * npr;
-
-  /* initialize the cosine table */
-  if ( M > 0 ) {
-    Cjk = newarr2d(ns*ns, M*M);
-    mat = newarr(Mp*Mp);
-    b = newarr(Mp);
-    dp = newarr(3*M);
-    costab = newarr2d(3*M, npt);
-    for ( j = 0; j < 3*M; j++ )
-      for ( i = 0; i < npt; i++ )
-        costab[j][i] = Math.cos(PI*(i+.5)*(j-M)/npt);
-  }
-
-  for ( it = 0; it < itmax; it++ ) {
+  for ( it = 0; it <= itmax; it++ ) {
     // compute the error of the current c(r) and c(k)
-    // by applying the closure without updating
-    oz(ck, vklr, tk1, wk, null);
-    sphr_k2r(tk1, tr1, ns, uv.prmask);
-    err = closure(null, null, vrsr, cr, tr1, uv.prmask, 0.0);
-    if ( err < errmin ) {
-      cparr2d(crbest, cr, ns2, npt);
-      errmin = err;
-    }
+    sphr_k2r(lmv.tk1, lmv.tr1, ns, uv.prmask);
+    err = closure(null, null, vrsr, cr, lmv.tr1, uv.prmask, 0.);
+    lmv.savebest(cr, err);
 
-    // compute c(r) and c(k) from the closure
-    closure(null, der, vrsr, cr, tr, uv.prmask, 1.0);
-    sphr_r2k(cr, ck, ns, null);
+    closure(null, lmv.der, vrsr, cr, tr, uv.prmask, 1.);
+    sphr_r2k(cr, ck, ns, uv.prmask);
+    oz(ck, vklr, lmv.tk1, wk, lmv.invwc1w);
 
-    // compute Cjk
-    getCjk(Cjk, npt, M, ns, der, costab, dp);
-
-    // compute the new t(k)
-    oz(ck, vklr, ntk, wk, invwc1w);
-
-    // compute the Jacobian matrix for the Newton-Raphson method
-    getjacob(mat, b, M, npr, ns, uv.prmask, ntk, tk, Cjk, invwc1w);
-
-    if ( lusolve(mat, b, Mp, 1e-14) != 0 )
-      throw new Error("LU solve failed: stage " + uv.stage + ", it " + it);
-
-    // compute the new t(k)
-    err1 = err2 = 0;
-    for ( ipr = 0, i = 0; i < ns; i++ )
-      for ( j = i; j < ns; j++, ipr++ ) {
-        ij = i*ns + j;
-        if ( !uv.prmask[ij] ) continue;
-
-        for ( l = 0; l < npt; l++ ) {
-          if ( l < M ) {
-            // use the Newton-Raphson method to solve for t(k) of small k
-            y = b[l*npr+ipr] / fft_ki[l];
-            if ( Math.abs(y) > err1 ) err1 = Math.abs(y);
-          } else {
-            // use the OZ relation to solve for t(k) of large k
-            y = ntk[ij][l] - tk[ij][l];
-            if ( Math.abs(y) > err2 ) err2 = Math.abs(y);
-          }
-
-          tk[ij][l] += dmp * y;
-          if ( j > i ) tk[j*ns+i][l] = tk[ij][l];
-        }
-      }
-
-    sphr_k2r(tk, tr, ns, null);
+    // compute the new tk
+    if ( lmv.update(tk, dmp, uv) != 0 ) break;
+    sphr_k2r(tk, tr, ns, uv.prmask);
 
     if ( verbose )
       console.log("it", it, "M", M, "err", errp, "->", err,
-        "tk_err", err1, "/", err2, "damp", dmp);
+        "tk_err", lmv.err1, "/", lmv.err2, "damp", dmp);
 
-    if ( err < tol ) {
+    if ( err < tol || it == itmax ) {
+      // use the best cr discovered so far
+      cparr2d(cr, lmv.crbest, ns2, npt);
+      // update the corresponding ck, tr, tk, and the error
+      err = step_picard(null, vrsr, wk,
+          cr, ck, vklr, tr, tk, uv.prmask, 0.);
       // switch between stages
-      if ( uv.switchstage() != 0 ) break;
-      if ( uv.stage == SOLUTE_SOLUTE
-        && uv.infdil && uv.atomicsolute && uv.uutype != "Always" ) {
-        step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
+      if ( uv.switchstage() != 0 ) {
+        if ( uv.uu1step )
+          step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
         break; // no need to iterate further
       }
+      err = step_picard(null, vrsr, wk,
+          cr, ck, vklr, tr, tk, uv.prmask, 0.);
+      cparr2d(lmv.tk1, tk, ns2, npt);
+      lmv.errmin = err;
       it = -1;
-      err = errinf;
     }
     errp = err;
   }
-  /* use the best cr discovered so far */
-  cparr2d(cr, crbest, ns2, npt);
-  /* update the corresponding ck, tr, tk, and the error */
-  err = step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
   return [err, it];
 }
 

@@ -31,6 +31,7 @@ const char *fncrdnum = NULL;
 int printk = 0;
 
 
+
 /* print help message and die */
 static void help(const char *prog)
 {
@@ -429,7 +430,7 @@ static void oz(model_t *m, double **ck, double **vklr,
         ij = i*ns + j;
         tm1[ij] = m->rho[i] * wc[ij]; /* tm1 = rho w c */
         tm2[ij] = (i == j) - tm1[ij]; /* tm2 = 1 - rho w c */
-        dw[ij] = wk[ij][l] - (i == j);
+        dw[ij] = w[ij] - (i == j);
       }
 
     invmat(tm2, invwc1, ns); /* invwc1 = (1 - rho w c)^(-1) */
@@ -823,8 +824,8 @@ static int dorism(model_t *model)
     uv = uv_open(model);
 
     if ( model->solver == SOLVER_LMV ) {
-      err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr,
-          tr, tk, ntk, Qrx, cp, uv, &it);
+      err = iter_lmv(model, vrsr, wk, cr, ck, vklr,
+          tr, tk, Qrx, uv, &it);
     } else if ( model->solver == SOLVER_MDIIS ) {
       err = iter_mdiis(model, vrsr, wk, cr, ck, vklr,
           tr, tk, Qrx, uv, &it);

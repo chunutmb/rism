@@ -7,12 +7,11 @@
 
 function MDIIS(ns, npt, mnb)
 {
-  var ns2, mnb1;
-  ns2 = ns * (ns + 1) / 2;
+  var ns2 = ns * (ns + 1) / 2;
   this.ns    = ns;
   this.npt   = npt;
   this.mnb   = mnb; // maximal number of bases
-  mnb1 = mnb + 1;
+  var mnb1 = mnb + 1;
   this.cr    = newarr2d(mnb1, ns2 * npt); // basis
   this.res   = newarr2d(mnb1, ns2 * npt); // residues
   this.mat   = newarr(mnb1 * mnb1); // correlations of residues
@@ -208,11 +207,9 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
     if ( err < tol || it == itmax ) {
       mdiis.copyout(cr, mdiis.crbest, uv);
       err = step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
-      if ( uv.switchstage() != 0 ) break;
-      // if all solutes are of zero density, break the loop
-      if ( uv.stage == SOLUTE_SOLUTE
-        && uv.infdil && uv.atomicsolute && uv.uutype != "Always" ) {
-        step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
+      if ( uv.switchstage() != 0 ) {
+        if ( uv.uu1step )
+          step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
         break;
       }
       // reset the basis

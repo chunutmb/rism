@@ -596,7 +596,7 @@ model_t models[] =
     1, 100000, 1e-7,
     SOLVER_MDIIS,
     {0.3},
-    {0, 0.5},
+    {20, 0.5},
     {5, 1.0}
   },
   /* 4. LC1973, liquid nitrogen */
@@ -620,7 +620,7 @@ model_t models[] =
     5, 10000, 1e-7,
     SOLVER_MDIIS,
     {0.01}, /* does not work */
-    {0, 0.5},
+    {0, 0.4},
     {5, 0.2}
   },
   /* 6. HR1981, liquid nitrogen, neutral */

@@ -41,7 +41,7 @@ static mdiis_t *mdiis_open(int ns, int npt, int mnb)
   newarr(m->mat,    mnb1 * mnb1);
   newarr(m->mat2,   mnb1 * mnb1);
   newarr(m->coef,   mnb1);
-  newarr(m->crbest,   ns2 * npt);
+  newarr(m->crbest, ns2 * npt);
   m->errmin = errinf;
   return m;
 }
@@ -275,13 +275,11 @@ static double iter_mdiis(model_t *model,
       if ( it >= model->itmax && verbose )
         fprintf(stderr, "MDIIS: failure, stage %d, use the best c(r) with residue %g\n",
            uv->stage, mdiis->errmin); //getchar();
-      if ( uv_switch(uv) != 0 ) break;
-      if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->infdil && uv->atomicsolute && uv->douu != DOUU_ALWAYS ) {
+      if ( uv_switch(uv) != 0 ) {
+        if ( uv->uu1step )
           err = step_uu_infdil_atomicsolute(model, vrsr, wk,
               cr, ck, vklr, tr, tk, Qrx, uv->prmask);
-          break;
-        }
+        break;
       }
       /* reset the basis */
       err = step_picard(model, res, vrsr, wk,

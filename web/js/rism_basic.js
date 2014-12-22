@@ -47,7 +47,7 @@ function read_params()
   npt = get_int("npt", 1024);
   rmax = get_float("rmax", 20.48);
   ietype = grab("ietype").value;
-  itmax = get_int("itmax", 100000);
+  itmax = get_int("itmax", 10000);
   tol = get_float("tol", 1e-7);
   picard_damp = get_float("picard_damp", 1.0);
   change_verbose();

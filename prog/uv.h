@@ -16,6 +16,7 @@ typedef struct {
   int infdil; /* infinite dilution */
   int atomicsolute; /* solute molecules are atomic, not molecular */
   int douu; /* how to do solute-solute interaction */
+  int uu1step; /* stop after a single uu step */
 } uv_t;
 
 
@@ -105,8 +106,11 @@ static int uv_switch(uv_t *uv)
           /* update all interactions */
           uv->prmask[i*ns + j] = 1;
         }
-    uv->npr = ( !uv->infdil ? nsv * (nsv + 1) / 2 : ns * (ns + 1) / 2 );
+    uv->npr = !uv->infdil ? nsv*(nsv + 1)/2 : ns*(ns + 1)/2;
     uv->stage = SOLUTE_SOLUTE;
+    uv->uu1step = (uv->infdil && uv->atomicsolute && uv->douu != DOUU_ALWAYS);
+    if ( uv->uu1step ) /* stop after a single uu step */
+      return 1;
     fprintf(stderr, "turning on solute-solute interaction\n");
   } else {
     uv->stage = LAST_STAGE;

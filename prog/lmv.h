@@ -3,14 +3,115 @@
 
 
 
-/* Labik-Malijevsky-Vonka solver */
+/* Labik-Malijevsky-Vonka (LMV) solver
+ * Reference:
+ * Stanislav Labik, Anatol Malijevsky, Petr Vonka
+ * A rapidly convergent method of solving the OZ equation
+ * Molecular Physics, 1985, Vol. 56, No. 3, 709-715 */
 
 
 
-/* compute Cjk */
-static void getCjk(double **Cjk, int npt, int M, int ns,
-    double **der, double **costab, double *dp)
+typedef struct {
+  int ns;
+  int npr;
+  int npt;
+  int M;
+  double *ki;
+  double **Cjk; /* d ck / d tk */
+  double *mat; /* M x M matrix */
+  double *a; /* M array */
+  double *dp; /* 3*M array */
+  double **costab; /* [3*M][npt] */
+  double **tr1;
+  double **tk1;
+  double **invwc1w;
+  double **der;
+  double **crbest;
+  double errmin;
+  double err1; /* error of tk[i] for i < M */
+  double err2; /* error of tk[i] for i >= M */
+} lmv_t;
+
+
+
+
+/* open an lmv object */
+static lmv_t *lmv_open(int ns, int npt, int M, double *ki)
 {
+  lmv_t *lmv;
+  int i, j, ns2, Mp;
+
+  xnew(lmv, 1);
+  lmv->ns = ns;
+  ns2 = ns * ns;
+  lmv->npr = ns * (ns + 1)/2;
+  lmv->npt = npt;
+  if ( M >= npt ) M = npt;
+  if ( verbose ) fprintf(stderr, "select M = %d\n", M);
+  lmv->M = M;
+  lmv->ki = ki;
+  newarr2d(lmv->tr1,     ns2, npt);
+  newarr2d(lmv->tk1,     ns2, npt);
+  newarr2d(lmv->invwc1w, ns2, npt);
+  newarr2d(lmv->der,     ns2, npt);
+  newarr2d(lmv->crbest,  ns2, npt);
+  lmv->errmin = errinf;
+
+  if ( M > 0 ) {
+    Mp = M * lmv->npr;
+    newarr2d(lmv->Cjk, ns2, M * M);
+    newarr(lmv->mat, Mp * Mp);
+    newarr(lmv->a,  Mp);
+    newarr(lmv->dp, 3*M);
+    newarr2d(lmv->costab, 3*M, npt);
+    for ( j = 0; j < 3*M; j++ )
+      for ( i = 0; i < npt; i++ )
+        lmv->costab[j][i] = cos(PI*(i*2+1)*(j-M)/npt/2);
+  }
+
+  return lmv;
+}
+
+
+
+static void lmv_close(lmv_t *lmv)
+{
+  int ns2;
+
+  if ( lmv == NULL ) return;
+  ns2 = lmv->ns * lmv->ns;
+  delarr2d(lmv->tr1,     ns2);
+  delarr2d(lmv->tk1,     ns2);
+  delarr2d(lmv->invwc1w, ns2);
+  delarr2d(lmv->der,     ns2);
+  delarr2d(lmv->crbest,  ns2);
+  if ( lmv->M > 0 ) {
+    delarr2d(lmv->Cjk, ns2);
+    delarr(lmv->mat);
+    delarr(lmv->a);
+    delarr(lmv->dp);
+    delarr(lmv->costab);
+  }
+  free(lmv);
+}
+
+
+
+/* register a good cr */
+static void lmv_savebest(lmv_t *lmv, double **cr, double err)
+{
+  if ( err < lmv->errmin ) {
+    cparr2d(lmv->crbest, cr, lmv->ns * lmv->ns, lmv->npt);
+    lmv->errmin = err;
+  }
+}
+
+
+
+/* compute Cjk = d ck / d tk */
+static void lmv_getCjk(lmv_t *lmv)
+{
+  int ns = lmv->ns, npt = lmv->npt, M = lmv->M;
   int i, j, ij, ji, m, k, l;
 
   for ( i = 0; i < ns; i++ ) {
@@ -18,20 +119,20 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
       ij = i*ns + j;
 
       for ( m = 1; m < 3*M - 1; m++ ) {
-        for ( dp[m] = 0, l = 0; l < npt; l++ )
-          dp[m] += der[ij][l] * costab[m][l];
-        dp[m] /= npt;
+        for ( lmv->dp[m] = 0, l = 0; l < npt; l++ )
+          lmv->dp[m] += lmv->der[ij][l] * lmv->costab[m][l];
+        lmv->dp[m] /= npt;
       }
 
       for ( m = 0; m < M; m++ )
         for ( k = 0; k < M; k++ )
-          Cjk[ij][m*M+k] = dp[k-m+M] - dp[k+m+M];
+          lmv->Cjk[ij][m*M+k] = lmv->dp[k-m+M] - lmv->dp[k+m+M];
 
       if ( j == i ) continue;
 
       ji = j*ns + i;
       for ( m = 0; m < M*M; m++ )
-        Cjk[ji][m] = Cjk[ij][m];
+        lmv->Cjk[ji][m] = lmv->Cjk[ij][m];
     }
   }
 }
@@ -39,22 +140,18 @@ static void getCjk(double **Cjk, int npt, int M, int ns,
 
 
 /* compute the Jacobian matrix for the Newton-Raphson method */
-static void getjacob(double *mat, double *b, int M, int npr, int ns,
-    int *prmask, double **ntk, double **tk, double **Cjk,
-    double **invrhowc1w)
+static void lmv_getjacob(lmv_t *lmv, double **tk, uv_t *uv)
 {
-  int i1, j1, ipr1, m1, id1, i2, j2, ipr2, m2, id2, Mp;
-  double y;
+  int ns = lmv->ns, npr = lmv->npr, M = lmv->M, Mp;
+  int i1, j1, ij1, ipr1, m1, id1, i2, j2, ipr2, m2, id2;
 
   Mp = M * npr;
   for ( m1 = 0; m1 < M; m1++ ) {
     for ( ipr1 = 0, i1 = 0; i1 < ns; i1++ ) {
       for ( j1 = i1; j1 < ns; j1++, ipr1++ ) {
+        ij1 = i1*ns + j1;
         id1 = m1*npr + ipr1;
-        if ( prmask[i1*ns + j1] )
-          b[id1] = fft_ki[m1] * (ntk[i1*ns+j1][m1] - tk[i1*ns+j1][m1]);
-        else
-          b[id1] = 0;
+        lmv->a[id1] = uv->prmask[ij1] ? lmv->ki[m1] * (lmv->tk1[ij1][m1] - tk[ij1][m1]) : 0;
 
         for ( m2 = 0; m2 < M; m2++ ) {
           for ( ipr2 = 0, i2 = 0; i2 < ns; i2++ ) {
@@ -66,6 +163,7 @@ static void getjacob(double *mat, double *b, int M, int npr, int ns,
               //}
               /*
                * h = w c (1 - rho w c)^-1 w
+               *   = w c w + w c rho w c w + w c rho w c rho w c w + ...
                * thus
                * dh = (1 - w c rho)^(-1) w dc (1 - rho w c)^(-1) w
                * let z = (1 - rho w c)^(-1) w
@@ -76,10 +174,10 @@ static void getjacob(double *mat, double *b, int M, int npr, int ns,
                *     = (1 - w c rho)^-1 w
                * and
                * dh = z^T dc z */
-              y = (ipr1 == ipr2 ? (m1 == m2) + Cjk[i1*ns+j1][m1*M+m2] : 0)
-                - invrhowc1w[i2*ns+i1][m1] * Cjk[i2*ns+j2][m1*M+m2]
-                * invrhowc1w[j2*ns+j1][m2];
-              mat[id1*Mp + id2] = y;
+              lmv->mat[id1*Mp + id2] =
+                (ipr1 == ipr2 ? (m1 == m2) + lmv->Cjk[ij1][m1*M+m2] : 0)
+                - lmv->invwc1w[i2*ns+i1][m1] * lmv->Cjk[i2*ns+j2][m1*M+m2]
+                * lmv->invwc1w[j2*ns+j1][m2];
             }
           }
         }
@@ -90,149 +188,121 @@ static void getjacob(double *mat, double *b, int M, int npr, int ns,
 
 
 
-/* Reference:
- * Stanislav Labik, Anatol Malijevsky, Petr Vonka
- * A rapidly convergent method of solving the OZ equation
- * Molecular Physics, 1985, Vol. 56, No. 3, 709-715 */
+/* update tk */
+static int lmv_update(lmv_t *lmv, double **tk, double dmp, uv_t *uv)
+{
+  int ns = lmv->ns, npr = lmv->npr, npt = lmv->npt, M = lmv->M;
+  int i, j, ij, l, ipr;
+  double del;
+
+  /* compute d ck / d tk */
+  lmv_getCjk(lmv);
+
+  /* compute the Jacobian matrix for the Newton-Raphson method */
+  lmv_getjacob(lmv, tk, uv);
+
+  if ( lusolve(lmv->mat, lmv->a, npr * M, 1e-10) != 0 ) {
+    fprintf(stderr, "LU solve failed: stage %d\n", uv->stage);
+    return -1;
+  }
+
+  /* compute the new t(k) */
+  lmv->err1 = lmv->err2 = 0;
+  for ( ipr = 0, i = 0; i < ns; i++ )
+    for ( j = i; j < ns; j++, ipr++ ) {
+      ij = i*ns + j;
+      if ( !uv->prmask[ij] ) continue;
+
+      for ( l = 0; l < npt; l++ ) {
+        if ( l < M ) {
+          /* use the Newton-Raphson method to solve for t(k) of small k */
+          del = lmv->a[l*npr+ipr] / lmv->ki[l];
+          if ( fabs(del) > lmv->err1 ) lmv->err1 = fabs(del);
+        } else {
+          /* use the OZ relation to solve for t(k) of large k */
+          del = lmv->tk1[ij][l] - tk[ij][l];
+          if ( fabs(del) > lmv->err2 ) lmv->err2 = fabs(del);
+        }
+
+        tk[ij][l] += dmp * del;
+      }
+      if ( j > i ) cparr(tk[j*ns + i], tk[ij], npt);
+    }
+
+  return 0;
+}
+
+
+
+/* LMV solver */
 static double iter_lmv(model_t *model,
     double **vrsr, double **wk,
-    double **cr, double **der, double **ck, double **vklr,
-    double **tr, double **tk, double **ntk, double **Qrx,
-    double **invwc1w, uv_t *uv, int *niter)
+    double **cr, double **ck, double **vklr,
+    double **tr, double **tk, double **Qrx,
+    uv_t *uv, int *niter)
 {
-  int i, j, l, ij, it, M, npr, ipr, Mp;
-  int ns = model->ns, npt = model->npt;
-  double **Cjk = NULL, *mat = NULL, *b = NULL, **costab = NULL, *dp = NULL;
-  double y, err1 = 0, err2 = 0, err = 0, errp = errinf, dmp;
-  double **crbest, **tr1, **tk1, errmin = errinf;
-
-  newarr2d(crbest,  ns * ns,  npt);
-  newarr2d(tr1,     ns * ns,  npt);
-  newarr2d(tk1,     ns * ns,  npt);
-
-  cparr2d(crbest, cr, ns * ns, npt);
-
-  /* initialize t(k) and t(r) */
-  step_picard(model, NULL, vrsr, wk, cr, ck, vklr, tr, tk, Qrx, NULL, 0);
+  int it, M, ns = model->ns, npt = model->npt;
+  double err = 0, errp = errinf, dmp;
+  lmv_t *lmv;
 
   /* set the optimal M */
   M = (model->lmv.M > 0) ? model->lmv.M :
        (int) (2 * model->rmax/model->sigma[ns-1]);
-  if ( M >= npt ) M = npt;
-  if ( verbose ) fprintf(stderr, "select M = %d\n", M);
+
+  /* open an lmv object */
+  lmv = lmv_open(ns, npt, model->lmv.M, fft_ki);
+  cparr2d(lmv->crbest, cr, ns * ns, npt);
+
+  /* initialize t(k) and t(r) */
+  step_picard(model, NULL, vrsr, wk, cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
+  cparr2d(lmv->tk1, tk, ns * ns, npt);
 
   /* set the damping factor */
   dmp = (model->lmv.damp > 0) ? model->lmv.damp : 1;
 
-  npr = ns * (ns + 1) / 2;
-  Mp = M * npr;
-
-  /* initialize the cosine table */
-  if ( M > 0 ) {
-    newarr2d(Cjk, ns*ns, M*M);
-    newarr(mat, Mp*Mp);
-    newarr(b, Mp);
-    newarr(dp, 3*M);
-    newarr2d(costab, 3*M, npt);
-    for ( j = 0; j < 3*M; j++ )
-      for ( i = 0; i < npt; i++ )
-        costab[j][i] = cos(PI*(i+.5)*(j-M)/npt);
-  }
-
-  for ( it = 0; it < model->itmax; it++ ) {
-    /* compute the error of the current c(r) and c(k)
-     * by applying the closure without updating */
-    oz(model, ck, vklr, tk1, wk, NULL);
-    sphr_k2r(tk1, tr1, model->ns, uv->prmask);
-    err = closure(model, NULL, NULL, vrsr, cr, tr1, Qrx, uv->prmask, 0.0);
-    if ( err < errmin ) {
-      cparr2d(crbest, cr, ns * ns, npt);
-      errmin = err;
-    }
+  for ( it = 0; it <= model->itmax; it++ ) {
+    /* compute the error of the current c(r) and c(k) */
+    sphr_k2r(lmv->tk1, lmv->tr1, ns, uv->prmask);
+    err = closure(model, NULL, NULL, vrsr, cr, lmv->tr1, Qrx, uv->prmask, 0.);
+    lmv_savebest(lmv, cr, err);
 
     /* compute c(r) and c(k) from the closure */
-    closure(model, NULL, der, vrsr, cr, tr, Qrx, uv->prmask, 1.0);
-    sphr_r2k(cr, ck, ns, NULL);
-    //printf("stage %d, it %d, cr %g, ck %g, tr %g, tk %g, err %g\n", uv->stage, it, cr[0][0], ck[0][0], tr[0][0], tk[0][0], err);
+    closure(model, NULL, lmv->der, vrsr, cr, tr, Qrx, uv->prmask, 1.);
+    sphr_r2k(cr, ck, ns, uv->prmask);
+    oz(model, ck, vklr, lmv->tk1, wk, lmv->invwc1w);
 
-    /* compute Cjk */
-    getCjk(Cjk, npt, M, ns, der, costab, dp);
-
-    /* compute the new t(k) */
-    oz(model, ck, vklr, ntk, wk, invwc1w);
-
-    /* compute the Jacobian matrix for the Newton-Raphson method */
-    getjacob(mat, b, M, npr, ns, uv->prmask, ntk, tk, Cjk, invwc1w);
-
-    if ( lusolve(mat, b, Mp, DBL_MIN) != 0 ) {
-      fprintf(stderr, "LU solve failed: stage %d, it %d\n", uv->stage, it);
-      exit(1);
-    }
-
-    /* compute the new t(k) */
-    err1 = err2 = 0;
-    for ( ipr = 0, i = 0; i < ns; i++ )
-      for ( j = i; j < ns; j++, ipr++ ) {
-        ij = i*ns + j;
-        if ( !uv->prmask[ij] ) continue;
-
-        for ( l = 0; l < npt; l++ ) {
-          if ( l < M ) {
-            /* use the Newton-Raphson method to solve for t(k) of small k */
-            y = b[l*npr+ipr] / fft_ki[l];
-            if ( fabs(y) > err1 ) err1 = fabs(y);
-          } else {
-            /* use the OZ relation to solve for t(k) of large k */
-            y = ntk[ij][l] - tk[ij][l];
-            if ( fabs(y) > err2 ) err2 = fabs(y);
-          }
-
-          tk[ij][l] += dmp * y;
-          if ( j > i ) tk[j*ns+i][l] = tk[ij][l];
-        }
-      }
-    /* note that error of t(k) is different from that of c(r) in scale */
-    //err = (err1 > err2) ? err1 : err2;
-
-    sphr_k2r(tk, tr, ns, NULL);
+    /* compute the new tk */
+    if ( lmv_update(lmv, tk, dmp, uv) != 0 ) break;
+    sphr_k2r(tk, tr, ns, uv->prmask);
 
     if ( verbose )
       fprintf(stderr, "it %d: M %d, err %g -> %g, tk_err %g/%g, damp %g\n",
-          it, M, errp, err, err1, err2, dmp);
+          it, M, errp, err, lmv->err1, lmv->err2, dmp);
 
-    if ( err < model->tol ) {
+    if ( err < model->tol || it == model->itmax ) {
+      /* use the best cr discovered so far */
+      cparr2d(cr, lmv->crbest, ns * ns, npt);
+      /* update the corresponding ck, tr, tk, and the error */
+      err = step_picard(model, NULL, vrsr, wk,
+          cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
       //fprintf(stderr, "switching stage %d, it %d, err %g, tol %g\n", uv->stage, it, err, model->tol); getchar();
       /* switch between stages */
-      if ( uv_switch(uv) != 0 ) break;
-      if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->infdil && uv->atomicsolute && uv->douu != DOUU_ALWAYS ) {
+      if ( uv_switch(uv) != 0 ) {
+        if ( uv->uu1step )
           err = step_uu_infdil_atomicsolute(model, vrsr, wk,
               cr, ck, vklr, tr, tk, Qrx, uv->prmask);
-          break;
-        }
+        break;
       }
+      err = step_picard(model, NULL, vrsr, wk,
+          cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0.);
+      cparr2d(lmv->tk1, tk, ns * ns, npt);
+      lmv->errmin = err;
       it = -1;
-      err = errinf;
     }
     errp = err;
   }
-  /* use the best cr discovered so far */
-  cparr2d(cr, crbest, ns * ns, npt);
-  /* update the corresponding ck, tr, tk, and the error */
-  err = step_picard(model, NULL, vrsr, wk, cr, ck, vklr, tr, tk, Qrx, uv->prmask, 0);
-
   *niter = it;
-  if ( M > 0 ) {
-    delarr2d(Cjk, ns*ns);
-    delarr(mat);
-    delarr(b);
-    delarr(dp);
-    delarr2d(costab, 3*M);
-  }
-  delarr2d(crbest,  ns * ns);
-  delarr2d(tr1,     ns * ns);
-  delarr2d(tk1,     ns * ns);
-
+  lmv_close(lmv);
   return err;
 }
 
