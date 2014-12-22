@@ -25,6 +25,7 @@
 int model_id = 16;
 int verbose = 0;
 const char *fncrtr = "out.dat";
+const char *fncrtrinp = NULL;
 int sepout = 0;
 const char *fncrdnum = NULL;
 int printk = 0;
@@ -38,10 +39,11 @@ static void help(const char *prog)
   fprintf(stderr, "Usage:\n");
   fprintf(stderr, "  %s [Options] [input.cfg|model_id]\n\n", prog);
   fprintf(stderr, "Options:\n");
-  fprintf(stderr, "  -o:    followed by the output file, default: %s\n", fncrtr);
+  fprintf(stderr, "  -o:    followed by the output crtr file, default: %s\n", fncrtr);
+  fprintf(stderr, "  -i:    followed by the input crtr file, default: NULL\n");
   fprintf(stderr, "  -k:    print k-space correlation functions, default %d\n", printk);
   fprintf(stderr, "  -$:    separately output file for each lambda, default %d\n", sepout);
-  fprintf(stderr, "  -#:    followed by the output coordination number file, default: %s\n", fncrdnum);
+  fprintf(stderr, "  -#:    followed by the output coordination number file, default: NULL\n");
   fprintf(stderr, "  -8:    set the magnitude of c(r), default %g\n", CRMAX);
   fprintf(stderr, "  -!:    skip the solute-solute stage calculation, default: false\n");
   fprintf(stderr, "  -u:    always do the solute-solute stage calculation, default: false\n");
@@ -50,8 +52,9 @@ static void help(const char *prog)
   fprintf(stderr, "  -q:    override the charge, must be nonnegative, e.g. -q2,0.25 sets the charge of the second atom to 0.25\n");
   fprintf(stderr, "  -d:    override the distance, e.g. -d1,2,1.5 sets the distance between the first two atoms to 1.5\n");
   fprintf(stderr, "  -T:    override the temperature, e.g. -T298 sets the temperature to 298K\n");
-  fprintf(stderr, "  -C:    override the closure, %d: PY, %d: HNC, %d: KH\n", IE_PY, IE_HNC, IE_KH);
-  fprintf(stderr, "  -S:    override the solver, %d: Picard, %d: LMV, %d: MDIIS\n", SOLVER_PICARD, SOLVER_LMV, SOLVER_MDIIS);
+  fprintf(stderr, "  -C:    override the closure, options: PY, HNC, or KH\n");
+  fprintf(stderr, "  -S:    override the solver, options: Picard, LMV, or MDIIS\n");
+  fprintf(stderr, "  -^:    override the number of lambda stages\n");
   fprintf(stderr, "  -v:    be verbose, -vv to be more verbose, etc.\n");
   fprintf(stderr, "  -h:    display this message\n");
   exit(1);
@@ -83,7 +86,7 @@ static model_t *doargs(int argc, char **argv)
      * loop over characters in the options
      * in this way, `-vo' is understood as `-v -o' */
     for ( j = 1; (ch = argv[i][j]) != '\0'; j++ ) {
-      if ( strchr("orqdTCS#8", ch) != NULL ) {
+      if ( strchr("oi#rqdTCS^8", ch) != NULL ) {
         /* handle options that require an argument */
         q = p = argv[i] + j + 1;
         if ( *p != '\0' ) {
@@ -102,6 +105,8 @@ static model_t *doargs(int argc, char **argv)
         }
         if ( ch == 'o' ) {
           fncrtr = q;
+        } else if ( ch == 'i' ) {
+          fncrtrinp = q;
         } else if ( ch == '#' ) {
           fncrdnum = q;
         } else if ( ch == 'r' ) { /* override the density */
@@ -116,10 +121,12 @@ static model_t *doargs(int argc, char **argv)
         } else if ( ch == 'T' ) {
           model_usr->beta = 1/atof(q);
         } else if ( ch == 'C' ) { /* override the closure */
-          model_usr->ietype = atoi(q);
+          model_usr->ietype = model_select(q, IE_COUNT, ietypes);
         } else if ( ch == 'S' ) { /* override the solver */
-          model_usr->solver = atoi(q);
-        } else if ( ch == '8' ) {
+          model_usr->solver = model_select(q, SOLVER_COUNT, solvers);
+        } else if ( ch == '^' ) { /* override the number of lambdas */
+          model_usr->nlambdas = atoi(q);
+        } else if ( ch == '8' ) { /* override the maximal value of c(r) */
           model_usr->crmax = atof(q);
         }
         break; /* skip the rest of the characters in the option */
@@ -686,7 +693,7 @@ static int dorism(model_t *model)
   xnew(um, ns);
   xnew(mum, ns);
 
-  initfftw(model->rmax, npt);
+  initfft(model->rmax, npt);
   initwk(model, wk);
 
   /* lambda is used to gradually switch on long-range interaction */
@@ -707,8 +714,8 @@ static int dorism(model_t *model)
     uv = uv_open(model);
 
     if ( model->solver == SOLVER_LMV ) {
-      err = iter_lmv(model, vrsr, wk, cr, der, ck, vklr,
-          tr, tk, ntk, cp, uv, &it);
+      err = iter_lmv(model, vrsr, wk, cr, ck, vklr,
+          tr, tk, uv, &it);
     } else if ( model->solver == SOLVER_MDIIS ) {
       err = iter_mdiis(model, vrsr, wk, cr, ck, vklr,
           tr, tk, uv, &it);
@@ -751,7 +758,7 @@ static int dorism(model_t *model)
   delarr2d(der,   ns * ns);
   free(um);
   free(mum);
-  donefftw();
+  donefft();
   return 0;
 }
 

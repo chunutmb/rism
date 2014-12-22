@@ -10,7 +10,6 @@
 #include <limits.h>
 #include <float.h>
 #include <math.h>
-#include <fftw3.h>
 
 
 
@@ -105,12 +104,10 @@
     exit(1); } }
 #endif
 
-#define newarr(x, n) x = (double *) fftw_malloc(sizeof(x[0]) * n)
-#define delarr(x) fftw_free(x)
-
 /* copy array */
-#define cparr(x, y, n) { int k_; \
-  for ( k_ = 0; k_ < (n); k_++ ) x[k_] = y[k_]; }
+#define cparr(x, y, n) { int i_; \
+  for ( i_ = 0; i_ < n; i_++ ) \
+    x[i_] = y[i_]; }
 
 /* allocate a two-dimensional array */
 #define newarr2d(x, m, n) { int i_; \
@@ -136,7 +133,6 @@
 
 
 
-fftw_plan fftwplan;
 double *fft_arr;
 double *fft_ri, *fft_ki;
 double fft_dr, fft_dk;
@@ -144,8 +140,169 @@ int fft_npt;
 
 
 
-/* initialize fftw */
-static void initfftw(double rmax, int npt)
+#ifndef NOFFTW
+
+
+
+#include <fftw3.h>
+fftw_plan fftwplan;
+
+
+
+#define newarr(x, n) x = (double *) fftw_malloc(sizeof(x[0]) * n)
+#define delarr(x) fftw_free(x)
+
+
+
+#else /* NOFFTW is defined, use the home-made version */
+
+
+
+#define newarr(x, n) x = malloc(sizeof(x[0]) * n)
+#define delarr(x) free(x)
+
+
+
+/* Discription:
+ *   replace the complex array a[] by their discrete fast fourier transform
+ *
+ * Parameter:
+ *   o a[] is both the input and the output
+ *   o a[i*2] and a[i*2+1] are the real and complex parts, respectively
+ *   o n must be a power of 2
+ *   o if sign is 1, do fast fourier transform,
+ *     if sign is 0 or -1, do the inverse transform
+ *
+ * Return:
+ *   on sucess, returns 0;
+ *   if n isn't an integer power of 2, returns 1
+ */
+static int fft(double a[], int n, int sign)
+{
+  double s, c, bs, bsh, bcb, bth = PI, tmpre, tmpim, tmp;
+  int gaddr, gspan = 1; /* gaddr is the starting index of each group */
+  int coupid, coups;  /* coups is how many couples in each group */
+  int i, j, m;
+
+  /* check if n is an integer power of 2 */
+  for (m = n; (m & 1) == 0; m >>= 1) ;
+  if (m > 1) {
+    fprintf(stderr, "n %d is not a power of 2\n", n);
+    exit(1);
+  }
+
+  if (sign > 0) bth = -bth;
+
+  j = 0;
+  /* bit reversal */
+  for (i = 1; i < n - 1; i++) {
+    m = n >> 1;
+    while (j >= m) {
+      j -= m;
+      m >>= 1;
+    }
+    j += m;
+    if (j > i) {
+      tmp = a[i*2]; a[i*2] = a[j*2]; a[j*2] = tmp;
+      tmp = a[i*2+1]; a[i*2+1] = a[j*2+1]; a[j*2+1] = tmp;
+    }
+  }
+
+  /* Danielson and Lanczos */
+  bsh = 0;
+  while (n > gspan) {
+    bs = bsh;
+    bsh = sin(bth / 2);
+    bcb = 2*bsh*bsh;
+    c = 1;
+    s = 0;
+    coups = gspan;
+    gspan *= 2;
+    /* for each couple
+     * NOTE: the value of bth (its sine and also its cosine) is only
+     * relevent to the couple id, that means, two couples with a same
+     * couple id will share a same theta */
+    for (coupid = 0; coupid < coups; coupid++) {
+      /* for each group */
+      for (gaddr = 0; gaddr < n; gaddr += gspan) {
+        i = gaddr + coupid; j = i + coups;
+        /* calculate this couple by following fomula
+         * ai = ai + aj * (c + s i);
+         * aj = ai - aj * (c + s i);
+         */
+        tmpre = a[j*2]*c - a[j*2+1]*s;
+        tmpim = a[j*2]*s + a[j*2+1]*c;
+        a[j*2] = a[i*2] - tmpre;
+        a[i*2] += tmpre;
+        a[j*2+1] = a[i*2+1] - tmpim;
+        a[i*2+1] += tmpim;
+      }
+      /* deal next couple, increase  cosine and sine by
+       * cos(a+b) = cos(a)*cos(b) - sin(a)*sin(b);
+       * sin(a+b) = sin(a)*cos(b) + cos(a)*sin(b);
+       * but when b is very small(when n is a verylarge number),
+       * cos(b) will be very close to 1 and inaccute,
+       * so we replace these fomulas by introduce bcb = 1-cos(b) = 2*sin(b/2)*sin(b/2),
+       * -- a reletively small number,
+       * cos(a+b) = cos(a) + (cos(a)*(-bcb) - sin(a)*sin(b));
+       * sin(a+b) = sin(a) + (sin(a)*(-bcb) + cos(a)*sin(b));
+       */
+      c += -(tmp = c)*bcb - s*bs;
+      s += -s*bcb + tmp*bs;
+    } /* end for each couple */
+    bth /= 2;
+  }
+  return 0;
+}
+
+
+
+double *sint_arr;
+
+/* sine transform, return \int 2 * sin(k x) a(x) dx */
+__inline static int sint11(double a[], int n)
+{
+  int err, i;
+  double c, s, th, c1, s1, tmp;
+
+  th = PI/(2*n);
+  c1 = cos(th);
+  s1 = sin(th);
+  th /= 2;
+  c = cos(th);
+  s = sin(th);
+  for (i = 0; i < n; i++) {
+    /* c = cos(PI*(i+.5)/(2*n)); s = sin(PI*(i+.5)/(2*n)); */
+    sint_arr[i*2] = a[i] * c;
+    sint_arr[(2*n-1-i)*2] = -sint_arr[i*2];
+    sint_arr[i*2+1] = a[i] * s;
+    sint_arr[(2*n-1-i)*2+1] = sint_arr[i*2+1];
+    tmp = c * c1 - s * s1;
+    s = s * c1 + c * s1;
+    c = tmp;
+  }
+  err = fft(sint_arr, 2 * n, 0);
+  c = 1;
+  s = 0;
+  for (i = 0; i < n; i++) {
+    /* c = cos(PI*i/(2*n)); s = sin(PI*i/(2*n)); */
+    /* re' = re * c - im * s; im' = re * s + im * c; */
+    a[i] = sint_arr[i*2] * s + sint_arr[i*2+1] * c;
+    tmp = c * c1 - s * s1;
+    s = s * c1 + c * s1;
+    c = tmp;
+  }
+  return err;
+}
+
+
+
+#endif
+
+
+
+/* initialize fft */
+static void initfft(double rmax, int npt)
 {
   int i;
 
@@ -153,27 +310,35 @@ static void initfftw(double rmax, int npt)
   fft_dr = rmax / npt;
   fft_dk = (2*PI) / (2*npt*fft_dr);
   newarr(fft_arr, npt);
-  fftwplan = fftw_plan_r2r_1d(npt, fft_arr, fft_arr,
-      FFTW_RODFT11, FFTW_ESTIMATE);
-  if ( fftwplan == NULL ) exit(1);
   newarr(fft_ri, npt);
   newarr(fft_ki, npt);
   for ( i = 0; i < npt; i++ ) {
     fft_ri[i] = (i + .5) * fft_dr;
     fft_ki[i] = (i + .5) * fft_dk;
   }
+#ifndef NOFFTW
+  fftwplan = fftw_plan_r2r_1d(npt, fft_arr, fft_arr,
+      FFTW_RODFT11, FFTW_ESTIMATE);
+  if ( fftwplan == NULL ) exit(1);
+#else
+  newarr(sint_arr, 4*npt);
+#endif
 }
 
 
 
-/* clean up fftw */
-static void donefftw(void)
+/* clean up fft */
+static void donefft(void)
 {
   delarr(fft_arr);
-  fftw_destroy_plan(fftwplan);
-  fftw_cleanup();
   free(fft_ri);
   free(fft_ki);
+#ifndef NOFFTW
+  fftw_destroy_plan(fftwplan);
+  fftw_cleanup();
+#else
+  delarr(sint_arr);
+#endif
 }
 
 
@@ -201,7 +366,11 @@ static void sphrt(double **fr, double **fk,
       if ( prmask && !prmask[ij] ) continue;
       for ( l = 0; l < fft_npt; l++ )
         fft_arr[l] = fr[ij][l] * ri[l];
+#ifdef NOFFTW
+      sint11(fft_arr, fft_npt);
+#else
       fftw_execute(fftwplan);
+#endif
       for ( l = 0; l < fft_npt; l++ ) {
         fk[ij][l] = fft_arr[l] * fac / ki[l];
         if ( j > i ) fk[j*ns + i][l] = fk[ij][l];
@@ -209,6 +378,11 @@ static void sphrt(double **fr, double **fk,
     }
   }
 }
+
+
+
+
+
 
 
 

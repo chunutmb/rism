@@ -162,19 +162,35 @@ static double calcdielec(model_t *m)
 
 
 
-/* return the radial distribution function */
-static double getgr(model_t *m, double cr, double tr, double vrsr)
+/* return the logarithm of the radial distribution function */
+static double getlngr(model_t *m, double cr, double tr, double vrsr)
 {
-  double gr_tiny = m->tol * 100, gr;
-  gr = cr + tr + 1;
-  if ( gr < gr_tiny || m->ietype == IE_HNC ) /* only for HNC */
-    gr = exp( -vrsr + tr );
-  return gr;
+#ifdef GR_TINY /* user-specified threshold */
+  double gr_tiny = GR_TINY;
+#else
+  double gr_tiny = m->tol * 100;
+#endif
+  double lngr = -vrsr + tr; /* the HNC case, stable */
+  if ( m->ietype != IE_HNC ) { /* try to use the exact g(r) if it is positive */
+    double gr0 = 1 + cr + tr;
+    return ( gr0 > gr_tiny ) ? log(gr0) : lngr;
+  }
+  return lngr;
 }
 
 
 
-/* compute the Kirkword integrals */
+/* return the radial distribution function
+ * the result is nonnegative */
+static double getgr(model_t *m, double cr, double tr, double vrsr)
+{
+  return exp( getlngr(m, cr, tr, vrsr) );
+}
+
+
+
+/* compute the Kirkword integrals
+ * NOTE: this routine may fail for charged systems */
 static int calckirk(model_t *m, double **cr, double **tr,
     double **vrsr, double *kirk)
 {
@@ -203,7 +219,8 @@ static int calckirk(model_t *m, double **cr, double **tr,
 
 
 
-/* compute the running coordination numbers */
+/* compute the running coordination numbers
+ * NOTE: this routine may fail for charged systems */
 static int calccrdnum(model_t *m,
     double **cr, double **tr, double **vrsr,
     const char *fn)
@@ -267,7 +284,7 @@ static int calccrdnum(model_t *m,
 
 
 /* compute the internal energy
- * NOTE: this routine does not work for charged systems */
+ * NOTE: this routine may fail for charged systems */
 static int calcU(model_t *m, double **ur,
     double **cr, double **tr, double **vrsr,
     double *um)
@@ -302,7 +319,7 @@ static int calcU(model_t *m, double **ur,
 
 
 /* compute the chemical potential
- * NOTE: this routine does not work for charged systems */
+ * NOTE: this routine may fail for charged systems */
 static int calcchempot(model_t *m, double **cr, double **tr,
     double **vrsr, double **vrlr, double *bmum, int verbose)
 {

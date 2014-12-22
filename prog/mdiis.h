@@ -41,7 +41,7 @@ static mdiis_t *mdiis_open(int ns, int npt, int mnb)
   newarr(m->mat,    mnb1 * mnb1);
   newarr(m->mat2,   mnb1 * mnb1);
   newarr(m->coef,   mnb1);
-  newarr(m->crbest,   ns2 * npt);
+  newarr(m->crbest, ns2 * npt);
   m->errmin = errinf;
   return m;
 }
@@ -242,7 +242,7 @@ static double iter_mdiis(model_t *model,
 {
   mdiis_t *mdiis;
   int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
-  double err, errp = errinf, damp = model->mdiis.damp, *res;
+  double err, errp, damp = model->mdiis.damp, *res;
 
   /* open the mdiis object if needed */
   mdiis = mdiis_open(ns, npt, model->mdiis.nbases);
@@ -254,6 +254,7 @@ static double iter_mdiis(model_t *model,
       cr, ck, vklr, tr, tk, uv->prmask, 0.);
   mdiis_build(mdiis, cr, res, uv);
 
+  err = errp = errinf;
   for ( it = 0; it <= model->itmax; it++ ) {
     /* obtain a set of optimal coefficients of combination */
     mdiis_solve(mdiis);
@@ -274,13 +275,11 @@ static double iter_mdiis(model_t *model,
       if ( it >= model->itmax && verbose )
         fprintf(stderr, "MDIIS: failure, stage %d, use the best c(r) with residue %g\n",
            uv->stage, mdiis->errmin); //getchar();
-      if ( uv_switch(uv) != 0 ) break;
-      if ( uv->stage == SOLUTE_SOLUTE ) {
-        if ( uv->infdil && uv->atomicsolute && uv->douu != DOUU_ALWAYS ) {
+      if ( uv_switch(uv) != 0 ) {
+        if ( uv->uu1step )
           err = step_uu_infdil_atomicsolute(model, vrsr, wk,
               cr, ck, vklr, tr, tk, uv->prmask);
-          break;
-        }
+        break;
       }
       /* reset the basis */
       err = step_picard(model, res, vrsr, wk,

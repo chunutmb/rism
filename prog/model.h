@@ -61,6 +61,7 @@ typedef struct {
   double sigma; /* eps6 (sigma/r)^6 + eps12 (sigma/r)^12 */
   double eps6;  /* eps6 (sigma/r)^6 */
   double eps12; /* eps12 (sigma/r)^12 */
+  double rscreen; /* screening radius */
 } pairpot_t;
 
 typedef struct {
@@ -403,6 +404,10 @@ static int model_load(model_t *m, const char *fn, int verbose)
       ipr = model_getidx2(key, &i, &j, ns, 1);
       m->pairpot[ipr].rho = atof(val);
       ECHO_ARR2("rho", m->pairpot[ipr].rho);
+    } else if ( strstartswith(key, "rscreenij(") ) {
+      ipr = model_getidx2(key, &i, &j, ns, 1);
+      m->pairpot[ipr].rscreen = atof(val);
+      ECHO_ARR2("rscreen", m->pairpot[ipr].rscreen);
     } else if ( strcmp_fuzzy(key, "T") == 0
              || strcmp_fuzzy(key, "temp") == 0 ) {
       temp = atof(val);
@@ -615,7 +620,7 @@ model_t models[] =
     5, 10000, 1e-7,
     SOLVER_MDIIS,
     {0.01}, /* does not work */
-    {0, 0.5},
+    {0, 0.4},
     {5, 0.2}
   },
   /* 6. HR1981, liquid nitrogen, neutral */
@@ -638,7 +643,7 @@ model_t models[] =
     1./72, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
-    10, 100000, 1e-7,
+    10, 1000, 1e-7,
     SOLVER_LMV,
     {0.01},
     {10, 0.5},
@@ -651,7 +656,7 @@ model_t models[] =
     1./210, 1.0, KBNA, LJ_FULL,
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
-    10, 100000, 1e-7,
+    10, 1000, 1e-7,
     SOLVER_LMV,
     {0.01},
     {10, 0.5},
@@ -670,7 +675,7 @@ model_t models[] =
     {10, 0.5},
     {5, 0.1}
   },
-  /* 10. PR1982, H2O, model I
+  /* 10. PR1982, H2O, model 1
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * the unit of C6 is kcal A^6 / mol
@@ -692,7 +697,7 @@ model_t models[] =
     {20, 0.5},
     {5, 0.5}
   },
-  /* 11. PR1982, H2O, model II (SPC)
+  /* 11. PR1982, H2O, model 2 (SPC)
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * the unit of C6 is kcal A^6 / mol
@@ -714,7 +719,7 @@ model_t models[] =
     {20, 0.5},
     {5, 0.5}
   },
-  /* 12. PR1982, H2O, model III (TIPS)
+  /* 12. PR1982, H2O, model 3 (TIPS)
    * atom 0: O, atom 1: H1, atom 2: H2
    * C6/C12 are used instead of sigma/epsilon
    * the unit of C6 is kcal A^6 / mol
@@ -743,9 +748,9 @@ model_t models[] =
    * the unit of LJ energy is Kelvin
    * cf. https://en.wikipedia.org/wiki/Water_model */
   {3, {3.1666, 0.4, 0.4},
-    { {78.2083543, 78.2083543}, /* O */
-      {0, 23.150478}, /* H1 */ {0, 23.150478} /* H2 */ }, {{0}},
-    {0.033314, 0.033314, 0.033314},
+    { {78.21, 78.21}, /* O */
+      {0, 23.15}, /* H1 */ {0, 23.15} /* H2 */ }, {{0}},
+    {0.03334, 0.03334, 0.03334},
     {1.0, 1.0, 1.633},
     1./300, 1.0, KBNA, LJ_FULL,
     {-0.8476, 0.4238, 0.4238}, KE2PK, 1.0,
@@ -756,7 +761,7 @@ model_t models[] =
     {25, 0.5},
     {5, 0.5}
   },
-  /* 14. TIP3, H2O
+  /* 14. TIP3P, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
    * the following data are copied from
    *  /Bossman/Software/3Drism/h2o_lib/tip3
@@ -909,10 +914,14 @@ static int model_override(model_t *m, const model_t *m_usr)
 
   /* override the density and charges */
   for ( i = 0; i < ns; i++ ) {
-    if ( (x = m_usr->rho[i]) > 0 )
-     m->rho[i] = m_usr->rho[i];
-    if ( fabs(x = m_usr->charge[i]) > 0 )
-     m->charge[i] = m_usr->charge[i];
+    if ( (x = m_usr->rho[i]) > 0 ) {
+      m->rho[i] = m_usr->rho[i];
+      fprintf(stderr, "density of %d is set to %g\n", i+IDBASE, m->rho[i]);
+    }
+    if ( fabs(x = m_usr->charge[i]) > 0 ) {
+      m->charge[i] = m_usr->charge[i];
+      fprintf(stderr, "charge of %d is set to %g\n", i+IDBASE, m->charge[i]);
+    }
   }
 
   /* override the distances */
@@ -932,22 +941,27 @@ static int model_override(model_t *m, const model_t *m_usr)
   /* override the solver of the integral equation */
   if ( m_usr->solver >= 0  && m_usr->solver < SOLVER_COUNT ) {
     m->solver = m_usr->solver;
-    fprintf(stderr, "solver is changed to %d\n", m->solver);
+    fprintf(stderr, "solver is changed to %s\n", solvers[m->solver]);
   }
 
   /* override the closure */
   if ( m_usr->ietype >= 0 && m_usr->ietype < IE_COUNT ) {
     m->ietype = m_usr->ietype;
-    fprintf(stderr, "ietype is changed to %d\n", m->ietype);
+    fprintf(stderr, "ietype is changed to %s\n", ietypes[m->ietype]);
   }
 
   /* override how to do solute-solute interactions */
   if ( m_usr->douu >= 0 && m_usr->douu < DOUU_COUNT
     && m_usr->douu != m->douu ) {
     m->douu = m_usr->douu;
-    fprintf(stderr, "douu is changed to %d\n", m->douu);
+    fprintf(stderr, "douu is changed to %s\n", douutypes[m->douu]);
   }
 
+  /* override the number of lambdas */
+  if ( m_usr->nlambdas > 0 )
+    m->nlambdas = m_usr->nlambdas;
+
+  /* override the maximal value of c(r) */
   m->crmax = m_usr->crmax;
   if ( m->crmax <= 0 ) m->crmax = CRMAX;
   return 0;
