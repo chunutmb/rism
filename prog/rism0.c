@@ -470,7 +470,8 @@ static double getcr(double tr, double vrsr,
       cr = -vrsr;
     }
   } else {
-    fprintf(stderr, "unknown closure %d\n", ietype);
+    fprintf(stderr, "unknown closure %d (%s)\n",
+        ietype, ietypes[ietype]);
     exit(1);
   }
   if ( cr > crmax ) cr = crmax;

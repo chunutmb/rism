@@ -561,10 +561,10 @@ __inline static char *strstrip(char *s)
 
 
 
-#define strcmp_fuzzy(s, t) strncmp_fuzzy(s, t, INT_MAX)
+#define strcmpfuzzy(s, t) strncmpfuzzy(s, t, INT_MAX)
 
 /* comparison, ignoring cases, spaces and punctuations */
-__inline static int strncmp_fuzzy(const char *s, const char *t, int n)
+__inline static int strncmpfuzzy(const char *s, const char *t, int n)
 {
   int is, it, i;
   const char cset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()[]{}";
@@ -585,7 +585,7 @@ __inline static int strncmp_fuzzy(const char *s, const char *t, int n)
 /* check if `s' starts with `t', using fuzzy comparison */
 __inline static int strstartswith(const char *s, const char *t)
 {
-  return strncmp_fuzzy(s, t, strlen(t)) == 0;
+  return strncmpfuzzy(s, t, strlen(t)) == 0;
 }
 
 
