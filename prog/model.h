@@ -116,9 +116,16 @@ static int model_select(const char *s, int n, const char **arr)
   int i;
 
   for ( i = 0; i < n; i++ )
-    if ( strcmp_fuzzy(arr[i], s) == 0 )
+    if ( strcmpfuzzy(arr[i], s) == 0 )
       return i;
-  fprintf(stderr, "Error: cannot find %s\n", s);
+  if ( isdigit(s[0]) ) {
+    i = atoi(s);
+    if ( i >= 0 && i < n ) return i;
+  }
+  fprintf(stderr, "Error: cannot select %s from the array of %d items:", s, n);
+  for ( i = 0; i < n; i++ )
+    fprintf(stderr, " %s", arr[i]);
+  fprintf(stderr, "\n");
   exit(1);
   return 0;
 }
@@ -138,9 +145,12 @@ static double model_map(const char *s, const constmap_t *arr)
   int i;
 
   for ( i = 0; arr[i].key != NULL; i++ )
-    if ( strcmp_fuzzy(arr[i].key, s) == 0 )
+    if ( strcmpfuzzy(arr[i].key, s) == 0 )
       return arr[i].val;
-  fprintf(stderr, "Error: cannot find %s\n", s);
+  fprintf(stderr, "Error: cannot find %s in", s);
+  for ( i = 0; arr[i].key != NULL; i++ )
+    fprintf(stderr, " %s", arr[i].key);
+  fprintf(stderr, "\n");
   exit(1);
   return 0;
 }
@@ -336,7 +346,7 @@ static int model_load(model_t *m, const char *fn, int verbose)
       sprintf(val_, "%-12g (pair %d)", val, ipr); \
       ECHO_STR(key_, val_); }
 
-    if ( strcmp_fuzzy(key, "ns") == 0 ) {
+    if ( strcmpfuzzy(key, "ns") == 0 ) {
       m->ns = ns = atoi(val);
       if ( ns > MAXATOM ) {
         fprintf(stderr, "too many sites %d > %d, recompile the program with increased MAXATOM\n",
@@ -408,81 +418,81 @@ static int model_load(model_t *m, const char *fn, int verbose)
       ipr = model_getidx2(key, &i, &j, ns, 1);
       m->pairpot[ipr].rscreen = atof(val);
       ECHO_ARR2("rscreen", m->pairpot[ipr].rscreen);
-    } else if ( strcmp_fuzzy(key, "T") == 0
-             || strcmp_fuzzy(key, "temp") == 0 ) {
+    } else if ( strcmpfuzzy(key, "T") == 0
+             || strcmpfuzzy(key, "temp") == 0 ) {
       temp = atof(val);
       ECHO("T", temp);
-    } else if ( strcmp_fuzzy(key, "kBT") == 0 ) {
+    } else if ( strcmpfuzzy(key, "kBT") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->kBT = model_map(val, constants);
       } else {
         m->kBT = atof(val);
       }
       ECHO("kBT", m->kBT);
-    } else if ( strcmp_fuzzy(key, "kB") == 0 ||
-                strcmp_fuzzy(key, "kBU") == 0 ||
-                strcmp_fuzzy(key, "kBE") == 0 ) {
+    } else if ( strcmpfuzzy(key, "kB") == 0 ||
+                strcmpfuzzy(key, "kBU") == 0 ||
+                strcmpfuzzy(key, "kBE") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->kBU = model_map(val, constants);
       } else {
         m->kBU = atof(val);
       }
       ECHO("kBU", m->kBU);
-    } else if ( strcmp_fuzzy(key, "LJ-type") == 0 ) {
+    } else if ( strcmpfuzzy(key, "LJ-type") == 0 ) {
       m->ljtype = model_select(val, LJ_COUNT, ljtypes);
       ECHO_STR("LJ-type", ljtypes[m->ljtype]);
-    } else if ( strcmp_fuzzy(key, "ampch") == 0 ) {
+    } else if ( strcmpfuzzy(key, "ampch") == 0 ) {
       if ( isalpha(val[0]) ) {
         m->ampch = model_map(val, constants);
       } else {
         m->ampch = atof(val);
       }
       ECHO("unit of e^2", m->ampch);
-    } else if ( strcmp_fuzzy(key, "rscreen") == 0 ) {
+    } else if ( strcmpfuzzy(key, "rscreen") == 0 ) {
       m->rscreen = atof(val);
       ECHO("rscreen", m->rscreen);
-    } else if ( strcmp_fuzzy(key, "closure") == 0
-             || strcmp_fuzzy(key, "ietype") == 0 ) {
+    } else if ( strcmpfuzzy(key, "closure") == 0
+             || strcmpfuzzy(key, "ietype") == 0 ) {
       m->ietype = model_select(val, IE_COUNT, ietypes);
       ECHO_STR("closure", ietypes[m->ietype]);
-    } else if ( strcmp_fuzzy(key, "rmax") == 0 ) {
+    } else if ( strcmpfuzzy(key, "rmax") == 0 ) {
       m->rmax = atof(val);
       ECHO("rmax", m->rmax);
-    } else if ( strcmp_fuzzy(key, "npt") == 0
-             || strcmp_fuzzy(key, "n-pts") == 0 ) {
+    } else if ( strcmpfuzzy(key, "npt") == 0
+             || strcmpfuzzy(key, "n-pts") == 0 ) {
       m->npt = atoi(val);
       ECHO_INT("npt", m->npt);
     } else if ( strstartswith(key, "nlambda") ) {
       m->nlambdas = atoi(val);
       ECHO_INT("nlambdas", m->nlambdas);
-    } else if ( strcmp_fuzzy(key, "itmax") == 0 ) {
+    } else if ( strcmpfuzzy(key, "itmax") == 0 ) {
       m->itmax = atoi(val);
       ECHO_INT("itmax", m->itmax);
-    } else if ( strcmp_fuzzy(key, "tol") == 0 ) {
+    } else if ( strcmpfuzzy(key, "tol") == 0 ) {
       m->tol = atof(val);
       ECHO("tol", m->tol);
-    } else if ( strcmp_fuzzy(key, "solver") == 0 ) {
+    } else if ( strcmpfuzzy(key, "solver") == 0 ) {
       m->solver = model_select(val, SOLVER_COUNT, solvers);
       ECHO_STR("solver", solvers[m->solver]);
-    } else if ( strcmp_fuzzy(key, "Picard-damp") == 0 ) {
+    } else if ( strcmpfuzzy(key, "Picard-damp") == 0 ) {
       m->picard.damp = atof(val);
       ECHO("Picard-damp", m->picard.damp);
-    } else if ( strcmp_fuzzy(key, "LMV-M") == 0 ) {
+    } else if ( strcmpfuzzy(key, "LMV-M") == 0 ) {
       m->lmv.M = atoi(val);
       ECHO_INT("LMV-M", m->lmv.M);
-    } else if ( strcmp_fuzzy(key, "LMV-damp") == 0 ) {
+    } else if ( strcmpfuzzy(key, "LMV-damp") == 0 ) {
       m->lmv.damp = atof(val);
       ECHO("LMV-damp", m->lmv.damp);
-    } else if ( strcmp_fuzzy(key, "MDIIS-nbases") == 0 ) {
+    } else if ( strcmpfuzzy(key, "MDIIS-nbases") == 0 ) {
       m->mdiis.nbases = atoi(val);
       ECHO_INT("MDIIS-nbases", m->mdiis.nbases);
-    } else if ( strcmp_fuzzy(key, "MDIIS-damp") == 0 ) {
+    } else if ( strcmpfuzzy(key, "MDIIS-damp") == 0 ) {
       m->mdiis.damp = atof(val);
       ECHO("MDIIS-damp", m->mdiis.damp);
-    } else if ( strcmp_fuzzy(key, "douu") == 0 ) {
+    } else if ( strcmpfuzzy(key, "douu") == 0 ) {
       m->douu = model_select(val, DOUU_COUNT, douutypes);
       ECHO_STR("douu", douutypes[m->douu]);
-    } else if ( strcmp_fuzzy(key, "crmax") == 0 ) {
+    } else if ( strcmpfuzzy(key, "crmax") == 0 ) {
       m->crmax = atof(val);
       ECHO("crmax", m->crmax);
     } else {
@@ -896,7 +906,7 @@ static int model_register_disij(model_t *m_usr, char *s)
   i -= 1;
   j -= 1;
   p2++;
-  if ( strncmp_fuzzy(p2, "inf", 3) == 0 )
+  if ( strncmpfuzzy(p2, "inf", 3) == 0 )
     dis = -1; /* this means infinity; note, 0 will be ignored */
   else
     dis = replzero( atof(p2) );
