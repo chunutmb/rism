@@ -96,5 +96,5 @@ UV.prototype.switchstage = function()
     return 1;
   }
   return 0;
-}
+};
 

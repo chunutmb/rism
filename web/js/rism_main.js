@@ -41,7 +41,7 @@ function solve()
     } else if ( solver == "MDIIS" ) {
       ret = iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv);
     } else {
-      ret = iter_picard(vrsr, wk, cr, ck, vklr, tr, tk)
+      ret = iter_picard(vrsr, wk, cr, ck, vklr, tr, tk);
     }
     err = ret[0];
     it = ret[1];
@@ -62,7 +62,7 @@ function mkplot()
     ylabel: '<i>g</i>(<i>r</i>)',
     yRangePad: 1,
     width: 480,
-    axisLabelFontSize: 10,
+    axisLabelFontSize: 10
   };
 
   var options_cr = {
@@ -70,10 +70,11 @@ function mkplot()
     ylabel: '<i>c</i>(<i>r</i>)',
     yRangePad: 1,
     width: 480,
-    axisLabelFontSize: 10,
+    axisLabelFontSize: 10
   };
 
   // write the header of the table
+  var datgr, datcr;
   datgr = datcr = "r";
   for ( i = 0; i < ns; i++ )
     for ( j = i; j < ns; j++ ) {

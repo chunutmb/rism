@@ -106,24 +106,21 @@
 
 /* copy array */
 #define cparr(x, y, n) { int i_; \
-  for ( i_ = 0; i_ < n; i_++ ) \
-    x[i_] = y[i_]; }
+  for ( i_ = 0; i_ < n; i_++ ) x[i_] = y[i_]; }
 
 /* allocate a two-dimensional array */
-#define newarr2d(x, m, n) { int i_; \
+#define newarr2d(x, m, n) { int j_; \
   x = malloc(sizeof(x[0]) * m); \
-  for ( i_ = 0; i_ < m; i_++ ) newarr( x[i_], n ); }
+  for ( j_ = 0; j_ < m; j_++ ) newarr( x[j_], n ); }
 
 /* free a two-dimensional array */
-#define delarr2d(x, m) { int i_; \
-  for ( i_ = 0; i_ < m; i_++ ) delarr( x[i_] ); \
+#define delarr2d(x, m) { int j_; \
+  for ( j_ = 0; j_ < m; j_++ ) delarr( x[j_] ); \
   free(x); x = NULL; }
 
 /* copy array */
-#define cparr2d(x, y, m, n) { int i_, k_; \
-  for ( i_ = 0; i_ < m; i_++ ) \
-    for ( k_ = 0; k_ < n; k_++ ) \
-      x[i_][k_] = y[i_][k_]; }
+#define cparr2d(x, y, m, n) { int j_; \
+  for ( j_ = 0; j_ < m; j_++ ) cparr(x[j_], y[j_], n); }
 
 
 
@@ -149,7 +146,10 @@ fftw_plan fftwplan;
 
 
 
-#define newarr(x, n) x = (double *) fftw_malloc(sizeof(x[0]) * n)
+#define newarr(x, n) { int i_; \
+  (x) = (double *) fftw_malloc(sizeof((x)[0]) * n); \
+  for ( i_ = 0; i_ < n; i_++ ) (x)[i_] = 0; }
+
 #define delarr(x) fftw_free(x)
 
 
@@ -158,7 +158,7 @@ fftw_plan fftwplan;
 
 
 
-#define newarr(x, n) x = malloc(sizeof(x[0]) * n)
+#define newarr(x, n) x = calloc(n, sizeof(x[0]))
 #define delarr(x) free(x)
 
 

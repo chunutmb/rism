@@ -1,7 +1,7 @@
 function grab(id)
 {
   var x = document.getElementById(id);
-  if ( x == null )
+  if ( x === null )
     console.log("cannot grab element ", id);
   return x;
 }
@@ -25,7 +25,7 @@ function get_float(id, def)
 
 function get_int(id, def)
 {
-  var x = parseInt( grab(id).value );
+  var x = parseInt( grab(id).value, 10 );
   return !isNaN(x) && isFinite(x) ? x : def;
 }
 
@@ -34,7 +34,7 @@ function get_int(id, def)
 /* check if `n' is a valid integer */
 function is_int(n)
 {
-  return !isNaN(parseInt(n)) && isFinite(n);
+  return !isNaN(parseInt(n, 10)) && isFinite(n);
 }
 
 

@@ -127,8 +127,8 @@ function read_params()
       eps6: eps6ij,
       eps12: eps12ij,
       B: Bij,
-      rho: rhoij,
-    }
+      rho: rhoij
+    };
   }
 
   // distance matrix
@@ -422,7 +422,7 @@ function oz(ck, vklr, tk, wk, invwc1w)
     invmat(tm2, invwc1, ns); /* invwc1 = (1 - wc)^(-1) */
 
     matmul(tm3, invwc1, w, ns); /* tm3 = (1 - rho w c)^(-1) w */
-    if ( invwc1w != null )
+    if ( invwc1w !== null )
       for ( ij = 0; ij < ns*ns; ij++ )
         invwc1w[ij][l] = tm3[ij];
     matmul(tm2, tm1, tm3, ns); /* tm2 = rho w c (1 - rho w c)^(-1) w */
@@ -485,13 +485,13 @@ function closure(res, der, vrsr, cr, tr, prmask, damp)
     for ( j = i; j < ns; j++ ) {
       ij = i*ns + j;
       ji = j*ns + i;
-      if ( prmask != null && !prmask[ij] ) continue;
+      if ( prmask !== null && !prmask[ij] ) continue;
       err = max = 0;
       for ( l = 0; l < npt; l++, id++ ) {
         ret = getcr(tr[ij][l], vrsr[ij][l], ietype, crmax);
         y = ret[0] - cr[ij][l];
-        if ( der != null ) der[ij][l] = ret[1];
-        if ( res != null ) res[id] = y;
+        if ( der !== null ) der[ij][l] = ret[1];
+        if ( res !== null ) res[id] = y;
         cr[ij][l] += damp * y;
         err = Math.max(err, Math.abs(y));
         max = Math.max(max, Math.abs(cr[ij][l]));

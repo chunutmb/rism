@@ -16,7 +16,7 @@ function change_unit_eps()
 
 function change_eps6(id, prefix)
 {
-  if ( prefix == null || prefix == undefined )
+  if ( prefix === null || prefix === undefined )
     prefix = "";
   var txteps12 = grab(prefix + "eps12_" + id);
   if ( grab(prefix + "sameeps_" + id).checked ) {
@@ -31,28 +31,28 @@ function change_eps6(id, prefix)
 
 function change_ns(ns)
 {
-  if ( ns == null || ns == undefined ) {
+  if ( ns === null || ns === undefined ) {
     ns = grab("ns").value;
     if ( !is_int(ns) ) return;
-    ns = parseInt(ns);
+    ns = parseInt(ns, 10);
   } else {
     grab("ns").value = ns;
   }
 
   var tab = grab("siteTable");
   var tbody = tab.lastChild;
-  var rowid, row, td;
+  var i, rowid, row, td;
 
   // determine the number of existing rows
-  for ( var i = 0; ; i++ ) {
+  for ( i = 0; ; i++ ) {
     rowid = "site_row_" + (i+1);
     row = document.getElementById(rowid);
-    if ( row == null ) break;
+    if ( row === null ) break;
   }
   var nrows = i; // number of existing rows
 
   // remove redundant elements, if any
-  for ( var i = ns; i < nrows; i++ ) {
+  for ( i = ns; i < nrows; i++ ) {
     rowid = "site_row_" + (i+1);
     row = document.getElementById(rowid);
     if ( row.parentNode == tbody )
@@ -60,7 +60,7 @@ function change_ns(ns)
   }
 
   // create non-existing elements
-  for ( var i = nrows; i < ns; i++ ) {
+  for ( i = nrows; i < ns; i++ ) {
     var i1 = "" + (i+1);
     rowid = "site_row_" + i1;
     row = document.createElement("tr");
@@ -111,28 +111,28 @@ function change_ns(ns)
 
 function change_npairs(npairs)
 {
-  if ( npairs == null || npairs == undefined ) {
+  if ( npairs === null || npairs === undefined ) {
     npairs = grab("npairs").value;
     if ( !is_int(npairs) ) return;
-    npairs = parseInt(npairs);
+    npairs = parseInt(npairs, 10);
   } else {
     grab("npairs").value = npairs;
   }
 
   var tab = grab("pairTable");
   var tbody = tab.lastChild;
-  var rowid, row, td;
+  var i, rowid, row, td;
 
   // determine the number of existing rows
-  for ( var i = 0; ; i++ ) {
+  for ( i = 0; ; i++ ) {
     rowid = "pair_row_" + (i+1);
     row = document.getElementById(rowid);
-    if ( row == null ) break;
+    if ( row === null ) break;
   }
   var nrows = i; // number of existing rows
 
   // remove redundant elements, if any
-  for ( var i = npairs; i < nrows; i++ ) {
+  for ( i = npairs; i < nrows; i++ ) {
     rowid = "pair_row_" + (i+1);
     row = document.getElementById(rowid);
     if ( row.parentNode == tbody )
@@ -140,7 +140,7 @@ function change_npairs(npairs)
   }
 
   // create non-existing elements
-  for ( var i = nrows; i < npairs; i++ ) {
+  for ( i = nrows; i < npairs; i++ ) {
     var i1 = "" + (i+1);
 
     rowid = "pair_row_" + i1;
@@ -212,28 +212,29 @@ function change_npairs(npairs)
 
 function change_nbonds(nbonds)
 {
-  if ( nbonds == null || nbonds == undefined ) {
+  if ( nbonds === null || nbonds === undefined ) {
     nbonds = grab("nbonds").value;
     if ( !is_int(nbonds) || nbonds < 0 ) return;
-    nbonds = parseInt(nbonds);
+    nbonds = parseInt(nbonds, 10);
   } else {
     grab("nbonds").value = nbonds;
   }
 
   var tab = grab("bondTable");
   var tbody = tab.lastChild;
-  var rowid, row, td;
+  var i, rowid, row, td;
 
   // determine the number of existing rows
-  for ( var i = 0; ; i++ ) {
+  for ( i = 0; ; i++ ) {
     rowid = "bond_row_" + (i+1);
     row = document.getElementById(rowid);
-    if ( row == null ) break;
+    if ( row === null ) break;
+
   }
   var nrows = i; // number of existing rows
 
   // remove redundant elements, if any
-  for ( var i = nbonds; i < nrows; i++ ) {
+  for ( i = nbonds; i < nrows; i++ ) {
     rowid = "bond_row_" + (i+1);
     row = document.getElementById(rowid);
     if ( row.parentNode == tbody )
@@ -241,7 +242,7 @@ function change_nbonds(nbonds)
   }
 
   // create non-existing elements
-  for ( var i = nrows; i < nbonds; i++ ) {
+  for ( i = nrows; i < nbonds; i++ ) {
     var i1 = "" + (i+1);
 
     rowid = "bond_row_" + i1;
@@ -275,6 +276,7 @@ function change_nbonds(nbonds)
 function gencfg()
 {
   var s = "# configuration file for rism0\n";
+  var i;
 
   var ns = grab("ns").value;
   if ( !is_int(ns) || ns < 0 ) {
@@ -284,7 +286,7 @@ function gencfg()
   s += "ns            = " + ns + "\n";
 
   var ljtype = grab("ljtype").value;
-  for ( var i = 0; i < ns; i++ ) {
+  for ( i = 0; i < ns; i++ ) {
     var i1 = i + 1;
     s += "\n";
     s += "sigma(" + i1 + ")      = " + grab("sigma_"  + i1).value + "\n";
@@ -304,7 +306,7 @@ function gencfg()
 
   var npairs = get_int("npairs");
   if ( npairs > 0 ) {
-    for ( var i = 0; i < npairs; i++ ) {
+    for ( i = 0; i < npairs; i++ ) {
       var i1 = i + 1;
       var pairi = get_int("pairi_" + i1);
       var pairj = get_int("pairj_" + i1);
@@ -330,7 +332,7 @@ function gencfg()
           s += "eps12" + sid + " = " + grab("paireps12_" + i1).value + "\n";
         }
       }
-      if ( parseFloat(Bval) != 0 ) {
+      if ( parseFloat(Bval) !== 0.0 ) {
         s += "rho" + sid + "   = " + grab("pairrho_" + i1).value + "\n";
         s += "B" + sid + "     = " + grab("pairB_" + i1).value + "\n";
       }
@@ -340,7 +342,7 @@ function gencfg()
 
   var nbonds = get_int("nbonds");
   if ( nbonds > 0 ) {
-    for ( var i = 0; i < nbonds; i++ ) {
+    for ( i = 0; i < nbonds; i++ ) {
       var i1 = i + 1;
       var bondi = get_int("bondi_" + i1);
       var bondj = get_int("bondj_" + i1);

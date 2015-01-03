@@ -117,7 +117,7 @@ function sphrt(fr, fk, ri, ki, fac, ns, prmask)
   for ( i = 0; i < ns; i++ ) {
     for ( j = i; j < ns; j++ ) {
       ij = i * ns + j;
-      if ( prmask != null && !prmask[ij] ) continue;
+      if ( prmask !== null && !prmask[ij] ) continue;
       for ( l = 0; l < fft_npt; l++ )
         fft_arr[l] = fr[ij][l] * ri[l];
       sint11(fft_arr, fft_npt);
