@@ -1,6 +1,7 @@
 /* Labik-Malijevsky-Vonka (LMV) solver */
 
 
+
 function LMV(ns, npt, M, ki)
 {
   this.ns = ns;
@@ -114,7 +115,7 @@ LMV.prototype.update = function(tk, dmp, uv)
   // compute the Jacobian matrix for the Newton-Raphson method
   this.getjacob(tk, uv);
 
-  if ( lusolve(this.mat, this.a, npr * M, 1e-10) != 0 ) {
+  if ( lusolve(this.mat, this.a, npr * M, 1e-10) !== 0 ) {
     console.log("LU solve failed: stage", uv.stage);
     return -1;
   }
@@ -186,14 +187,14 @@ function iter_lmv(vrsr, wk, cr, der, ck, vklr,
       console.log("it", it, "M", M, "err", errp, "->", err,
         "tk_err", lmv.err1, "/", lmv.err2, "damp", dmp);
 
-    if ( err < tol || it == itmax ) {
+    if ( err < tol || it === itmax ) {
       // use the best cr discovered so far
       cparr2d(cr, lmv.crbest, ns2, npt);
       // update the corresponding ck, tr, tk, and the error
       err = step_picard(null, vrsr, wk,
           cr, ck, vklr, tr, tk, uv.prmask, 0.);
       // switch between stages
-      if ( uv.switchstage() != 0 ) {
+      if ( uv.switchstage() !== 0 ) {
         if ( uv.uu1step )
           step_picard(null, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
         break; // no need to iterate further

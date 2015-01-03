@@ -199,15 +199,14 @@ static int mdiis_update(mdiis_t *m, double **cr, double *res,
 #ifndef MDIIS_THRESHOLD
 #define MDIIS_THRESHOLD 1.0
 #endif
-      int reset = ( sqrt(dot) < MDIIS_THRESHOLD );
-      if ( verbose ) {
-        fprintf(stderr, "MDIIS: bad basis, %g is greater than %g, %s, error:",
-          dot, max, reset ? "reset" : "accept");
-        for ( i = 0; i < nb; i++ )
-          fprintf(stderr, " %g", m->mat[i*mnb1+i]);
-        fprintf(stderr, "\n");
-      }
-      if ( reset ) {
+      if ( sqrt(dot) < MDIIS_THRESHOLD ) {
+        if ( verbose ) {
+          fprintf(stderr, "MDIIS: bad basis, %g is greater than %g, reset, error:",
+            dot, max);
+          for ( i = 0; i < nb; i++ )
+            fprintf(stderr, " %g", m->mat[i*mnb1+i]);
+          fprintf(stderr, "\n");
+        }
         mdiis_build(m, cr, res, uv);
         return 1;
       }
@@ -244,7 +243,7 @@ static double iter_mdiis(model_t *model,
   int it, ibp = 0, ib, ns = model->ns, npt = model->npt;
   double err, errp, damp = model->mdiis.damp, *res;
 
-  /* open the mdiis object if needed */
+  /* open an mdiis object */
   mdiis = mdiis_open(ns, npt, model->mdiis.nbases);
   /* use the space of the last array for `res' */
   res = mdiis->res[mdiis->mnb];

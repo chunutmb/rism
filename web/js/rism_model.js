@@ -58,6 +58,7 @@ var constants = {
   "calpmol_to_erg":   CALPMOL_TO_ERG,
   "kjpmol_to_erg":    KJPMOL_TO_ERG,
   "kcalpmol_to_erg":  KCALPMOL_TO_ERG,
+  "unknown": -1
 };
 
 
@@ -99,7 +100,7 @@ function model_getidx(s, n)
   if ( q < 0 )
     throw new Error("getidx cannot find the index of [" + s + "]");
   var t = s.substr(p+1, q-p-1);
-  var i = parseInt(t);
+  var i = parseInt(t, 10);
   if ( isNaN(i) || i <= 0 || i > n )
     throw new Error("getidx has bad index for " + s + ", i " + i + " > " + n);
   return i;
@@ -129,7 +130,7 @@ function model_getidx2(s, n, hasii)
   var j = parseInt( arr[1].trim() );
   if ( isNaN(i) || i <= 0 || i > n
     || isNaN(j) || j <= 0 || j > n
-    || (i == j && !hasii) )
+    || (i === j && !hasii) )
     throw new Error("getidx2 has bad index for " + s + ", i " + i + ", j " + j);
   return (i < j) ? [i, j] : [j, i];
 }
@@ -149,7 +150,7 @@ function model_findpair(i, j)
     var pairj = get_int("pairj_" + ipr);
     if ( pairi > pairj )
       tmp = pairi, pairi = pairj, pairj = tmp;
-    if ( pairi == i && pairj == j )
+    if ( pairi === i && pairj === j )
       return ipr;
   }
 
@@ -182,7 +183,7 @@ function fmtcfg(s)
 /* load the configuration file from the textarea */
 function loadcfg(s)
 {
-  if ( s == null || s == undefined ) {
+  if ( s === null || s === undefined ) {
     s = grab("cfgout").value.trim();
   } else {
     grab("cfgout").value = fmtcfg(s);
@@ -199,7 +200,7 @@ function loadcfg(s)
   change_nbonds(0);
   for ( l = 0; l < s.length; l++ ) {
     ln = s[l].trim();
-    if ( ln.charAt(0) == "#" || ln.length < 3
+    if ( ln.charAt(0) === "#" || ln.length < 3
       || ln.indexOf("=") < 0 )
       continue;
     arr = ln.split("=");
@@ -208,9 +209,9 @@ function loadcfg(s)
 
     //console.log(key, val);
 
-    if ( key == "ns" ) {
+    if ( key === "ns" ) {
       grab("ns").value = val;
-      ns = parseInt(val);
+      ns = parseInt(val, 10);
       change_ns();
     } else if ( strstartswith(key, "sigma(") ) {
       i = model_getidx(key, ns);
@@ -309,11 +310,11 @@ function loadcfg(s)
       grab("rmax").value = parseFloat(val);
     } else if ( strieq(key, "npt")
              || strieq(key, "n-pts") ) {
-      grab("npt").value = parseInt(val);
+      grab("npt").value = parseInt(val, 10);
     } else if ( strstartswith(key, "nlambda") ) {
-      grab("nlambdas").value = parseInt(val);
+      grab("nlambdas").value = parseInt(val, 10);
     } else if ( strieq(key, "itmax") ) {
-      grab("itmax").value = parseInt(val);
+      grab("itmax").value = parseInt(val, 10);
     } else if ( strieq(key, "tol") ) {
       grab("tol").value = parseFloat(val);
     } else if ( strieq(key, "solver") ) {
@@ -321,11 +322,11 @@ function loadcfg(s)
     } else if ( striieq(key, "picard_damp") ) {
       grab("picard_damp").value = parseFloat(val);
     } else if ( striieq(key, "lmv_m") ) {
-      grab("lmv_M").value = parseInt(val);
+      grab("lmv_M").value = parseInt(val, 10);
     } else if ( striieq(key, "lmv_damp") ) {
       grab("lmv_damp").value = parseFloat(val);
     } else if ( striieq(key, "mdiis_nbases") ) {
-      grab("mdiis_nbases").value = parseInt(val);
+      grab("mdiis_nbases").value = parseInt(val, 10);
     } else if ( striieq(key, "mdiis_damp") ) {
       grab("mdiis_damp").value = parseFloat(val);
     } else {
@@ -379,7 +380,7 @@ var stockmodels = {
   "pr1982_model2": "ns=3\nsigma(1)=3.166\nrho(1)=0.03334\ncharge(1)=-0.82\nsigma(2)=0.4\nrho(2)=0.03334\ncharge(2)=0.41\nsigma(3)=0.4\nrho(3)=0.03334\ncharge(3)=0.41\nc6ij(1,1)=-625.731\nc12ij(1,1)=629624\nc6ij(1,2)=0\nc12ij(1,2)=225.180\nc6ij(1,3)=0\nc12ij(1,3)=225.180\nc6ij(2,2)=0\nc12ij(2,2)=0\nc6ij(2,3)=0\nc12ij(2,3)=0\nc6ij(3,3)=0\nc12ij(3,3)=0\ndis(1,2)=1.0\ndis(1,3)=1.0\ndis(2,3)=1.633081624\nT=300\nkBT=KBNAC\nkBU=1\nljtype=LJ-full\nampch=KE2NAC\nrscreen=1.0\nclosure=HNC\nrmax=10.24\nnpt=1024\nnlambdas=10\nitmax=10000\ntol=1e-7\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.25\nlmv_M=12\nmdiis_damp=0.5\nmdiis_nbases=5\n",
   "pr1982_model3": "ns=3\nsigma(1)=3.215\nrho(1)=0.03334\ncharge(1)=-0.8\nsigma(2)=0.4\nrho(2)=0.03334\ncharge(2)=0.4\nsigma(3)=0.4\nrho(3)=0.03334\ncharge(3)=0.4\nc6ij(1,1)=-525\nc12ij(1,1)=580000\nc6ij(1,2)=0\nc12ij(1,2)=225.180\nc6ij(1,3)=0\nc12ij(1,3)=225.180\nc6ij(2,2)=0\nc12ij(2,2)=0\nc6ij(2,3)=0\nc12ij(2,3)=0\nc6ij(3,3)=0\nc12ij(3,3)=0\ndis(1,2)=0.9572\ndis(1,3)=0.9572\ndis(2,3)=1.513696\nT=300\nkBT=KBNAC\nkBU=1\nljtype=LJ-full\nampch=KE2NAC\nrscreen=1.0\nclosure=HNC\nrmax=10.24\nnpt=1024\nnlambdas=10\nitmax=10000\ntol=1e-7\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.25\nlmv_M=12\nmdiis_damp=0.5\nmdiis_nbases=5\n",
   "spce": "ns=3\nsigma(1)=3.166\neps(1)=78.21\nrho(1)=0.03334\ncharge(1)=-0.8476\nsigma(2)=0.4\neps6(2)=0\neps12(2)=23.15\nrho(2)=0.03334\ncharge(2)=0.4234\nsigma(3)=0.4\neps6(3)=0\neps12(3)=23.15\nrho(3)=0.03334\ncharge(3)=0.4234\ndis(1,2)=1\ndis(1,3)=1\ndis(2,3)=1.633\nT=300\nkBT=1\nkBU=KBNA\nljtype=LJ-full\nampch=KE2PK\nrscreen=1\nclosure=HNC\nrmax=10.24\nnpt=1024\nnlambdas=10\nitmax=10000\ntol=1e-7\nsolver=LMV\npicard_damp=0.01\nlmv_damp=0.2\nlmv_M=10\nmdiis_damp=0.5\nmdiis_nbases=5\n",
-  "tip3p": "ns=3\nsigma(1)=3.15\neps(1)=76.54\nrho(1)=0.03334\ncharge(1)=-0.834\nsigma(2)=0.4\neps6(2)=0\neps12(2)=23.15\nrho(2)=0.03334\ncharge(2)=0.417\nsigma(3)=0.4\neps6(3)=0\neps12(3)=23.15\nrho(3)=0.03334\ncharge(3)=0.417\ndis(1,2)=0.9572\ndis(1,3)=0.9572\ndis(2,3)=1.5139\nT=300\nkBT=1\nkBU=KBNA\nljtype=LJ-full\nampch=KE2PK\nrscreen=1\nclosure=HNC\nrmax=10.24\nnpt=1024\nnlambdas=10\nitmax=10000\ntol=1e-7\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.2\nlmv_M=10\nmdiis_damp=0.5\nmdiis_nbases=5\n",
+  "tip3p": "ns=3\nsigma(1)=3.15\neps(1)=76.54\nrho(1)=0.03334\ncharge(1)=-0.834\nsigma(2)=0.4\neps6(2)=0\neps12(2)=23.15\nrho(2)=0.03334\ncharge(2)=0.417\nsigma(3)=0.4\neps6(3)=0\neps12(3)=23.15\nrho(3)=0.03334\ncharge(3)=0.417\ndis(1,2)=0.9572\ndis(1,3)=0.9572\ndis(2,3)=1.5139\nT=300\nkBT=1\nkBU=KBNA\nljtype=LJ-full\nampch=KE2PK\nrscreen=1\nclosure=HNC\nrmax=10.24\nnpt=1024\nnlambdas=10\nitmax=10000\ntol=1e-7\nsolver=MDIIS\npicard_damp=0.01\nlmv_damp=0.2\nlmv_M=10\nmdiis_damp=0.5\nmdiis_nbases=5\n"
 };
 
 
@@ -389,7 +390,7 @@ function loadstockmodel()
   var mdl = grab("stockmodel").value;
 
   if ( strstartswith(mdl, "model_") )
-    mdl = mdl.substr(6, mdl.length - 6)
+    mdl = mdl.substr(6, mdl.length - 6);
   loadcfg( stockmodels[mdl] );
 }
 

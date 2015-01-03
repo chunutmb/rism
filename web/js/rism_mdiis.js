@@ -1,6 +1,3 @@
-
-
-
 /* modified direct inversion of the iterative subspace (MDIIS) method */
 
 
@@ -39,7 +36,7 @@ MDIIS.prototype.solve = function()
   this.mat2[nb*nb1 + nb] = 0;
   i = lusolve(this.mat2, this.coef, nb1, 1e-20);
   return 0;
-}
+};
 
 
 
@@ -57,7 +54,7 @@ MDIIS.prototype.copyout = function(cr, src, uv)
       ipr++;
       cparr(cr[j*ns + i], cr[ij], npt);
     }
-}
+};
 
 
 
@@ -76,8 +73,7 @@ MDIIS.prototype.gencr = function(cr, damp, uv)
   }
   // cr = this.cr[nb]
   this.copyout(cr, this.cr[nb], uv);
-}
-
+};
 
 
 
@@ -88,7 +84,7 @@ MDIIS.prototype.getdot = function(a, b, n)
 
   for ( i = 0; i < n; i++ ) x += a[i] * b[i];
   return x / n;
-}
+};
 
 
 
@@ -117,7 +113,8 @@ MDIIS.prototype.build = function(cr, res, uv)
     this.mat[ib*mnb1 + mnb] = this.mat[mnb*mnb1 + ib] = -1;
   this.mat[mnb*mnb1 + mnb] = 0;
   return 0;
-}
+};
+
 
 
 
@@ -175,14 +172,14 @@ MDIIS.prototype.update = function(cr, res, err, uv)
     this.mat[i*mnb1 + ib] = this.mat[ib*mnb1 + i]
       = this.getdot(this.res[i], res, uv.npr * npt);
   return ib;
-}
+};
 
 
 
 function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
 {
   var it, ibp = 0, ib;
-  var err, errp = errinf, damp, res;
+  var err, errp = errinf, res;
 
   var damp = get_float("mdiis_damp", 0.5);
   var nbases = get_int("mdiis_nbases", 5);
@@ -207,7 +204,7 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
     if ( err < tol || it == itmax ) {
       mdiis.copyout(cr, mdiis.crbest, uv);
       err = step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 0.);
-      if ( uv.switchstage() != 0 ) {
+      if ( uv.switchstage() !== 0 ) {
         if ( uv.uu1step )
           step_picard(res, vrsr, wk, cr, ck, vklr, tr, tk, uv.prmask, 1.);
         break;
@@ -222,7 +219,7 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
     errp = err;
   }
   return [err, it];
-}
+};
 
 
 
