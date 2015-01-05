@@ -158,7 +158,7 @@ fftw_plan fftwplan;
 
 
 
-#define newarr(x, n) x = malloc(sizeof(x[0]) * n)
+#define newarr(x, n) x = calloc(n, sizeof(x[0]))
 #define delarr(x) free(x)
 
 

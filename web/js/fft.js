@@ -11,10 +11,10 @@ function fft(a, n, sign)
   var s, c, bs, bsh, bcb, bth = Math.PI, tmpre, tmpim, tmp;
   var gaddr, gspan = 1; // gaddr is the starting index of each group
   var coupid, coups;  // coups is how many couples in each group
-  var i, j, m, n;
+  var i, j, m;
 
   // check if n is an integer power of 2
-  for (m = n; (m & 1) == 0; m >>= 1) ;
+  for (m = n; (m & 1) === 0; m >>= 1) ;
   if (m > 1) {
     alert("n " + n + " is not a power of 2\n");
     return -1;
@@ -94,7 +94,7 @@ function sint00(a, n)
 
   arr = new Array(n * 4);
   for (i = 0; i < n; i++) {
-    if (i != 0) {
+    if (i !== 0) {
       arr[i*2] = a[i];
       arr[(2*n - i)*2] = -a[i];
     }
@@ -110,7 +110,7 @@ function sint00(a, n)
 // sine transform, return \int 2 * sin(k x) a(x) dx
 function sint11(a, n)
 {
-  var err, i, n;
+  var err, i;
   var arr, c, s, th, c1, s1, tmp;
 
   arr = new Array(n * 4);
@@ -157,7 +157,7 @@ function cost00(a, n)
   arr[0] = a[0];
   arr[n*2] = a[n];
   for (i = 0; i < n; i++) {
-    if (i != 0) arr[(n*2 - i)*2] = arr[i*2] = a[i];
+    if (i !== 0) arr[(n*2 - i)*2] = arr[i*2] = a[i];
     arr[(n + i)*2+1] = arr[i*2+1] = 0;
   }
 

@@ -99,8 +99,8 @@ function prepare()
   ck = new Array(npt);
   tk = new Array(npt);
   for ( i = 0; i < npt; i++ ) {
-    ri[i] = (i + .5) * dr;
-    ki[i] = (i + .5) * dk;
+    ri[i] = (i + 0.5) * dr;
+    ki[i] = (i + 0.5) * dk;
   }
 
   initfr();
@@ -167,29 +167,30 @@ function solve()
 function mkplot()
 {
   var i;
+  var dat, options;
 
   solve();
 
-  var options = {
+  options = {
     //showRoller: true,
     xlabel: '<i>r</i>',
     ylabel: '<i>g</i>(<i>r</i>)',
     yRangePad: 1,
-    width: 350,
+    width: 350
   };
-  var dat = [];
+  dat = [];
   for ( i = 0; i < npt; i++ )
     dat.push( [ ri[i], Math.max(1 + tr[i] + cr[i], 0) ] );
   var grplot = new Dygraph(document.getElementById("gr_plot"), dat, options);
 
-  var options = {
+  options = {
     //showRoller: true,
     xlabel: '<i>r</i>',
     ylabel: '<i>c</i>(<i>r</i>)',
     yRangePad: 1,
-    width: 350,
+    width: 350
   };
-  var dat = [];
+  dat = [];
   for ( i = 0; i < npt; i++ )
     dat.push( [ ri[i], cr[i] ] );
   var crplot = new Dygraph(grab("cr_plot"), dat, options);
