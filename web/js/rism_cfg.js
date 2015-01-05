@@ -1,3 +1,6 @@
+/* handle the input from the HTML form */
+
+
 
 function change_unit_eps()
 {
@@ -286,12 +289,13 @@ function gencfg()
   s += "ns            = " + ns + "\n";
 
   var ljtype = grab("ljtype").value;
+  var i, i1, sameeps;
   for ( i = 0; i < ns; i++ ) {
-    var i1 = i + 1;
+    i1 = i + 1;
     s += "\n";
     s += "sigma(" + i1 + ")      = " + grab("sigma_"  + i1).value + "\n";
     if ( ljtype != "Hard-sphere" ) {
-      var sameeps = grab("sameeps_" + i1).checked;
+      sameeps = grab("sameeps_" + i1).checked;
       if ( sameeps ) {
         s += "eps(" + i1 + ")        = " + grab("eps6_"   + i1).value + "\n";
       } else {
@@ -307,7 +311,7 @@ function gencfg()
   var npairs = get_int("npairs");
   if ( npairs > 0 ) {
     for ( i = 0; i < npairs; i++ ) {
-      var i1 = i + 1;
+      i1 = i + 1;
       var pairi = get_int("pairi_" + i1);
       var pairj = get_int("pairj_" + i1);
       if ( pairi <= 0 || pairj <= 0 ) {
@@ -324,7 +328,7 @@ function gencfg()
         s += "C12" + sid + "   = " + C12val + "\n";
       } else {
         s += "sigma" + sid + " = " + grab("pairsigma_" + i1).value + "\n";
-        var sameeps = grab("pairsameeps_" + i1).checked;
+        sameeps = grab("pairsameeps_" + i1).checked;
         if ( sameeps ) {
           s += "eps" + sid + "   = " + grab("paireps6_" + i1).value + "\n";
         } else {
@@ -343,7 +347,7 @@ function gencfg()
   var nbonds = get_int("nbonds");
   if ( nbonds > 0 ) {
     for ( i = 0; i < nbonds; i++ ) {
-      var i1 = i + 1;
+      i1 = i + 1;
       var bondi = get_int("bondi_" + i1);
       var bondj = get_int("bondj_" + i1);
       var bondlen = get_float("bondlen_" + i1);
