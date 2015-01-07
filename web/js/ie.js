@@ -1,3 +1,10 @@
+
+
+
+"use strict";
+
+
+
 var rho = 0.7;
 var ljtype = "Hard-sphere";
 var ietype = "PY";
@@ -115,9 +122,9 @@ function prepare()
 function getdcr(cr, tr, fr)
 {
   if ( ietype == "PY" ) {
-    return fr[i] * (1 + tr[i]) - cr[i];
+    return fr * (1 + tr) - cr;
   } else if ( ietype == "HNC" ) {
-    return (1 + fr[i]) * Math.exp( tr[i] ) - 1 - tr[i] - cr[i];
+    return (1 + fr) * Math.exp( tr ) - 1 - tr - cr;
   }
 }
 
@@ -125,10 +132,10 @@ function getdcr(cr, tr, fr)
 
 function closure(cr, tr, fr, damp)
 {
-  var del, err = 0;
+  var i, del, err = 0;
 
   for ( i = 0; i < npt; i++ ) {
-    del = getdcr(cr, tr, fr);
+    del = getdcr(cr[i], tr[i], fr[i]);
     err = Math.max( Math.abs(del), err );
     cr[i] += del * damp;
   }
@@ -139,7 +146,7 @@ function closure(cr, tr, fr, damp)
 
 function picard()
 {
-  var it;
+  var it, i;
   var err = 1e9;
 
   for ( it = 1; it <= itmax && err > tol; it++ ) {

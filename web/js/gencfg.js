@@ -1,4 +1,10 @@
 
+
+
+"use strict";
+
+
+
 function change_unit_eps()
 {
   var unit = grab("unit_eps6").value;

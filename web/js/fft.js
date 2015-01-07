@@ -1,3 +1,11 @@
+/* Fast Fourier transform */
+
+
+
+"use strict";
+
+
+
 // replace the complex array a[] by their discrete fast fourier transform
 //   o a[] is both the input and the output
 //   o a[i*2] and a[i*2+1] are the real and complex parts, respectively

@@ -1,3 +1,10 @@
+
+
+
+"use strict";
+
+
+
 function grab(id)
 {
   var x = document.getElementById(id);
