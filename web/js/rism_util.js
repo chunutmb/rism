@@ -1,3 +1,11 @@
+/* utility routines */
+
+
+
+"use strict";
+
+
+
 /* Numerical constants
  * default units:
  * length: angstrom

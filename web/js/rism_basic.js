@@ -2,6 +2,10 @@
 
 
 
+"use strict";
+
+
+
 var ns = 3;
 var ns2 = 9;
 var npt = 1024;

@@ -2,6 +2,10 @@
 
 
 
+"use strict";
+
+
+
 function MDIIS(ns, npt, mnb)
 {
   var ns2 = ns * (ns + 1) / 2;
@@ -184,8 +188,8 @@ function iter_mdiis(vrsr, wk, cr, ck, vklr, tr, tk, uv)
   var damp = get_float("mdiis_damp", 0.5);
   var nbases = get_int("mdiis_nbases", 5);
 
-  /* open the mdiis object if needed */
-  mdiis = new MDIIS(ns, npt, nbases);
+  /* open an mdiis object */
+  var mdiis = new MDIIS(ns, npt, nbases);
   /* use the space of the last array for `res' */
   res = mdiis.res[mdiis.mnb];
 

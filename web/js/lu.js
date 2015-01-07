@@ -1,3 +1,10 @@
+/* LU decomposition */
+
+
+"use strict";
+
+
+
 /* solve A x = b by L U decomposition
  * on return, matrix `a' is destroyed, and vector `b' becomes `x' */
 function lusolve(a, b, n, tiny)

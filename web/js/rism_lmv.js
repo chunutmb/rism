@@ -2,6 +2,10 @@
 
 
 
+"use strict";
+
+
+
 function LMV(ns, npt, M, ki)
 {
   this.ns = ns;
@@ -26,8 +30,8 @@ function LMV(ns, npt, M, ki)
     this.a = newarr(Mp);
     this.dp = newarr(3 * M);
     this.costab = newarr2d(3 * M, npt);
-    for ( j = 0; j < 3*M; j++ )
-      for ( i = 0; i < npt; i++ )
+    for ( var j = 0; j < 3*M; j++ )
+      for ( var i = 0; i < npt; i++ )
         this.costab[j][i] = Math.cos(PI*(i+.5)*(j-M)/npt);
   }
 }

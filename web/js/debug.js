@@ -1,3 +1,10 @@
+/* Debugging routines */
+
+
+
+"use strict";
+
+
 
 /* print array */
 function parr(a, name)

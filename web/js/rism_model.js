@@ -1,3 +1,11 @@
+/* models */
+
+
+
+"use strict";
+
+
+
 var constants = {
   "pi":               PI,
   "cal_to_j":         CAL_TO_J,
@@ -203,9 +211,9 @@ function loadcfg(s)
     if ( ln.charAt(0) === "#" || ln.length < 3
       || ln.indexOf("=") < 0 )
       continue;
-    arr = ln.split("=");
-    key = arr[0].trim();
-    val = arr[1].trim();
+    var arr = ln.split("=");
+    var key = arr[0].trim();
+    var val = arr[1].trim();
 
     //console.log(key, val);
 

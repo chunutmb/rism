@@ -1,3 +1,11 @@
+/* Manager of solute-solvent stages */
+
+
+
+"use strict";
+
+
+
 var SOLVENT_SOLVENT = 0;
 var SOLUTE_SOLVENT = 1;
 var SOLUTE_SOLUTE = 2;
