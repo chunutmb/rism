@@ -49,7 +49,7 @@ The basic usage is
 Here, `your.cfg` is a configuration file for the model,
 see `sample.cfg` for an example.
 To customize a configuration file,
-please use `gencfg.html` under the `web` directory.
+please use `rism.html` under the `web` directory.
 
 You can also test a few stock models.
 For example, to test model 14, type
