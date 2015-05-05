@@ -163,18 +163,18 @@ fftw_plan fftwplan;
 
 
 
-/* Discription:
- *   replace the complex array a[] by their discrete fast fourier transform
+/* Description:
+ *   replace the complex array a[] by their discrete fast Fourier transform
  *
  * Parameter:
  *   o a[] is both the input and the output
  *   o a[i*2] and a[i*2+1] are the real and complex parts, respectively
  *   o n must be a power of 2
- *   o if sign is 1, do fast fourier transform,
+ *   o if sign is 1, do fast Fourier transform,
  *     if sign is 0 or -1, do the inverse transform
  *
  * Return:
- *   on sucess, returns 0;
+ *   on success, returns 0;
  *   if n isn't an integer power of 2, returns 1
  */
 static int fft(double a[], int n, int sign)
@@ -220,13 +220,13 @@ static int fft(double a[], int n, int sign)
     gspan *= 2;
     /* for each couple
      * NOTE: the value of bth (its sine and also its cosine) is only
-     * relevent to the couple id, that means, two couples with a same
+     * relevant to the couple id, that means, two couples with a same
      * couple id will share a same theta */
     for (coupid = 0; coupid < coups; coupid++) {
       /* for each group */
       for (gaddr = 0; gaddr < n; gaddr += gspan) {
         i = gaddr + coupid; j = i + coups;
-        /* calculate this couple by following fomula
+        /* calculate this couple by following formula
          * ai = ai + aj * (c + s i);
          * aj = ai - aj * (c + s i);
          */
@@ -240,10 +240,10 @@ static int fft(double a[], int n, int sign)
       /* deal next couple, increase  cosine and sine by
        * cos(a+b) = cos(a)*cos(b) - sin(a)*sin(b);
        * sin(a+b) = sin(a)*cos(b) + cos(a)*sin(b);
-       * but when b is very small(when n is a verylarge number),
-       * cos(b) will be very close to 1 and inaccute,
-       * so we replace these fomulas by introduce bcb = 1-cos(b) = 2*sin(b/2)*sin(b/2),
-       * -- a reletively small number,
+       * but when b is very small(when n is a very large number),
+       * cos(b) will be very close to 1 and inaccurate,
+       * so we replace these formulae by introduce bcb = 1-cos(b) = 2*sin(b/2)*sin(b/2),
+       * -- a relatively small number,
        * cos(a+b) = cos(a) + (cos(a)*(-bcb) - sin(a)*sin(b));
        * sin(a+b) = sin(a) + (sin(a)*(-bcb) + cos(a)*sin(b));
        */
@@ -301,7 +301,7 @@ __inline static int sint11(double a[], int n)
 
 
 
-/* initialize fft */
+/* initialize FFT */
 static void initfft(double rmax, int npt)
 {
   int i;
@@ -327,7 +327,7 @@ static void initfft(double rmax, int npt)
 
 
 
-/* clean up fft */
+/* clean up FFT */
 static void donefft(void)
 {
   delarr(fft_arr);

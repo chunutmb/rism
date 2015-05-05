@@ -305,7 +305,7 @@ static void initfr(model_t *m, double **ur, double **nrdur,
       /* if any of the pair energy is set, we use the pair potential */
       use_pairpot = ( fabs(eps6) > DBL_MIN || fabs(eps12) > DBL_MIN
           || fabs(c6) > DBL_MIN || fabs(c12) > DBL_MIN || fabs(Bij) > DBL_MIN );
-      if ( !use_pairpot ) { /* otherwise, we use the starndard LJ form */
+      if ( !use_pairpot ) { /* otherwise, we use the standard LJ form */
         sig = .5 * (m->sigma[i] + m->sigma[j]);
         eps6 = sqrt(m->eps6_12[i][0] * m->eps6_12[j][0]);
         eps12 = sqrt(m->eps6_12[i][1] * m->eps6_12[j][1]);
@@ -455,7 +455,7 @@ static void oz(model_t *m, double **ck, double **vklr,
 
 
 
-/* compute the chain sum Q(r) for the charge interation */
+/* compute the chain sum Q(r) for the charge interaction */
 static void getQr(model_t *m, double **vrqq, double **Qr,
     double **Qk, double **wk, double **vkqq,
     double **Qrx, double **vrlj)
@@ -665,7 +665,7 @@ static char *output(model_t *m,
          * `pmfs' is computed from Eq. (50) of the following paper:
          * [ ``The interionic potential of mean force in a molecular polar
          *     solvent from an extended RISM equation''
-         *    Hirate, Rossky, and Pettitt,
+         *    Hirata, Rossky, and Pettitt,
          *    J. Chem. Phys. 78(6) 4133-4144 (1983) ]
          *
          *    beta dW
@@ -820,7 +820,7 @@ static int dorism(model_t *model)
       }
     }
 
-    /* initialize the manager for solute-solvent iteraction */
+    /* initialize the manager for solute-solvent interaction */
     uv = uv_open(model);
 
     if ( model->solver == SOLVER_LMV ) {

@@ -70,12 +70,12 @@ typedef struct {
   double eps6_12[MAXATOM][2];
 
   pairpot_t pairpot[MAXATOM*(MAXATOM+1)/2];
-  /* altenative to sigma/epsilon, pairwise entries */
+  /* alternative to sigma/epsilon, pairwise entries */
 
   double rho[MAXATOM];
   double dis[MAXATOM*(MAXATOM-1)/2];
   double beta; /* 1/(kBT*T), sometimes given as 1/T without kB */
-  double kBT; /* Boltzman constant, to be multiplied on T */
+  double kBT; /* Boltzmann constant, to be multiplied on T */
   double kBU; /* Boltzmann constant, only used if the unit
                  of LJ energy is already divided by kB */
   int ljtype;
@@ -89,7 +89,7 @@ typedef struct {
   int npt; /* number of sampling points along r */
 
   int nlambdas; /* number of intermediate stages */
-  int itmax; /* maximial number of iterations in each stage */
+  int itmax; /* maximal number of iterations in each stage */
   double tol; /* tolerance of error */
   int solver; /* solver */
 
@@ -944,7 +944,7 @@ static int model_override(model_t *m, const model_t *m_usr)
             i + IDBASE, j + IDBASE, x);
       }
 
-  /* override the temprature */
+  /* override the temperature */
   if ( m_usr->beta > 0 )
     m->beta = m_usr->beta / m->kBT;
 

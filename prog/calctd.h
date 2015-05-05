@@ -120,7 +120,7 @@ static double calcdielec(model_t *m)
     for ( ic = 0, i = 0; i < m->ns; i++ )
       if ( m->mol[i] == imol && m->rho[i] > 0 )
         arr[ic++] = i;
-    /* skip an atomic solvent or solute of infite dilution */
+    /* skip an atomic solvent or solute of infinite dilution */
     if ( ic <= 1 ) continue;
 
     /* compute the dipole moment of molecule imol */
@@ -189,7 +189,7 @@ static double getgr(model_t *m, double cr, double tr, double vrsr)
 
 
 
-/* compute the Kirkword integrals
+/* compute the Kirkwood integrals
  * NOTE: this routine may fail for charged systems */
 static int calckirk(model_t *m, double **cr, double **tr,
     double **vrsr, double *kirk)
