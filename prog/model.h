@@ -616,10 +616,10 @@ model_t models[] =
     {0}, 0, 0,
     IE_PY, 10.24, 1024,
     1, 10000, 1e-7,
-    SOLVER_LMV,
+    SOLVER_MDIIS,
     {0.15},
     {20, 0.5},
-    {3, 0.5}
+    {5, 0.5}
   },
   /* 5. KA1978, liquid nitrogen */
   {2, {1.000, 1.000}, {{1, 1}, {1, 1}}, {{0}},
@@ -631,7 +631,7 @@ model_t models[] =
     SOLVER_MDIIS,
     {0.01}, /* does not work */
     {0, 0.4},
-    {5, 0.2}
+    {5, 0.7}
   },
   /* 6. HR1981, liquid nitrogen, neutral */
   {2, {3.341, 3.341},
@@ -644,7 +644,7 @@ model_t models[] =
     SOLVER_MDIIS,
     {0.01},
     {10, 0.3},
-    {5, 0.1}
+    {5, 0.7}
   },
   /* 7. HR1981, liquid nitrogen, charged, also HPR1982, model I */
   {2, {3.341, 3.341},
@@ -657,7 +657,7 @@ model_t models[] =
     SOLVER_LMV,
     {0.01},
     {10, 0.5},
-    {5, 0.1}
+    {5, 0.7}
   },
   /* 8. HPR1982, HCl, model II */
   {2, {2.735, 3.353},
@@ -667,10 +667,10 @@ model_t models[] =
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 1000, 1e-7,
-    SOLVER_LMV,
+    SOLVER_MDIIS,
     {0.01},
     {10, 0.5},
-    {5, 0.1}
+    {5, 1.0}
   },
   /* 9. HPR1982, HCl, model III */
   {2, {0.4, 3.353},
@@ -680,10 +680,10 @@ model_t models[] =
     {0.200, -0.200}, KE2PK, 1.0,
     IE_HNC, 20.48, 1024,
     10, 100000, 1e-7,
-    SOLVER_LMV,
+    SOLVER_MDIIS,
     {0.01},
     {10, 0.5},
-    {5, 0.1}
+    {5, 1.0}
   },
   /* 10. PR1982, H2O, model 1
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -705,7 +705,7 @@ model_t models[] =
     SOLVER_LMV,
     {0.01},
     {20, 0.5},
-    {5, 0.5}
+    {5, 1.0}
   },
   /* 11. PR1982, H2O, model 2 (SPC)
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -727,7 +727,7 @@ model_t models[] =
     SOLVER_LMV,
     {0.01},
     {20, 0.5},
-    {5, 0.5}
+    {5, 1.0}
   },
   /* 12. PR1982, H2O, model 3 (TIPS)
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -749,7 +749,7 @@ model_t models[] =
     SOLVER_MDIIS,
     {0.01},
     {20, 0.5},
-    {5, 0.5}
+    {5, 1.0}
   },
   /* 13. SPC/E, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -769,7 +769,7 @@ model_t models[] =
     SOLVER_MDIIS,
     {0.01},
     {25, 0.5},
-    {5, 0.5}
+    {5, 1.0}
   },
   /* 14. TIP3P, H2O
    * atom 0: O, atom 1: H1, atom 2: H2
@@ -789,7 +789,7 @@ model_t models[] =
     SOLVER_MDIIS,
     {0.01},
     {25, 0.5},
-    {5, 0.5}
+    {5, 1.0}
   },
   /* 15. HRP1983, solvent + solute (+/- ion pair)
    * Cf. model 7 */
@@ -806,7 +806,7 @@ model_t models[] =
     SOLVER_MDIIS,
     {0.01},
     {15, 0.5},
-    {5, 0.5}
+    {5, 1.0}
   },
   /* 16. SPC/E, H2O, Na+, Cl-
    * atom 0: O, atom 1: H1, atom 2: H2, atom 3: Na, atom 4: Cl-
@@ -826,7 +826,7 @@ model_t models[] =
     SOLVER_MDIIS,
     {0.01},
     {25, 0.5},
-    {5, 0.5}
+    {5, 1.0}
   },
   {0} /* empty model, place holder */
 };

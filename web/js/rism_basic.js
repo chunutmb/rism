@@ -10,6 +10,7 @@ var ns = 3;
 var ns2 = 9;
 var npt = 1024;
 var rmax = 20.48;
+var ietype = "PY";
 var itmax = 10000;
 var tol = 1e-7;
 var picard_damp = 1.0;
